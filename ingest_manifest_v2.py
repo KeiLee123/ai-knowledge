@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 
 import argparse
+import hashlib
 import json
 import subprocess
 import urllib.request
 from pathlib import Path
 
 
-INGESTER_VERSION = "phase-d3-1.2"
+INGESTER_VERSION = "phase-d3-1.3"
 SUPPORTED_SCHEMA = "retrieval-chunks-v2"
 
 DEFAULT_DB_CONTAINER = "ai-knowledge-db-jiyckdrlappwgimwebnzxwmr"
@@ -694,6 +695,14 @@ def build_transaction_sql(
     chunks_path: Path,
 ) -> str:
     chunks = payload["chunks"]
+
+    if len(vectors) != len(chunks):
+        raise RuntimeError(
+            "Embedding count does not match "
+            f"chunk count: {len(vectors)} "
+            f"!= {len(chunks)}"
+        )
+
     source_manifest = (
         payload.get(
             "source_manifest"
@@ -840,6 +849,98 @@ def build_transaction_sql(
     return "\n".join(lines) + "\n"
 
 
+def inspect_transaction_sql(
+    sql: str,
+    expected_chunks: int,
+) -> dict:
+    document_inserts = (
+        sql.count(
+            "INSERT INTO documents ("
+        )
+    )
+
+    chunk_inserts = (
+        sql.count(
+            "INSERT INTO chunks ("
+        )
+    )
+
+    embedding_inserts = (
+        sql.count(
+            "INSERT INTO embeddings ("
+        )
+    )
+
+    begin_count = (
+        sql.count("BEGIN;")
+    )
+
+    commit_count = (
+        sql.count("COMMIT;")
+    )
+
+    has_on_error_stop = (
+        r"\set ON_ERROR_STOP on"
+        in sql
+    )
+
+    has_doc_id_capture = (
+        "RETURNING id AS doc_id "
+        + r"\gset"
+        in sql
+    )
+
+    has_chunk_id_capture = (
+        "RETURNING id AS chunk_id "
+        + r"\gset"
+        in sql
+    )
+
+    ok = (
+        document_inserts == 1
+        and chunk_inserts
+            == expected_chunks
+        and embedding_inserts
+            == expected_chunks
+        and begin_count == 1
+        and commit_count == 1
+        and has_on_error_stop
+        and has_doc_id_capture
+        and has_chunk_id_capture
+    )
+
+    return {
+        "read_only": True,
+        "sql_executed": False,
+        "sql_bytes": len(
+            sql.encode("utf-8")
+        ),
+        "sql_sha256": hashlib.sha256(
+            sql.encode("utf-8")
+        ).hexdigest(),
+        "expected_chunks":
+            expected_chunks,
+        "document_inserts":
+            document_inserts,
+        "chunk_inserts":
+            chunk_inserts,
+        "embedding_inserts":
+            embedding_inserts,
+        "begin_count":
+            begin_count,
+        "commit_count":
+            commit_count,
+        "on_error_stop":
+            has_on_error_stop,
+        "document_id_capture":
+            has_doc_id_capture,
+        "chunk_id_capture":
+            has_chunk_id_capture,
+        "transaction_contract_ok":
+            ok,
+    }
+
+
 def execute_transaction(
     sql: str,
     db_container: str,
@@ -926,9 +1027,15 @@ def build_plan(
 
     return {
         "mode":
-            "write"
-            if args.write
-            else "validation-only",
+            (
+                "write"
+                if args.write
+                else (
+                    "write-preparation"
+                    if args.prepare_write
+                    else "validation-only"
+                )
+            ),
         "ingester_version":
             INGESTER_VERSION,
         "schema_version":
@@ -967,6 +1074,8 @@ def build_plan(
             tiers,
         "database_write_requested":
             bool(args.write),
+        "write_preparation_requested":
+            bool(args.prepare_write),
         "embedding_sample_requested":
             args.validate_embeddings,
         "embedding_model":
@@ -1064,6 +1173,15 @@ def main() -> None:
     )
 
     parser.add_argument(
+        "--prepare-write",
+        action="store_true",
+        help=(
+            "Precompute all embeddings and build/inspect "
+            "the full transaction SQL without executing it"
+        ),
+    )
+
+    parser.add_argument(
         "--write",
         action="store_true",
         help=(
@@ -1090,6 +1208,15 @@ def main() -> None:
         raise SystemExit(
             "--validate-embeddings "
             "must be >= 0"
+        )
+
+    if (
+        args.prepare_write
+        and args.write
+    ):
+        raise SystemExit(
+            "--prepare-write and --write "
+            "cannot be used together"
         )
 
     try:
@@ -1167,6 +1294,80 @@ def main() -> None:
                     indent=2,
                 )
             )
+
+        if args.prepare_write:
+            checksum = (
+                payload[
+                    "source_manifest"
+                ][
+                    "document_sha256"
+                ]
+            )
+
+            existing = (
+                read_existing_document(
+                    checksum,
+                    args.db_container,
+                )
+            )
+
+            if existing:
+                raise RuntimeError(
+                    "Document checksum already exists "
+                    f"as document_id={existing}"
+                )
+
+            vectors = (
+                precompute_embeddings(
+                    payload,
+                    args.embed_url,
+                )
+            )
+
+            sql = build_transaction_sql(
+                payload,
+                vectors,
+                args,
+                chunks_path,
+            )
+
+            inspection = (
+                inspect_transaction_sql(
+                    sql,
+                    len(
+                        payload["chunks"]
+                    ),
+                )
+            )
+
+            print()
+            print(
+                "WRITE_PREPARATION"
+            )
+
+            print(
+                json.dumps(
+                    inspection,
+                    ensure_ascii=False,
+                    indent=2,
+                )
+            )
+
+            if not inspection[
+                "transaction_contract_ok"
+            ]:
+                raise RuntimeError(
+                    "Generated transaction SQL "
+                    "failed structural validation"
+                )
+
+            print()
+            print(
+                "Write preparation complete. "
+                "Transaction SQL was not executed. "
+                "No database writes performed."
+            )
+            return
 
         if not args.write:
             print()
