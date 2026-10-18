@@ -7,7 +7,7 @@ import urllib.request
 from pathlib import Path
 
 
-INGESTER_VERSION = "phase-d3-1.1"
+INGESTER_VERSION = "phase-d3-1.2"
 SUPPORTED_SCHEMA = "retrieval-chunks-v2"
 
 DEFAULT_DB_CONTAINER = "ai-knowledge-db-jiyckdrlappwgimwebnzxwmr"
@@ -509,6 +509,62 @@ def check_database_contract(
         db_container,
     )
 
+    dimension_rows = run_db_query(
+        (
+            "SELECT DISTINCT dimensions::text "
+            "FROM embeddings "
+            "WHERE provider = 'local' "
+            "AND model = "
+            f"'{EMBED_MODEL}' "
+            "ORDER BY dimensions;"
+        ),
+        db_container,
+    )
+
+    model_dimensions = []
+
+    for line in dimension_rows.splitlines():
+        line = line.strip()
+
+        if not line:
+            continue
+
+        try:
+            model_dimensions.append(
+                int(line)
+            )
+        except ValueError:
+            raise RuntimeError(
+                "Non-integer embedding dimensions "
+                f"value in database: {line!r}"
+            )
+
+    dimension_mismatch_count_text = (
+        run_db_query(
+            (
+                "SELECT COUNT(*)::text "
+                "FROM embeddings "
+                "WHERE provider = 'local' "
+                "AND model = "
+                f"'{EMBED_MODEL}' "
+                "AND COALESCE(dimensions, -1) "
+                f"<> {EXPECTED_DIMENSIONS};"
+            ),
+            db_container,
+        )
+    )
+
+    try:
+        dimension_mismatch_count = int(
+            dimension_mismatch_count_text
+            or "0"
+        )
+    except ValueError as exc:
+        raise RuntimeError(
+            "Invalid dimension mismatch count: "
+            f"{dimension_mismatch_count_text!r}"
+        ) from exc
+
     duplicate_row = run_db_query(
         (
             "SELECT "
@@ -554,14 +610,36 @@ def check_database_contract(
             vector_type,
         "embedding_type_ok":
             vector_type
-            == "vector(384)",
+            in {
+                "vector",
+                "vector(384)",
+            },
+        "embedding_dimension_contract":
+            {
+                "provider": "local",
+                "model": EMBED_MODEL,
+                "expected_dimensions":
+                    EXPECTED_DIMENSIONS,
+                "observed_dimensions":
+                    model_dimensions,
+                "mismatch_count":
+                    dimension_mismatch_count,
+                "ok":
+                    dimension_mismatch_count
+                    == 0,
+            },
         "duplicate_checksum":
             duplicate,
         "contract_ok":
             (
                 not missing
                 and vector_type
-                == "vector(384)"
+                in {
+                    "vector",
+                    "vector(384)",
+                }
+                and dimension_mismatch_count
+                == 0
             ),
     }
 
