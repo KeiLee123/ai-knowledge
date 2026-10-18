@@ -1,0 +1,92 @@
+taxonomy_version: 1
+
+authorities:
+  BD: Buildings Department
+  EMSD: Electrical and Mechanical Services Department
+  LandsD: Lands Department
+  HyD: Highways Department
+  FSD: Fire Services Department
+  EPD: Environmental Protection Department
+  WSD: Water Supplies Department
+  DSD: Drainage Services Department
+  PlanD: Planning Department
+  ArchSD: Architectural Services Department
+  DevB: Development Bureau
+  CEDD: Civil Engineering and Development Department
+  GEO: Geotechnical Engineering Office
+  LabD: Labour Department
+  HA: Hong Kong Housing Authority
+  HD: Housing Department
+  URA: Urban Renewal Authority
+  TD: Transport Department
+  FEHD: Food and Environmental Hygiene Department
+  Other: Other
+
+domains:
+  - building-control
+  - building-pathology
+  - maintenance-repair
+  - building-services
+  - fire-safety
+  - planning-land
+  - civil-works
+  - structural-engineering
+  - geotechnical-engineering
+  - construction-technology
+  - contract-administration
+  - project-management
+  - procurement
+  - dilapidations
+  - environmental-compliance
+  - health-safety
+  - accessibility
+  - heritage-conservation
+  - property-management
+  - business-management
+  - accounting-finance
+  - investment
+  - ai-automation
+
+document_types:
+  - legislation
+  - regulation
+  - code-of-practice
+  - practice-note
+  - circular
+  - technical-guideline
+  - manual
+  - standard
+  - specification
+  - design-guide
+  - checklist
+  - form
+  - application-guide
+  - contract-document
+  - technical-report
+  - research-paper
+  - case-study
+  - training-material
+  - reference-book
+  - other
+
+topic_rules:
+  format: kebab-case
+  allow_new_topics: true
+  prohibited:
+    - misc
+    - miscellaneous
+    - general
+    - others
+    - bd-stuff
+    - emsd-stuff
+
+metadata_fields:
+  - subtopic
+  - related_domains
+  - related_authorities
+  - statutory_references
+  - code_references
+  - asset_types
+  - work_types
+  - project_stages
+  - keywords

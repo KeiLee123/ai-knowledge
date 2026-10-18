@@ -1,0 +1,33 @@
+# Python runtime
+.venv/
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Runtime / processing data
+/inbox/
+/tmp/
+/watch/
+
+# Frozen backups / release artifacts
+/backups/
+
+# Pre-Git manual version history
+/*.pre-*
+/*.backup.py
+/*.v1-backup.py
+
+# Secrets / credentials
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Editor / OS noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo

@@ -1,0 +1,240 @@
+legislation_registry_version: 2
+defaults:
+  jurisdiction: HK
+  source_of_truth: HKeL
+  check_frequency: daily
+  bootstrap:
+    download_current_version: true
+    build_baseline: true
+  change_detection:
+    compare_version_date: true
+    compare_sha256: true
+    compare_text: true
+  analysis:
+    use_llm_only_on_change: true
+    compare_changed_provisions_only: true
+  lifecycle:
+    auto_supersede: false
+    require_human_review: true
+  source_publisher: Department of Justice
+legislation:
+  CAP_121:
+    chapter: '121'
+    title: Buildings Ordinance (Application to the New Territories) Ordinance
+    enabled: true
+    mapping_status: partial
+    responsible_authorities:
+    - authority_code: LandsD
+      role: statutory-administration
+      scope:
+      - certificates-of-exemption
+      - new-territories-exempted-houses
+    - authority_code: BD
+      role: building-control-interface
+      scope:
+      - buildings-ordinance-interface
+      - unauthorized-building-works
+    domain: building-control
+    topic: buildings-ordinance-application-new-territories
+    primary_authority_code: LandsD
+    authority_mode: single
+  CAP_123:
+    chapter: '123'
+    title: Buildings Ordinance
+    enabled: true
+    mapping_status: verified
+    responsible_authorities:
+    - authority_code: BD
+      statutory_officer: Director of Buildings
+      role: Building Authority
+      scope:
+      - administration
+      - enforcement
+      - building-control
+      - approvals
+      - statutory-orders
+    domain: building-control
+    topic: buildings-ordinance
+    primary_authority_code: BD
+    authority_mode: single
+  CAP_572:
+    chapter: '572'
+    title: Fire Safety (Buildings) Ordinance
+    enabled: true
+    mapping_status: verified
+    responsible_authorities:
+    - authority_code: BD
+      statutory_officer: Director of Buildings
+      role: enforcement-authority
+      scope:
+      - planning
+      - design
+      - construction
+      - fire-safety-construction
+    - authority_code: FSD
+      statutory_officer: Director of Fire Services
+      role: enforcement-authority
+      scope:
+      - fire-service-installations
+      - fire-service-equipment
+    domain: fire-safety
+    topic: fire-safety-buildings-ordinance
+    authority_mode: multi
+  CAP_636:
+    chapter: '636'
+    title: Fire Safety (Industrial Buildings) Ordinance
+    enabled: true
+    mapping_status: verified
+    responsible_authorities:
+    - authority_code: BD
+      statutory_officer: Director of Buildings
+      role: enforcement-authority
+      scope:
+      - planning
+      - design
+      - construction
+      - fire-safety-construction
+    - authority_code: FSD
+      statutory_officer: Director of Fire Services
+      role: enforcement-authority
+      scope:
+      - fire-service-installations
+      - fire-service-equipment
+    domain: fire-safety
+    topic: fire-safety-industrial-buildings-ordinance
+    authority_mode: multi
+  CAP_618:
+    chapter: '618'
+    title: Lifts and Escalators Ordinance
+    enabled: true
+    mapping_status: verified
+    responsible_authorities:
+    - authority_code: EMSD
+      statutory_officer: Director of Electrical and Mechanical Services
+      role: regulator
+      scope:
+      - lifts
+      - escalators
+      - registration
+      - maintenance
+      - examination
+      - use-permits
+    domain: building-services
+    topic: lifts-and-escalators-ordinance
+    authority_mode: single
+    primary_authority_code: EMSD
+  CAP_406:
+    chapter: '406'
+    title: Electricity Ordinance
+    enabled: true
+    mapping_status: verified
+    responsible_authorities:
+    - authority_code: EMSD
+      role: regulator
+      scope:
+      - electrical-safety
+      - electrical-workers
+      - electrical-contractors
+      - electrical-installations
+    domain: building-services
+    topic: electricity-ordinance
+    authority_mode: single
+    primary_authority_code: EMSD
+  CAP_51:
+    chapter: '51'
+    title: Gas Safety Ordinance
+    enabled: true
+    mapping_status: verified
+    responsible_authorities:
+    - authority_code: EMSD
+      role: Gas Authority
+      scope:
+      - gas-safety
+      - gas-installations
+      - gas-contractors
+    domain: building-services
+    topic: gas-safety-ordinance
+    authority_mode: single
+    primary_authority_code: EMSD
+  CAP_610:
+    chapter: '610'
+    title: Buildings Energy Efficiency Ordinance
+    enabled: true
+    mapping_status: verified
+    responsible_authorities:
+    - authority_code: EMSD
+      role: regulator
+      scope:
+      - building-services-energy-efficiency
+      - building-energy-code
+      - energy-audits
+    domain: building-services
+    topic: buildings-energy-efficiency-ordinance
+    authority_mode: single
+    primary_authority_code: EMSD
+  CAP_102:
+    chapter: '102'
+    title: Waterworks Ordinance
+    enabled: true
+    mapping_status: verified
+    responsible_authorities:
+    - authority_code: WSD
+      role: Water Authority
+      scope:
+      - water-supply
+      - waterworks
+      - enforcement
+      - regulated-water-services
+    domain: building-services
+    topic: waterworks-ordinance
+    authority_mode: single
+    primary_authority_code: WSD
+  CAP_28:
+    chapter: '28'
+    title: Land (Miscellaneous Provisions) Ordinance
+    enabled: true
+    mapping_status: verified-multi-authority
+    responsible_authorities:
+    - authority_code: LandsD
+      statutory_officer: Director of Lands
+      role: authority
+      scope:
+      - government-land-control
+      - unlawful-occupation
+      - unallocated-government-land
+    - authority_code: HyD
+      statutory_officer: Director of Highways
+      role: authority
+      scope:
+      - excavation-permits
+      - road-excavation
+      - streets-maintained-by-hyd
+      - excavation-enforcement
+    domain: planning-land
+    topic: land-miscellaneous-provisions-ordinance
+    authority_mode: multi
+  CAP_7:
+    chapter: '7'
+    title: Landlord and Tenant (Consolidation) Ordinance
+    enabled: true
+    mapping_status: pending-verification
+    responsible_authorities: []
+  CAP_337:
+    chapter: '337'
+    title: Demolished Buildings (Re-development of Sites) Ordinance
+    enabled: true
+    mapping_status: pending-verification
+    responsible_authorities: []
+authorities:
+  BD:
+    name: Buildings Department
+  LandsD:
+    name: Lands Department
+  FSD:
+    name: Fire Services Department
+  EMSD:
+    name: Electrical and Mechanical Services Department
+  WSD:
+    name: Water Supplies Department
+  HyD:
+    name: Highways Department
