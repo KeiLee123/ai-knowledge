@@ -289,9 +289,9 @@ def visual_gate(unit: dict) -> dict:
     if (
         image_count > 0
         and image_coverage >= IMAGE_COVERAGE_THRESHOLD
-        and recovered_chars < OCR_RECOVERY_THRESHOLD
+        and effective_chars < OCR_RECOVERY_THRESHOLD
     ):
-        reasons.append("large_image_with_limited_ocr")
+        reasons.append("large_image_with_limited_effective_text")
 
     return {
         "selected": bool(reasons),
@@ -372,8 +372,10 @@ The purpose is retrieval evidence, not creative description.
 Use ONLY what is visibly supported by the page image and the supplied extracted/OCR text.
 Do not invent dimensions, labels, standards, relationships, object identities, or conclusions.
 Do not infer hidden geometry.
-Ignore decorative backgrounds, logos, page furniture, and generic slide design unless they are materially relevant.
+Ignore decorative backgrounds, logos, page furniture, generic slide design, lighting artifacts, borders, and incidental scene details.
+Do not name or describe an object when its identity is uncertain; omit uncertain details rather than using speculative qualifiers such as "possibly", "maybe", or "appears to be".
 If the page contains a technical drawing, diagram, figure, table, annotated photograph, or spatial relationship that text extraction does not adequately capture, describe that evidence concisely.
+A generic photograph of a person performing an activity is not automatically useful. If it does not add specific technical or domain knowledge, set useful=false.
 If the visual content adds no meaningful retrievable information beyond the supplied text, set useful=false.
 
 Deterministic gate diagnostics:
@@ -401,7 +403,9 @@ Rules:
 - confidence must be between 0 and 1
 - lists must contain short factual strings only
 - labels_measurements must include only text or dimensions actually visible
-- retrieval_text must be a concise self-contained paragraph suitable for semantic retrieval
+- retrieval_text must contain only domain-relevant visual facts suitable for semantic retrieval
+- omit incidental photographic details that would not help answer a professional knowledge query
+- do not include speculative object identification
 - if useful=false, retrieval_text should be empty
 """.strip()
 
