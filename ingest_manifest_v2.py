@@ -358,6 +358,214 @@ def precompute_embeddings(
     return vectors
 
 
+def run_db_query(
+    sql: str,
+    db_container: str,
+) -> str:
+    result = subprocess.run(
+        [
+            "docker",
+            "exec",
+            "-i",
+            db_container,
+            "psql",
+            "-U",
+            "ai_knowledge",
+            "-d",
+            "ai_knowledge",
+            "-qAt",
+            "-v",
+            "ON_ERROR_STOP=1",
+            "-c",
+            sql,
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    if result.returncode != 0:
+        raise RuntimeError(
+            result.stderr.strip()
+            or result.stdout.strip()
+            or "Database read-only query failed"
+        )
+
+    return result.stdout.strip()
+
+
+def check_database_contract(
+    checksum: str,
+    db_container: str,
+) -> dict:
+    required = {
+        "documents": {
+            "id",
+            "title",
+            "domain",
+            "topic",
+            "document_type",
+            "authority",
+            "jurisdiction",
+            "source_type",
+            "source_url",
+            "checksum_sha256",
+            "language",
+            "metadata",
+        },
+        "chunks": {
+            "id",
+            "document_id",
+            "chunk_index",
+            "content",
+            "page_start",
+            "page_end",
+            "metadata",
+        },
+        "embeddings": {
+            "chunk_id",
+            "provider",
+            "model",
+            "dimensions",
+            "embedding",
+        },
+    }
+
+    rows = run_db_query(
+        """
+        SELECT
+            table_name || E'\\t' || column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name IN (
+              'documents',
+              'chunks',
+              'embeddings'
+          )
+        ORDER BY table_name, ordinal_position;
+        """,
+        db_container,
+    )
+
+    actual = {
+        name: set()
+        for name in required
+    }
+
+    for line in rows.splitlines():
+        if not line.strip():
+            continue
+
+        parts = line.split("\t", 1)
+
+        if len(parts) != 2:
+            continue
+
+        table_name, column_name = parts
+
+        if table_name in actual:
+            actual[table_name].add(
+                column_name
+            )
+
+    missing = {
+        table_name:
+            sorted(
+                columns
+                - actual.get(
+                    table_name,
+                    set(),
+                )
+            )
+        for table_name, columns
+        in required.items()
+    }
+
+    missing = {
+        table_name: columns
+        for table_name, columns
+        in missing.items()
+        if columns
+    }
+
+    vector_type = run_db_query(
+        """
+        SELECT
+            format_type(
+                a.atttypid,
+                a.atttypmod
+            )
+        FROM pg_attribute a
+        JOIN pg_class c
+          ON c.oid = a.attrelid
+        JOIN pg_namespace n
+          ON n.oid = c.relnamespace
+        WHERE n.nspname = 'public'
+          AND c.relname = 'embeddings'
+          AND a.attname = 'embedding'
+          AND a.attnum > 0
+          AND NOT a.attisdropped
+        LIMIT 1;
+        """,
+        db_container,
+    )
+
+    duplicate_row = run_db_query(
+        (
+            "SELECT "
+            "id::text || E'\\t' || "
+            "COALESCE(title,'') || E'\\t' || "
+            "COALESCE(metadata->>'ingestion_version','') "
+            "FROM documents "
+            "WHERE checksum_sha256 = "
+            f"'{sql_quote(checksum)}' "
+            "LIMIT 1;"
+        ),
+        db_container,
+    )
+
+    duplicate = None
+
+    if duplicate_row:
+        parts = duplicate_row.split(
+            "\t",
+            2,
+        )
+
+        duplicate = {
+            "document_id":
+                int(parts[0]),
+            "title":
+                parts[1]
+                if len(parts) > 1
+                else "",
+            "ingestion_version":
+                parts[2]
+                if len(parts) > 2
+                else "",
+        }
+
+    return {
+        "read_only": True,
+        "required_tables": sorted(
+            required.keys()
+        ),
+        "missing_columns": missing,
+        "embedding_column_type":
+            vector_type,
+        "embedding_type_ok":
+            vector_type
+            == "vector(384)",
+        "duplicate_checksum":
+            duplicate,
+        "contract_ok":
+            (
+                not missing
+                and vector_type
+                == "vector(384)"
+            ),
+    }
+
+
 def read_existing_document(
     checksum: str,
     db_container: str,
@@ -769,6 +977,15 @@ def main() -> None:
     )
 
     parser.add_argument(
+        "--check-db",
+        action="store_true",
+        help=(
+            "Run read-only database schema, "
+            "vector-type and duplicate-checksum checks"
+        ),
+    )
+
+    parser.add_argument(
         "--write",
         action="store_true",
         help=(
@@ -815,6 +1032,38 @@ def main() -> None:
                 indent=2,
             )
         )
+
+        if args.check_db:
+            db_contract = (
+                check_database_contract(
+                    payload[
+                        "source_manifest"
+                    ][
+                        "document_sha256"
+                    ],
+                    args.db_container,
+                )
+            )
+
+            print()
+            print(
+                "DATABASE_CONTRACT"
+            )
+
+            print(
+                json.dumps(
+                    db_contract,
+                    ensure_ascii=False,
+                    indent=2,
+                )
+            )
+
+            if not db_contract[
+                "contract_ok"
+            ]:
+                raise RuntimeError(
+                    "Database contract check failed"
+                )
 
         if (
             not args.write
