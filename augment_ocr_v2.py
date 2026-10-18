@@ -9,7 +9,7 @@ import subprocess
 from pathlib import Path
 
 
-AUGMENTER_VERSION = "phase-b-1"
+AUGMENTER_VERSION = "phase-b-1.1"
 SUPPORTED_SCHEMA = "document-manifest-v2"
 DEFAULT_LANGUAGES = "eng+chi_tra"
 DEFAULT_DPI = 300
@@ -165,6 +165,8 @@ def augment_manifest(
     candidates = candidate_units(augmented)
 
     processed = []
+    text_recovered = []
+    empty_results = []
     failed = []
     total_ocr_text_chars = 0
 
@@ -188,6 +190,7 @@ def augment_manifest(
                     "languages": requested_languages,
                     "dpi": dpi,
                     "mode": "full-page",
+                    "status": "failed",
                     "text": "",
                     "text_chars": 0,
                     "error": error,
@@ -211,6 +214,7 @@ def augment_manifest(
                     "languages": requested_languages,
                     "dpi": dpi,
                     "mode": "full-page",
+                    "status": "text_recovered" if text else "empty_result",
                     "text": text,
                     "text_chars": len(text),
                     "error": None,
@@ -218,6 +222,11 @@ def augment_manifest(
 
                 total_ocr_text_chars += len(text)
                 processed.append(page_number)
+
+                if text:
+                    text_recovered.append(page_number)
+                else:
+                    empty_results.append(page_number)
 
             except Exception as exc:
                 unit["ocr"] = {
@@ -228,6 +237,7 @@ def augment_manifest(
                     "languages": requested_languages,
                     "dpi": dpi,
                     "mode": "full-page",
+                    "status": "failed",
                     "text": "",
                     "text_chars": 0,
                     "error": f"{type(exc).__name__}: {exc}",
@@ -248,6 +258,8 @@ def augment_manifest(
         "tessdata": tessdata,
         "candidate_units": [unit["page_number"] for unit in candidates],
         "processed_units": processed,
+        "text_recovered_units": text_recovered,
+        "empty_result_units": empty_results,
         "failed_units": failed,
         "total_ocr_text_chars": total_ocr_text_chars,
     }
