@@ -1,0 +1,114 @@
+{
+  "schema_version": "retrieval-chunks-v2",
+  "builder_version": "phase-d4-canary-1",
+  "source_manifest": {
+    "path": "synthetic://jason-os-d4-canary-v1",
+    "sha256": "6513907e0f4c51de3a493792a2a13d7e65b025477bf003e101dd7e48f1e2e58c",
+    "document_sha256": "6513907e0f4c51de3a493792a2a13d7e65b025477bf003e101dd7e48f1e2e58c",
+    "document_name": "jason-os-d4-canary-v1.synthetic"
+  },
+  "policy": {
+    "native_text": "primary",
+    "ocr_text": "primary",
+    "fused_text": "primary",
+    "visual_understanding": "supplementary",
+    "database_write_performed": false,
+    "embedding_performed": false,
+    "model_call_performed": false
+  },
+  "summary": {
+    "chunk_count": 3,
+    "total_chars": 457,
+    "counts_by_origin": {
+      "native_text": 1,
+      "fused_text": 1,
+      "visual_understanding": 1
+    },
+    "counts_by_modality": {
+      "text": 2,
+      "visual": 1
+    },
+    "chars_by_origin": {
+      "native_text": 142,
+      "fused_text": 152,
+      "visual_understanding": 163
+    },
+    "pages_by_origin": {
+      "native_text": [1],
+      "fused_text": [2],
+      "visual_understanding": [3]
+    }
+  },
+  "chunks": [
+    {
+      "chunk_index": 0,
+      "content": "JASONOS D4 CANARY ALPHA 7319. This synthetic primary text exists only to verify safe v2 database ingestion and default retrieval isolation.",
+      "content_chars": 142,
+      "page_start": 1,
+      "page_end": 1,
+      "metadata": {
+        "builder_version": "phase-d4-canary-1",
+        "evidence_origin": "native_text",
+        "modality": "text",
+        "evidence_tier": "primary",
+        "derived": false,
+        "page_number": 1,
+        "local_chunk_index": 0
+      }
+    },
+    {
+      "chunk_index": 1,
+      "content": "JASONOS D4 CANARY BETA 8426. This synthetic fused text combines a clean native label with simulated OCR evidence for provenance verification.",
+      "content_chars": 152,
+      "page_start": 2,
+      "page_end": 2,
+      "metadata": {
+        "builder_version": "phase-d4-canary-1",
+        "evidence_origin": "fused_text",
+        "modality": "text",
+        "evidence_tier": "primary",
+        "derived": true,
+        "page_number": 2,
+        "local_chunk_index": 0,
+        "derivation": {
+          "type": "text_fusion",
+          "components": [
+            "native_text",
+            "ocr_text"
+          ],
+          "ocr": {
+            "engine": "synthetic-canary",
+            "engine_version": "1",
+            "languages": [
+              "eng"
+            ],
+            "dpi": 300
+          }
+        }
+      }
+    },
+    {
+      "chunk_index": 2,
+      "content": "JASONOS D4 CANARY GAMMA 9531. Synthetic visual evidence: a blue triangle is positioned above a red square. This relationship is only for canary retrieval testing.",
+      "content_chars": 163,
+      "page_start": 3,
+      "page_end": 3,
+      "metadata": {
+        "builder_version": "phase-d4-canary-1",
+        "evidence_origin": "visual_understanding",
+        "modality": "visual",
+        "evidence_tier": "supplementary",
+        "derived": true,
+        "page_number": 3,
+        "local_chunk_index": 0,
+        "derivation": {
+          "type": "vision",
+          "model": "synthetic-canary",
+          "prompt_version": "synthetic-canary-v1",
+          "confidence": 1.0,
+          "page_type": "diagram"
+        }
+      }
+    }
+  ]
+}
