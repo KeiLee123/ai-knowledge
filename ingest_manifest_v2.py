@@ -7,7 +7,7 @@ import urllib.request
 from pathlib import Path
 
 
-INGESTER_VERSION = "phase-d3-1"
+INGESTER_VERSION = "phase-d3-1.1"
 SUPPORTED_SCHEMA = "retrieval-chunks-v2"
 
 DEFAULT_DB_CONTAINER = "ai-knowledge-db-jiyckdrlappwgimwebnzxwmr"
