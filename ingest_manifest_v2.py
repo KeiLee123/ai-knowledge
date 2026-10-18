@@ -8,7 +8,7 @@ import urllib.request
 from pathlib import Path
 
 
-INGESTER_VERSION = "phase-d3-1.3"
+INGESTER_VERSION = "phase-d3-1.4"
 SUPPORTED_SCHEMA = "retrieval-chunks-v2"
 
 DEFAULT_DB_CONTAINER = "ai-knowledge-db-jiyckdrlappwgimwebnzxwmr"
@@ -206,6 +206,7 @@ def vector_literal(
 
 def merged_chunk_metadata(
     chunk: dict,
+    synthetic: bool,
 ) -> dict:
     source = dict(
         chunk.get("metadata")
@@ -213,7 +214,7 @@ def merged_chunk_metadata(
     )
 
     source.update({
-        "synthetic": False,
+        "synthetic": bool(synthetic),
         "ingestion_version": "v2",
         "ingester_version":
             INGESTER_VERSION,
@@ -234,6 +235,7 @@ def merged_chunk_metadata(
 def document_metadata(
     payload: dict,
     chunks_path: Path,
+    synthetic: bool,
 ) -> dict:
     source_manifest = (
         payload.get(
@@ -248,7 +250,7 @@ def document_metadata(
     )
 
     return {
-        "synthetic": False,
+        "synthetic": bool(synthetic),
         "ingestion_version": "v2",
         "ingester_version":
             INGESTER_VERSION,
@@ -718,6 +720,7 @@ def build_transaction_sql(
         document_metadata(
             payload,
             chunks_path,
+            args.synthetic,
         ),
         ensure_ascii=False,
         separators=(",", ":"),
@@ -768,7 +771,8 @@ def build_transaction_sql(
     ):
         metadata = json.dumps(
             merged_chunk_metadata(
-                chunk
+                chunk,
+                args.synthetic,
             ),
             ensure_ascii=False,
             separators=(",", ":"),
@@ -1076,6 +1080,12 @@ def build_plan(
             bool(args.write),
         "write_preparation_requested":
             bool(args.prepare_write),
+        "synthetic":
+            bool(args.synthetic),
+        "default_retrieval_visible":
+            not bool(args.synthetic),
+        "live_write_confirmation":
+            bool(args.confirm_live_write),
         "embedding_sample_requested":
             args.validate_embeddings,
         "embedding_model":
@@ -1173,11 +1183,29 @@ def main() -> None:
     )
 
     parser.add_argument(
+        "--synthetic",
+        action="store_true",
+        help=(
+            "Mark document and chunks synthetic so "
+            "default retrieval excludes the document"
+        ),
+    )
+
+    parser.add_argument(
         "--prepare-write",
         action="store_true",
         help=(
             "Precompute all embeddings and build/inspect "
             "the full transaction SQL without executing it"
+        ),
+    )
+
+    parser.add_argument(
+        "--confirm-live-write",
+        action="store_true",
+        help=(
+            "Required together with --write for "
+            "non-synthetic production-visible ingestion"
         ),
     )
 
@@ -1217,6 +1245,24 @@ def main() -> None:
         raise SystemExit(
             "--prepare-write and --write "
             "cannot be used together"
+        )
+
+    if (
+        args.write
+        and not args.synthetic
+        and not args.confirm_live_write
+    ):
+        raise SystemExit(
+            "Non-synthetic --write requires "
+            "--confirm-live-write"
+        )
+
+    if (
+        args.confirm_live_write
+        and not args.write
+    ):
+        raise SystemExit(
+            "--confirm-live-write requires --write"
         )
 
     try:
