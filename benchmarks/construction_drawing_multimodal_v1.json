@@ -1,0 +1,56 @@
+[
+  {
+    "id": "visual-title-block",
+    "category": "visual-target",
+    "query": "Where is the title block located on the assignment drawing frame and what dimensions are shown around it?",
+    "expected_pages": [16]
+  },
+  {
+    "id": "visual-hex-oct",
+    "category": "visual-target",
+    "query": "Which polygon example shows internal diagonal construction lines and radial center construction lines for the hexagon and octagon exercise?",
+    "expected_pages": [28]
+  },
+  {
+    "id": "visual-pentagon",
+    "category": "visual-target",
+    "query": "Which construction example shows a pentagon inscribed in a circle with the horizontal points A E C D B?",
+    "expected_pages": [30]
+  },
+  {
+    "id": "visual-oval",
+    "category": "visual-target",
+    "query": "Which drawing constructs an oval by the four-center method using points O1 O2 O3 and O4?",
+    "expected_pages": [32]
+  },
+  {
+    "id": "visual-third-angle",
+    "category": "visual-target",
+    "query": "Which third-angle projection example contains Top Front and Side views, an Ø20 circle and hidden dashed lines?",
+    "expected_pages": [44]
+  },
+  {
+    "id": "ocr-types-of-drawings",
+    "category": "ocr-target",
+    "query": "What are the types of drawings including design layout drawing, detail drawing, sub-assembly drawing and general assembly drawing?",
+    "expected_pages": [7]
+  },
+  {
+    "id": "text-class-outline",
+    "category": "text-control",
+    "query": "What is the assessment scheme and lecture schedule for the Construction Drawing class?",
+    "expected_pages": [2]
+  },
+  {
+    "id": "text-geometric-terms",
+    "category": "text-control",
+    "query": "Which page defines geometric terms such as right angle, equilateral triangle, pentagon and radius?",
+    "expected_pages": [15]
+  },
+  {
+    "id": "text-projection-videos",
+    "category": "text-control",
+    "query": "Which page lists the projection tutorial video links for parallel projection, orthographic projection, projection box and first or third angle projection?",
+    "expected_pages": [43]
+  }
+]
