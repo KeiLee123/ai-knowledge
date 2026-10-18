@@ -7,12 +7,11 @@ import re
 from pathlib import Path
 
 
-BUILDER_VERSION = "phase-d-1"
+BUILDER_VERSION = "phase-d-1.1"
 SUPPORTED_SCHEMA = "document-manifest-v2"
 
 DEFAULT_TARGET_CHARS = 1800
 DEFAULT_OVERLAP_CHARS = 250
-OCR_NATIVE_SHADOW_MAX_CHARS = 200
 
 
 def normalize_text(text: str) -> str:
@@ -100,14 +99,6 @@ def split_text(
     return chunks
 
 
-def normalized_key(text: str) -> str:
-    return re.sub(
-        r"\s+",
-        " ",
-        normalize_text(text),
-    ).strip().lower()
-
-
 def unit_evidence(unit: dict) -> list[dict]:
     evidence = []
 
@@ -115,12 +106,7 @@ def unit_evidence(unit: dict) -> list[dict]:
         unit.get("text") or ""
     )
 
-    native_key = normalized_key(
-        native_text
-    )
-
     ocr = unit.get("ocr") or {}
-
     ocr_text = ""
 
     if (
@@ -131,22 +117,36 @@ def unit_evidence(unit: dict) -> list[dict]:
             ocr.get("text") or ""
         )
 
-    ocr_key = normalized_key(
-        ocr_text
-    )
+    if native_text and ocr_text:
+        evidence.append({
+            "origin": "fused_text",
+            "modality": "text",
+            "tier": "primary",
+            "derived": True,
+            "derivation": {
+                "type": "text_fusion",
+                "components": [
+                    "native_text",
+                    "ocr_text",
+                ],
+                "ocr": {
+                    "engine": ocr.get("engine"),
+                    "engine_version":
+                        ocr.get("engine_version"),
+                    "languages":
+                        ocr.get("languages"),
+                    "dpi":
+                        ocr.get("dpi"),
+                },
+            },
+            "text": (
+                native_text
+                + "\n\n"
+                + ocr_text
+            ),
+        })
 
-    native_shadowed_by_ocr = (
-        bool(native_key)
-        and bool(ocr_key)
-        and len(native_text)
-        <= OCR_NATIVE_SHADOW_MAX_CHARS
-        and native_key in ocr_key
-    )
-
-    if (
-        native_text
-        and not native_shadowed_by_ocr
-    ):
+    elif native_text:
         evidence.append({
             "origin": "native_text",
             "modality": "text",
@@ -155,10 +155,7 @@ def unit_evidence(unit: dict) -> list[dict]:
             "text": native_text,
         })
 
-    if (
-        ocr_text
-        and ocr_key != native_key
-    ):
+    elif ocr_text:
         evidence.append({
             "origin": "ocr_text",
             "modality": "text",
@@ -167,11 +164,12 @@ def unit_evidence(unit: dict) -> list[dict]:
             "derivation": {
                 "type": "ocr",
                 "engine": ocr.get("engine"),
-                "engine_version": ocr.get("engine_version"),
-                "languages": ocr.get("languages"),
-                "dpi": ocr.get("dpi"),
-                "native_text_shadowed":
-                    native_shadowed_by_ocr,
+                "engine_version":
+                    ocr.get("engine_version"),
+                "languages":
+                    ocr.get("languages"),
+                "dpi":
+                    ocr.get("dpi"),
             },
             "text": ocr_text,
         })
@@ -197,15 +195,17 @@ def unit_evidence(unit: dict) -> list[dict]:
                 "derivation": {
                     "type": "vision",
                     "model": vision.get("model"),
-                    "prompt_version": vision.get("prompt_version"),
-                    "confidence": result.get("confidence"),
-                    "page_type": result.get("page_type"),
+                    "prompt_version":
+                        vision.get("prompt_version"),
+                    "confidence":
+                        result.get("confidence"),
+                    "page_type":
+                        result.get("page_type"),
                 },
                 "text": visual_text,
             })
 
     return evidence
-
 
 def build_chunks(
     manifest: dict,
@@ -315,14 +315,15 @@ def build_output(
         "policy": {
             "native_text": "primary",
             "ocr_text": "primary",
+            "fused_text": "primary",
             "visual_understanding": "supplementary",
             "target_chars": target_chars,
             "overlap_chars": overlap_chars,
             "database_write_performed": False,
             "embedding_performed": False,
             "model_call_performed": False,
-            "ocr_native_shadow_max_chars":
-                OCR_NATIVE_SHADOW_MAX_CHARS,
+            "same_page_native_ocr_policy":
+                "fuse-into-one-primary-evidence",
         },
         "summary": summarize(chunks),
         "chunks": chunks,
