@@ -10,7 +10,7 @@ import urllib.request
 from pathlib import Path
 
 
-AUGMENTER_VERSION = "phase-c-1"
+AUGMENTER_VERSION = "phase-c-1.1"
 PROMPT_VERSION = "visual-evidence-v1"
 SUPPORTED_SCHEMA = "document-manifest-v2"
 
