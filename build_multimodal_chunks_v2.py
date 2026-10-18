@@ -12,6 +12,7 @@ SUPPORTED_SCHEMA = "document-manifest-v2"
 
 DEFAULT_TARGET_CHARS = 1800
 DEFAULT_OVERLAP_CHARS = 250
+OCR_NATIVE_SHADOW_MAX_CHARS = 200
 
 
 def normalize_text(text: str) -> str:
@@ -114,16 +115,13 @@ def unit_evidence(unit: dict) -> list[dict]:
         unit.get("text") or ""
     )
 
-    if native_text:
-        evidence.append({
-            "origin": "native_text",
-            "modality": "text",
-            "tier": "primary",
-            "derived": False,
-            "text": native_text,
-        })
+    native_key = normalized_key(
+        native_text
+    )
 
     ocr = unit.get("ocr") or {}
+
+    ocr_text = ""
 
     if (
         ocr.get("status") == "text_recovered"
@@ -133,25 +131,50 @@ def unit_evidence(unit: dict) -> list[dict]:
             ocr.get("text") or ""
         )
 
-        if (
-            ocr_text
-            and normalized_key(ocr_text)
-            != normalized_key(native_text)
-        ):
-            evidence.append({
-                "origin": "ocr_text",
-                "modality": "text",
-                "tier": "primary",
-                "derived": True,
-                "derivation": {
-                    "type": "ocr",
-                    "engine": ocr.get("engine"),
-                    "engine_version": ocr.get("engine_version"),
-                    "languages": ocr.get("languages"),
-                    "dpi": ocr.get("dpi"),
-                },
-                "text": ocr_text,
-            })
+    ocr_key = normalized_key(
+        ocr_text
+    )
+
+    native_shadowed_by_ocr = (
+        bool(native_key)
+        and bool(ocr_key)
+        and len(native_text)
+        <= OCR_NATIVE_SHADOW_MAX_CHARS
+        and native_key in ocr_key
+    )
+
+    if (
+        native_text
+        and not native_shadowed_by_ocr
+    ):
+        evidence.append({
+            "origin": "native_text",
+            "modality": "text",
+            "tier": "primary",
+            "derived": False,
+            "text": native_text,
+        })
+
+    if (
+        ocr_text
+        and ocr_key != native_key
+    ):
+        evidence.append({
+            "origin": "ocr_text",
+            "modality": "text",
+            "tier": "primary",
+            "derived": True,
+            "derivation": {
+                "type": "ocr",
+                "engine": ocr.get("engine"),
+                "engine_version": ocr.get("engine_version"),
+                "languages": ocr.get("languages"),
+                "dpi": ocr.get("dpi"),
+                "native_text_shadowed":
+                    native_shadowed_by_ocr,
+            },
+            "text": ocr_text,
+        })
 
     vision = unit.get("vision") or {}
     result = vision.get("result") or {}
@@ -298,6 +321,8 @@ def build_output(
             "database_write_performed": False,
             "embedding_performed": False,
             "model_call_performed": False,
+            "ocr_native_shadow_max_chars":
+                OCR_NATIVE_SHADOW_MAX_CHARS,
         },
         "summary": summarize(chunks),
         "chunks": chunks,
