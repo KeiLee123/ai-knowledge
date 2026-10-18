@@ -18,7 +18,7 @@
   },
   "summary": {
     "chunk_count": 3,
-    "total_chars": 457,
+    "total_chars": 442,
     "counts_by_origin": {
       "native_text": 1,
       "fused_text": 1,
@@ -29,9 +29,9 @@
       "visual": 1
     },
     "chars_by_origin": {
-      "native_text": 142,
-      "fused_text": 152,
-      "visual_understanding": 163
+      "native_text": 139,
+      "fused_text": 141,
+      "visual_understanding": 162
     },
     "pages_by_origin": {
       "native_text": [1],
@@ -43,7 +43,7 @@
     {
       "chunk_index": 0,
       "content": "JASONOS D4 CANARY ALPHA 7319. This synthetic primary text exists only to verify safe v2 database ingestion and default retrieval isolation.",
-      "content_chars": 142,
+      "content_chars": 139,
       "page_start": 1,
       "page_end": 1,
       "metadata": {
@@ -59,7 +59,7 @@
     {
       "chunk_index": 1,
       "content": "JASONOS D4 CANARY BETA 8426. This synthetic fused text combines a clean native label with simulated OCR evidence for provenance verification.",
-      "content_chars": 152,
+      "content_chars": 141,
       "page_start": 2,
       "page_end": 2,
       "metadata": {
@@ -90,7 +90,7 @@
     {
       "chunk_index": 2,
       "content": "JASONOS D4 CANARY GAMMA 9531. Synthetic visual evidence: a blue triangle is positioned above a red square. This relationship is only for canary retrieval testing.",
-      "content_chars": 163,
+      "content_chars": 162,
       "page_start": 3,
       "page_end": 3,
       "metadata": {
