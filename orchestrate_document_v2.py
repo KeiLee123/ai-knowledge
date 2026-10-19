@@ -14,7 +14,7 @@ from ingest_manifest_v2 import (
 )
 
 
-ORCHESTRATOR_VERSION = "phase-d5-2"
+ORCHESTRATOR_VERSION = "phase-d5-3"
 
 
 def run_checked(
@@ -175,6 +175,30 @@ def write_state(
         + "\n",
         encoding="utf-8",
     )
+
+
+def build_source_page_attach_command(
+    python: str,
+    chunks: Path,
+    source: Path,
+    output: Path,
+    media_dir: Path,
+) -> list[str]:
+    return [
+        python,
+        str(
+            script_path(
+                "attach_source_pages_v2.py"
+            )
+        ),
+        str(chunks),
+        "--source-pdf",
+        str(source),
+        "--output",
+        str(output),
+        "--media-dir",
+        str(media_dir),
+    ]
 
 
 def build_metadata_args(
@@ -397,6 +421,16 @@ def main() -> None:
     chunks = (
         workdir
         / "retrieval-chunks-v2.json"
+    )
+
+    chunks_with_source_pages = (
+        workdir
+        / "retrieval-chunks-v2-with-source-pages.json"
+    )
+
+    source_pages_dir = (
+        workdir
+        / "source-pages"
     )
 
     state = {
@@ -643,6 +677,32 @@ def main() -> None:
             state,
         )
 
+        run_checked(
+            build_source_page_attach_command(
+                python=python,
+                chunks=chunks,
+                source=source,
+                output=chunks_with_source_pages,
+                media_dir=source_pages_dir,
+            )
+        )
+
+        state["stages"].append(
+            "phase-d2-source-pages"
+        )
+
+        state["source_pages"] = {
+            "output_chunks":
+                str(chunks_with_source_pages),
+            "media_dir":
+                str(source_pages_dir),
+        }
+
+        write_state(
+            state_path,
+            state,
+        )
+
         ingest_command = [
             python,
             str(
@@ -650,7 +710,7 @@ def main() -> None:
                     "ingest_manifest_v2.py"
                 )
             ),
-            str(chunks),
+            str(chunks_with_source_pages),
             *build_metadata_args(
                 args
             ),
