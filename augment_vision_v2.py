@@ -11,7 +11,7 @@ from pathlib import Path
 
 
 AUGMENTER_VERSION = "phase-c-1.1"
-PROMPT_VERSION = "visual-evidence-v1"
+PROMPT_VERSION = "visual-evidence-v1.1"
 SUPPORTED_SCHEMA = "document-manifest-v2"
 
 DEFAULT_DPI = 160
@@ -373,6 +373,8 @@ Use ONLY what is visibly supported by the page image and the supplied extracted/
 Do not invent dimensions, labels, standards, relationships, object identities, or conclusions.
 Do not infer hidden geometry.
 Ignore decorative backgrounds, logos, page furniture, generic slide design, lighting artifacts, borders, and incidental scene details.
+Treat title blocks, author/name fields, dates, assignment numbers, drawing numbers, sheet-zone coordinates, border labels, and margin notes as provenance/page furniture rather than semantic retrieval content unless they directly define a technical requirement needed to understand the depicted subject.
+Do NOT include those provenance/page-furniture fields in retrieval_text merely because they are visible.
 Do not name or describe an object when its identity is uncertain; omit uncertain details rather than using speculative qualifiers such as "possibly", "maybe", or "appears to be".
 If the page contains a technical drawing, diagram, figure, table, annotated photograph, or spatial relationship that text extraction does not adequately capture, describe that evidence concisely.
 A generic photograph of a person performing an activity is not automatically useful. If it does not add specific technical or domain knowledge, set useful=false.
@@ -404,6 +406,7 @@ Rules:
 - lists must contain short factual strings only
 - labels_measurements must include only text or dimensions actually visible
 - retrieval_text must contain only domain-relevant visual facts suitable for semantic retrieval
+- retrieval_text must exclude title-block metadata, names, dates, assignment numbers, drawing numbers, border/zone labels, and margin notes unless a field directly expresses a technical requirement central to the depicted subject
 - omit incidental photographic details that would not help answer a professional knowledge query
 - do not include speculative object identification
 - if useful=false, retrieval_text should be empty
