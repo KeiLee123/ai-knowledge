@@ -58,6 +58,12 @@ jobs:
           set -euo pipefail
           python test_multimodal_ingestion_contract_v2.py
 
+      - name: Source page provenance test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_attach_source_pages_v2.py
+
       - name: SR-G review fallback regression test
         shell: bash
         run: |
