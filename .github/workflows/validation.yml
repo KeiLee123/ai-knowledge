@@ -58,6 +58,12 @@ jobs:
           set -euo pipefail
           python analyze_anki_knowledge_v1.py --self-test
 
+      - name: SR-I periodic assessment self-test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python assess_knowledge_periodic_v1.py --self-test
+
       - name: Reject tracked secret-like files
         shell: bash
         run: |
