@@ -329,7 +329,22 @@ def get_reviews(
                 )
             ]
 
-        return normalized
+        if any(
+            normalized.values()
+        ):
+            return normalized
+
+        # Some AnkiConnect builds return a
+        # syntactically valid object whose
+        # per-card review lists are all empty,
+        # even when cardReviews can read the
+        # real review log. Treat this as an
+        # ambiguous compatibility response and
+        # verify through the classic fallback.
+        raise RuntimeError(
+            "getReviewsOfCards returned "
+            "only empty review lists"
+        )
 
     except RuntimeError:
         # Compatibility fallback for older
