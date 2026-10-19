@@ -52,6 +52,12 @@ jobs:
           set -euo pipefail
           git ls-files -z '*.py' | xargs -0 -r python -m py_compile
 
+      - name: SR-H analytics self-test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python analyze_anki_knowledge_v1.py --self-test
+
       - name: Reject tracked secret-like files
         shell: bash
         run: |
