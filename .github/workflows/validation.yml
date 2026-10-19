@@ -52,6 +52,12 @@ jobs:
           set -euo pipefail
           git ls-files -z '*.py' | xargs -0 -r python -m py_compile
 
+      - name: SR-G review fallback regression test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_sync_anki_reviews_v1.py
+
       - name: SR-H analytics self-test
         shell: bash
         run: |
