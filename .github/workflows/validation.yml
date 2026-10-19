@@ -64,6 +64,12 @@ jobs:
           set -euo pipefail
           python test_attach_source_pages_v2.py
 
+      - name: V2 orchestrator source-page integration test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_orchestrate_source_pages_v2.py
+
       - name: Visual retrieval relevance prompt test
         shell: bash
         run: |
