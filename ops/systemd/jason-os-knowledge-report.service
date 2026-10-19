@@ -1,0 +1,16 @@
+[Unit]
+Description=Jason OS Knowledge Reporting
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/ai-knowledge
+
+Environment=JASON_REPO_ROOT=/opt/ai-knowledge
+Environment=JASON_REPORT_WORKDIR=/var/lib/jason-os/knowledge-reporting
+Environment=JASON_ANKI_INBOX_REMOTE=gdrive-out:Jason-OS/Anki-Inbox
+Environment=JASON_REPORT_REMOTE=gdrive-out:Jason-OS/Knowledge-Reports
+Environment=JASON_PYTHON=/opt/ai-knowledge/.venv/bin/python
+
+ExecStart=/bin/bash /opt/ai-knowledge/ops/run_knowledge_reporting_job_v1.sh
