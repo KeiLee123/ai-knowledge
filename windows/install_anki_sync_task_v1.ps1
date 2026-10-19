@@ -23,7 +23,13 @@ if (-not (Test-Path $DriveOutDir)) {
 
 $user = "$env:USERDOMAIN\$env:USERNAME"
 
-$taskCommand = 'powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "' + $Runner + '" -DriveOutDir "' + $DriveOutDir + '"'
+$actionArgs = '-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "' + $Runner + '" -DriveOutDir "' + $DriveOutDir + '"'
+
+$action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument $actionArgs
+$periodicTrigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes $IntervalMinutes)
+$logonTrigger = New-ScheduledTaskTrigger -AtLogOn -User $user
+$principal = New-ScheduledTaskPrincipal -UserId $user -LogonType Interactive -RunLevel Limited
+$settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Minutes 10)
 
 Write-Host "Task name:" $TaskName
 Write-Host "User:" $user
@@ -31,13 +37,17 @@ Write-Host "Interval:" $IntervalMinutes "minutes"
 Write-Host "Runner:" $Runner
 Write-Host "Drive output:" $DriveOutDir
 
-& schtasks.exe /Create /TN $TaskName /SC MINUTE /MO $IntervalMinutes /TR $taskCommand /RU $user /IT /RL LIMITED /F
-
-if ($LASTEXITCODE -ne 0) {
-    throw "schtasks.exe failed with exit code $LASTEXITCODE."
-}
+Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger @($logonTrigger, $periodicTrigger) -Principal $principal -Settings $settings -Description ("Jason OS read-only Anki review sync. Runs at logon and retries every $IntervalMinutes minutes.") -Force | Out-Null
 
 Write-Host ""
 Write-Host "Scheduled task created."
 
-& schtasks.exe /Query /TN $TaskName /V /FO LIST
+Get-ScheduledTask -TaskName $TaskName | Select-Object TaskName, State, Author, Description
+
+Write-Host ""
+Write-Host "Task action:"
+(Get-ScheduledTask -TaskName $TaskName).Actions | Select-Object Execute, Arguments
+
+Write-Host ""
+Write-Host "Task triggers:"
+(Get-ScheduledTask -TaskName $TaskName).Triggers | Select-Object Enabled, StartBoundary, Repetition, @{N="TriggerType";E={$_.CimClass.CimClassName}}
