@@ -32,7 +32,7 @@ def main() -> int:
 
     labels = service.get("labels") or {}
     assert labels.get("com.jasonos.environment") == "staging"
-    assert labels.get("com.jasonos.purpose") == "bd-pnap-source-detect"
+    assert labels.get("com.jasonos.purpose") == "source-change-detect"
 
     declared_volumes = cfg.get("volumes") or {}
     volume = declared_volumes.get("changedetection_staging_data") or {}
@@ -60,6 +60,7 @@ def main() -> int:
     print("UI exposure: 127.0.0.1:5001 only")
     print("Knowledge DB coupling: none")
     print("Google Drive credentials: none")
+    print("Detector scope: shared multi-source platform")
     return 0
 
 
