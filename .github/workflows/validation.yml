@@ -70,6 +70,12 @@ jobs:
           set -euo pipefail
           python test_source_registry_v1.py
 
+      - name: Source Monitor baseline v1 test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_source_monitor_baseline_v1.py
+
       - name: Multimodal ingestion contract test
         shell: bash
         run: |
