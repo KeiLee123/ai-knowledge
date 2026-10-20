@@ -58,6 +58,12 @@ jobs:
           set -euo pipefail
           python test_changedetection_deployment_v1.py
 
+      - name: VPS storage audit contract test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_vps_storage_guard_v1.py
+
       - name: Multimodal ingestion contract test
         shell: bash
         run: |
