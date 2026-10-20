@@ -1,6 +1,6 @@
 # Source Registry v1
 
-Status: STAGING MVP / READ-ONLY PROBE
+Status: STAGING MVP / HTTP PROBE VALIDATED / BASELINE PHASE
 
 ## Purpose
 
@@ -40,12 +40,30 @@ URL / HTTP metadata / byte length / SHA-256
 JSON result to stdout
 ```
 
-This first stage is intentionally read-only. It does not write to Google Drive, PostgreSQL, the Knowledge DB, or a persistent baseline.
+The HTTP probe remains read-only. The next layer stores only a small local runtime baseline so unchanged and changed states can be distinguished.
+
+```text
+read-only probe
+      |
+      v
+explicit local baseline
+      |
+      v
+compare only
+      |
+      +--> UNCHANGED
+      +--> INDEX_CHANGED
+      +--> DOCUMENT_CHANGED
+```
+
+The baseline is runtime state, not code or document storage. It belongs on the VPS and must not be committed to GitHub.
+
+The baseline layer does not auto-accept a detected change. A changed fingerprint remains pending human/domain review.
 
 Later stages may add:
 
 ```text
-read-only probe
+detected change
       |
       v
 domain resolver
@@ -57,7 +75,7 @@ temporary download
 verified Drive writer
       |
       v
-manifest / baseline
+manifest
       |
       v
 Staging ingestion and retrieval validation
@@ -121,16 +139,59 @@ Production remains unchanged.
 
 A later writer must not be enabled until the exact Business Google Drive destination and the VPS `gdrive-out:` mapping are verified.
 
+## Live validation
+
+On 2026-10-21 HKT, the Staging VPS ran two consecutive live probes against the official BD PNAP index and APP-145 PDF.
+
+Both probes returned identical fingerprints:
+
+```text
+PNAP index SHA-256
+720242765e469760bad0cef5c42c401b0a24afec93f4b19ef9c26f0a121b6b4b
+
+APP-145 PDF SHA-256
+dc3262cc55c5fd79d29f337fd811cdd871543f59d795972d9f30f558e313127c
+```
+
+The official index returned `text/html` and the document returned `application/pdf`, both with HTTP 200. This validates deterministic fingerprinting for the first canary.
+
+## Baseline phase
+
+`source_monitor_baseline_v1.py` adds an explicit local baseline and comparison layer.
+
+The state root must be supplied as an absolute path. Staging uses:
+
+```text
+/var/lib/jason-os/source-monitor-staging
+```
+
+Initialization is explicit and refuses to overwrite an existing baseline. A normal check is read-only and never updates the baseline.
+
+Change classification:
+
+```text
+same index hash + same document hash
+    -> UNCHANGED
+
+different index hash + same document hash
+    -> INDEX_CHANGED
+
+different document hash
+    -> DOCUMENT_CHANGED
+```
+
+Document change has priority because the document fingerprint is the canonical content signal for this canary.
+
 ## Promotion gate for the next phase
 
-Before adding persistent baseline or Drive writes:
+Before adding Google Drive writes:
 
-1. registry contract test passes in CI;
-2. APP-145 live probe succeeds from the Staging VPS;
-3. official index and PDF return the expected content types;
-4. fingerprints are reproducible across two unchanged probes;
-5. no credential or database access is present in the detector;
-6. Drive destination mapping is verified independently.
+1. Source Registry and baseline regression tests pass in CI;
+2. APP-145 live baseline is initialized in Staging;
+3. a second live check returns `UNCHANGED`;
+4. baseline overwrite protection is confirmed;
+5. no credential or database access is present in detector/baseline code;
+6. the exact Business Google Drive destination and VPS `gdrive-out:` mapping are verified independently.
 
 ## Principle
 
