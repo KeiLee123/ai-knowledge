@@ -2,6 +2,8 @@
 
 Status: STAGING CONFIG PREPARED / NOT YET DEPLOYED
 
+BD PNAP is the first domain profile on the shared Source Change Detection platform defined in `docs/source_change_detection_v1.md`. The changedetection.io container is shared across departments; BD-specific interpretation remains in this domain watcher.
+
 ## Architecture
 
 ```text
@@ -26,7 +28,7 @@ Staging ingestion + retrieval validation
 Production only after validation
 ```
 
-The detector is deliberately replaceable. It is not the document Source of Truth and it is not allowed to mutate the Knowledge DB.
+The shared detector is deliberately replaceable. It is not the document Source of Truth and it is not allowed to mutate the Knowledge DB. Other departments should reuse the same detector platform with separate source profiles and department-specific domain logic.
 
 ## Phase 1 boundary
 
