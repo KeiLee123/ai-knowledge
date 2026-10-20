@@ -11,7 +11,7 @@ services:
       TZ: Asia/Hong_Kong
     labels:
       com.jasonos.environment: staging
-      com.jasonos.purpose: bd-pnap-source-detect
+      com.jasonos.purpose: source-change-detect
       com.jasonos.managed-by: git
     networks:
       - changedetection_staging_net
