@@ -1,6 +1,6 @@
 # BD PNAP Source Watcher v1
 
-Status: STAGING CONFIG PREPARED / NOT YET DEPLOYED
+Status: DOMAIN DESIGN / CHANGEDETECTION DEPLOYMENT DEFERRED
 
 BD PNAP is the first domain profile on the shared Source Change Detection platform defined in `docs/source_change_detection_v1.md`. The changedetection.io container is shared across departments; BD-specific interpretation remains in this domain watcher.
 
