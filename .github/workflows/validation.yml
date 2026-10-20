@@ -64,6 +64,12 @@ jobs:
           set -euo pipefail
           python test_vps_storage_guard_v1.py
 
+      - name: Source Registry v1 contract test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_source_registry_v1.py
+
       - name: Multimodal ingestion contract test
         shell: bash
         run: |
