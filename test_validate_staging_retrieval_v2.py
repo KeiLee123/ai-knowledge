@@ -53,12 +53,10 @@ def assert_invalid_checksum_rejected():
 
 
 def assert_row_parser():
-    import base64
-
     content = "Top Front Side views Ø20"
-    encoded = base64.b64encode(
-        content.encode("utf-8")
-    ).decode("ascii")
+    encoded = content.encode(
+        "utf-8"
+    ).hex()
 
     raw = (
         "123\t44\t44\tvisual_understanding\t"
