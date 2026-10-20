@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import argparse
-import base64
 import json
 import re
 import subprocess
@@ -133,7 +132,7 @@ SELECT
     COALESCE(c.metadata->>'evidence_tier', ''),
     COALESCE(c.metadata->>'retrieval_role', ''),
     (e.embedding <=> '{vec}'::vector)::text,
-    encode(convert_to(c.content, 'UTF8'), 'base64')
+    encode(convert_to(c.content, 'UTF8'), 'hex')
 FROM embeddings e
 JOIN chunks c
   ON c.id = e.chunk_id
@@ -257,7 +256,7 @@ def parse_rows(
             content_b64,
         ) = parts
 
-        content = base64.b64decode(
+        content = bytes.fromhex(
             content_b64
         ).decode(
             "utf-8",
