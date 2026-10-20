@@ -1,6 +1,6 @@
 # Source Change Detection v1
 
-Status: STAGING CONFIG PREPARED / NOT YET DEPLOYED
+Status: OPTIONAL MODULE / DEPLOYMENT DEFERRED
 
 ## Architecture
 
@@ -30,7 +30,7 @@ Staging validation
 Production only after validation
 ```
 
-changedetection.io is a shared, replaceable detection platform. Do not run one container per department unless isolation is later justified by evidence.
+changedetection.io is an optional, shared, replaceable detection platform. The adopted MVP is a lightweight Source Registry + HTTP detector first. Deploy changedetection.io only when its UI, diff history, notifications, or manual watch management provide clear value. Do not run one container per department unless isolation is later justified by evidence.
 
 ## Responsibilities
 
