@@ -1,6 +1,6 @@
 # Source Registry v1
 
-Status: STAGING MVP / HTTP PROBE VALIDATED / BASELINE PHASE
+Status: STAGING MVP / BASELINE VALIDATED / DRIVE MAPPING NEXT
 
 ## Purpose
 
@@ -202,3 +202,39 @@ Before adding Google Drive writes:
 ```
 
 This keeps detection independent from interpretation and storage.
+
+
+## Live baseline validation
+
+On 2026-10-21 HKT, the Staging VPS initialized the first persistent runtime baseline for `BD_PNAP_APP145` at:
+
+```text
+/var/lib/jason-os/source-monitor-staging/baselines/BD_PNAP_APP145.json
+```
+
+Regression tests passed before initialization:
+
+```text
+Source Registry v1 contract: PASS
+Source Monitor baseline v1: PASS
+```
+
+The first live check against that baseline returned:
+
+```text
+status: UNCHANGED
+```
+
+with both the PNAP index and APP-145 PDF fingerprints identical to the baseline:
+
+```text
+PNAP index SHA-256
+720242765e469760bad0cef5c42c401b0a24afec93f4b19ef9c26f0a121b6b4b
+
+APP-145 PDF SHA-256
+dc3262cc55c5fd79d29f337fd811cdd871543f59d795972d9f30f558e313127c
+```
+
+This validates the Source Registry + live HTTP probe + persistent baseline + compare path for the first Staging canary.
+
+The next gate is read-only verification of the VPS writable Google Drive remote and its exact mapping to the Business Google Drive canonical BD PNAP tree. No Drive writer should be enabled before that mapping is proven.
