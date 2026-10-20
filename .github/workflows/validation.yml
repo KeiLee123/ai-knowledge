@@ -76,6 +76,12 @@ jobs:
           set -euo pipefail
           python test_multimodal_canary_guard_v2.py
 
+      - name: Prepared canary writer guard test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_write_prepared_canary_v2.py
+
       - name: Visual retrieval relevance prompt test
         shell: bash
         run: |
