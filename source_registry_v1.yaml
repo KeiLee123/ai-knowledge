@@ -1,0 +1,30 @@
+source_registry_version: 1
+
+defaults:
+  jurisdiction: HK
+  check_frequency: daily
+  timeout_seconds: 60
+  user_agent: Jason-OS-Source-Monitor/1.0
+  lifecycle:
+    production_write: false
+    require_human_review: true
+
+sources:
+  BD_PNAP_APP145:
+    enabled: true
+    authority_code: BD
+    publisher: Buildings Department
+    source_family: PNAP
+    source_type: official-document
+    document_code: APP-145
+    title: Fire Safety (Buildings) Ordinance Cap. 572
+    index_url: https://www.bd.gov.hk/en/resources/codes-and-references/practice-notes-and-circular-letters/index_pnap.html
+    canonical_url: https://www.bd.gov.hk/doc/en/resources/codes-and-references/practice-notes-and-circular-letters/pnap/APP/APP145.pdf
+    allowed_hosts:
+      - www.bd.gov.hk
+    expected_content_types:
+      index: text/html
+      document: application/pdf
+    domain: building-control
+    topic: fire-safety-buildings
+    risk_class: regulatory
