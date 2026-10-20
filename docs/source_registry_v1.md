@@ -1,6 +1,6 @@
 # Source Registry v1
 
-Status: STAGING MVP / BASELINE VALIDATED / DRIVE MAPPING NEXT
+Status: STAGING MVP / BASELINE + DRIVE MAPPING VALIDATED / WRITE CANARY NEXT
 
 ## Purpose
 
@@ -238,3 +238,48 @@ dc3262cc55c5fd79d29f337fd811cdd871543f59d795972d9f30f558e313127c
 This validates the Source Registry + live HTTP probe + persistent baseline + compare path for the first Staging canary.
 
 The next gate is read-only verification of the VPS writable Google Drive remote and its exact mapping to the Business Google Drive canonical BD PNAP tree. No Drive writer should be enabled before that mapping is proven.
+
+
+## Business Drive mapping validation
+
+On 2026-10-21 HKT, the Staging VPS verified the rclone remotes without exposing configuration secrets.
+
+`gdrive:` is the 5 TiB Business Google Drive remote. Its rclone root is already scoped to the canonical Jason OS knowledge root:
+
+```text
+Business Google Drive
+Jason OS/
+└── 06_Knowledge/
+    └── (rclone gdrive: root)
+```
+
+The VPS therefore sees:
+
+```text
+gdrive:
+├── 00_Inbox
+├── 10_Building_Surveying
+├── 20_Contracting
+├── 30_Accounting_Finance
+├── 40_Investment
+└── ...
+```
+
+The folder ID for `gdrive:10_Building_Surveying` matched the canonical Business Drive folder ID, confirming identity and root mapping.
+
+The canonical BD PNAP tree is reachable at:
+
+```text
+gdrive:10_Building_Surveying/BD_PNAP
+├── Current
+│   ├── ADM
+│   ├── APP
+│   └── ADV
+└── Source_ZIP
+```
+
+`gdrive-out:` is a separate 15 GiB Drive rooted at `Jason-OS` and is not the canonical BD PNAP document store.
+
+No Source Monitor writer may use `gdrive-out:` for BD PNAP.
+
+The next gate is a tiny Staging-only write/read-back/delete canary under a dedicated temporary folder on `gdrive:`. The canary must not touch `Current/APP` or any real PNAP document.
