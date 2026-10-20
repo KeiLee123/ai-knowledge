@@ -1,6 +1,6 @@
 # Source Registry v1
 
-Status: STAGING MVP / BASELINE + DRIVE MAPPING VALIDATED / WRITE CANARY NEXT
+Status: STAGING MVP / BASELINE + DRIVE MAPPING VALIDATED / WRITE SCOPE BLOCKED
 
 ## Purpose
 
@@ -283,3 +283,45 @@ gdrive:10_Building_Surveying/BD_PNAP
 No Source Monitor writer may use `gdrive-out:` for BD PNAP.
 
 The next gate is a tiny Staging-only write/read-back/delete canary under a dedicated temporary folder on `gdrive:`. The canary must not touch `Current/APP` or any real PNAP document.
+
+
+## Write canary result
+
+On 2026-10-21 HKT, a Staging-only Business Drive write canary attempted to create:
+
+```text
+gdrive:10_Building_Surveying/BD_PNAP/_Staging_Write_Canary
+```
+
+Google Drive rejected the create request with HTTP 403 and:
+
+```text
+ACCESS_TOKEN_SCOPE_INSUFFICIENT
+insufficient authentication scopes
+```
+
+Because the shell used `set -euo pipefail`, execution stopped at `rclone mkdir`. The canary file was never uploaded.
+
+This confirms:
+
+- `gdrive:` identity and canonical folder mapping are correct;
+- the current OAuth token is intentionally/effectively read-only for write operations;
+- the failure is an authorization-scope problem, not a path, capacity, or checksum problem.
+
+Do not widen or reconnect the existing `gdrive:` remote in place until frozen consumers are reviewed.
+
+Preferred next architecture:
+
+```text
+gdrive:
+    read-only Business Drive source
+
+gdrive-business-write:
+    separate writable Business Drive remote
+    explicit writer path
+    used only by approved Staging/Production writer modules
+```
+
+The existing read-only remote should remain untouched so current ingestion behavior cannot regress.
+
+Before creating a writable remote, inspect the redacted remote configuration and confirm the existing scope/root settings without exposing tokens.
