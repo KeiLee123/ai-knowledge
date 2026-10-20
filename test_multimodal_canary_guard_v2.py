@@ -111,7 +111,11 @@ def assert_guard_rejects_network_or_ports():
 
 
 def assert_command_locks_staging_db():
-    repo_root = Path("/repo")
+    repo_root = (
+        Path(__file__)
+        .resolve()
+        .parent
+    )
 
     command = build_orchestrator_command(
         repo_root=repo_root,
