@@ -70,6 +70,12 @@ jobs:
           set -euo pipefail
           python test_orchestrate_source_pages_v2.py
 
+      - name: Multimodal canary isolation guard test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_multimodal_canary_guard_v2.py
+
       - name: Visual retrieval relevance prompt test
         shell: bash
         run: |
