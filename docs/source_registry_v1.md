@@ -1,6 +1,6 @@
 # Source Registry v1
 
-Status: STAGING MVP / PNAP WRITER DRY-RUN VALIDATED / FIRST OFFICIAL STAGING UPLOAD NEXT
+Status: STAGING MVP / FIRST OFFICIAL DOCUMENT STAGED + ROUNDTRIP VERIFIED / CANONICAL PROMOTION DESIGN NEXT
 
 ## Purpose
 
@@ -431,3 +431,51 @@ gdrive-bd-write:_Staging_Incoming/APP/APP145.pdf
 Overwrite remains disabled.
 
 The next gate is the first real official-document Staging upload using `--execute`. The writer must round-trip verify the uploaded PDF and must not update the baseline or canonical `Current/APP` path.
+
+
+## First official PNAP Staging upload validation
+
+On 2026-10-23 HKT, `BD_PNAP_APP145` completed the first real official-document Staging upload through `write_pnap_staging_v1.py --execute`.
+
+Result:
+
+```text
+status = STAGED_AND_VERIFIED
+verified = true
+baseline_updated = false
+canonical_current_updated = false
+```
+
+Source, baseline, local download, and round-trip Drive content all matched this SHA-256:
+
+```text
+dc3262cc55c5fd79d29f337fd811cdd871543f59d795972d9f30f558e313127c
+```
+
+Uploaded size:
+
+```text
+54814 bytes
+```
+
+Staging destination:
+
+```text
+gdrive-bd-write:_Staging_Incoming/APP/APP145.pdf
+```
+
+This validates the real-document path:
+
+```text
+Official BD source
+  -> Staging download
+  -> approved baseline SHA-256 gate
+  -> isolated Business Drive writer
+  -> Staging incoming object
+  -> read-back
+  -> SHA-256 round-trip verification
+```
+
+No `Current/APP`, Production, Knowledge DB, or baseline state was modified.
+
+The next phase is canonical promotion design and regression coverage. Promotion must remain a separate explicit action and must not be merged into the Staging writer without tests.
