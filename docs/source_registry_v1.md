@@ -1,6 +1,6 @@
 # Source Registry v1
 
-Status: STAGING MVP / STORAGE TRANSPORT VALIDATED / PNAP WRITER NEXT
+Status: STAGING MVP / PNAP WRITER DRY-RUN VALIDATED / FIRST OFFICIAL STAGING UPLOAD NEXT
 
 ## Purpose
 
@@ -392,3 +392,42 @@ The next phase is PNAP Drive Writer v1. Its first implementation must:
 6. refuse destructive overwrite in the first MVP;
 7. leave baseline acceptance as an explicit later step;
 8. never write directly to Production.
+
+
+## PNAP writer dry-run validation
+
+On 2026-10-23 HKT, the Staging VPS ran `write_pnap_staging_v1.py` for `BD_PNAP_APP145` without `--execute`.
+
+Regression test:
+
+```text
+PNAP staging writer v1: PASS
+```
+
+Dry-run status:
+
+```text
+READY_TO_STAGE
+```
+
+Approved baseline SHA-256 and live re-download SHA-256 matched exactly:
+
+```text
+dc3262cc55c5fd79d29f337fd811cdd871543f59d795972d9f30f558e313127c
+```
+
+Live document size:
+
+```text
+54814 bytes
+```
+
+The approved Staging-only target is:
+
+```text
+gdrive-bd-write:_Staging_Incoming/APP/APP145.pdf
+```
+
+Overwrite remains disabled.
+
+The next gate is the first real official-document Staging upload using `--execute`. The writer must round-trip verify the uploaded PDF and must not update the baseline or canonical `Current/APP` path.
