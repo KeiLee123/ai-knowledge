@@ -1,6 +1,6 @@
 # Source Registry v1
 
-Status: STAGING MVP / PNAP STAGING WRITER v1 FROZEN / CANONICAL PROMOTION v1 CI VALIDATED / DRY-RUN NEXT
+Status: STAGING MVP / PNAP STAGING WRITER v1 FROZEN / CANONICAL PROMOTION v1 LIVE DRY-RUN VALIDATED / EXECUTE NEXT
 
 ## Purpose
 
@@ -525,3 +525,30 @@ The module does not modify the frozen PNAP Staging Writer, does not delete the S
 GitHub Actions Validation #196 passed the new Canonical Promotion regression test together with all existing validation checks.
 
 No canonical promotion has been executed yet. The next gate is a live Staging dry-run against the already staged APP-145 object.
+
+
+## Canonical Promotion live dry-run
+
+On 2026-10-23 HKT, Canonical Promotion v1 completed a live Staging dry-run for APP-145.
+
+The staged object SHA-256 and byte size matched the approved baseline exactly:
+
+```text
+SHA-256: dc3262cc55c5fd79d29f337fd811cdd871543f59d795972d9f30f558e313127c
+Bytes: 54814
+```
+
+The plan resolved to:
+
+```text
+source: _Staging_Incoming/APP/APP145.pdf
+destination: Current/APP/APP145.pdf
+overwrite_allowed: false
+staging_source_retained: true
+baseline_changed: false
+ingestion_triggered: false
+```
+
+A read-only Drive listing confirmed `Current/APP` remained empty after the dry-run.
+
+The next gate is the first explicit canonical promotion. It must be followed immediately by read-only verification of both `Current/APP` and the retained Staging source.
