@@ -28,3 +28,9 @@ sources:
     domain: building-control
     topic: fire-safety-buildings
     risk_class: regulatory
+    drive_writer:
+      enabled: true
+      environment: staging
+      remote: "gdrive-bd-write:"
+      destination: "_Staging_Incoming/APP/APP145.pdf"
+      allow_overwrite: false
