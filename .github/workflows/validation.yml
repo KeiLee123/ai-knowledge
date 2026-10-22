@@ -76,6 +76,12 @@ jobs:
           set -euo pipefail
           python test_source_monitor_baseline_v1.py
 
+      - name: PNAP staging writer v1 test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_write_pnap_staging_v1.py
+
       - name: Multimodal ingestion contract test
         shell: bash
         run: |
