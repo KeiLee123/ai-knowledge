@@ -1,6 +1,6 @@
 # Canonical Promotion v1
 
-Status: DESIGN CONTRACT / STAGING ONLY
+Status: IMPLEMENTED / CI VALIDATED / STAGING DRY-RUN NEXT
 
 ## Purpose
 
@@ -150,3 +150,17 @@ Ingestion consumes the accepted bytes.
 ```
 
 Keep those responsibilities separate.
+
+
+## Implementation validation
+
+Canonical Promotion v1 is implemented on the `staging` branch as:
+
+```text
+promote_pnap_canonical_v1.py
+test_promote_pnap_canonical_v1.py
+```
+
+GitHub Actions Validation #196 completed successfully. The Canonical Promotion regression test passed together with the existing PNAP Staging Writer, multimodal ingestion, source provenance, retrieval, and spaced-repetition regression checks.
+
+No canonical promotion has been executed yet. `Current/APP` remains unchanged until an explicit Staging dry-run passes and a later `--execute` command is intentionally run.
