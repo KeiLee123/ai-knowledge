@@ -82,6 +82,12 @@ jobs:
           set -euo pipefail
           python test_write_pnap_staging_v1.py
 
+      - name: Canonical Promotion v1 test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_promote_pnap_canonical_v1.py
+
       - name: Multimodal ingestion contract test
         shell: bash
         run: |
