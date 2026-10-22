@@ -4,6 +4,7 @@ import json
 import tempfile
 
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import write_pnap_staging_v1 as writer
@@ -132,6 +133,61 @@ def test_remote_exists_parser():
                 "APP/APP145.pdf"
             ),
         ) is True
+
+
+def test_missing_parent_means_absent():
+    missing = SimpleNamespace(
+        returncode=3,
+        stdout="",
+        stderr=(
+            "ERROR : error listing: "
+            "directory not found"
+        ),
+    )
+
+    with patch.object(
+        writer.subprocess,
+        "run",
+        return_value=missing,
+    ):
+        assert writer.remote_file_exists(
+            "gdrive-bd-write:",
+            (
+                "_Staging_Incoming/"
+                "APP/APP145.pdf"
+            ),
+        ) is False
+
+
+def test_non_missing_rclone_error_still_fails():
+    denied = SimpleNamespace(
+        returncode=1,
+        stdout="",
+        stderr=(
+            "ERROR : permission denied"
+        ),
+    )
+
+    with patch.object(
+        writer.subprocess,
+        "run",
+        return_value=denied,
+    ):
+        try:
+            writer.remote_file_exists(
+                "gdrive-bd-write:",
+                (
+                    "_Staging_Incoming/"
+                    "APP/APP145.pdf"
+                ),
+            )
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError(
+                "Non-missing rclone errors "
+                "must remain fatal."
+            )
 
 
 def test_no_overwrite():
@@ -266,6 +322,8 @@ def main():
     test_registry_writer_contract()
     test_writer_path_guard()
     test_remote_exists_parser()
+    test_missing_parent_means_absent()
+    test_non_missing_rclone_error_still_fails()
     test_no_overwrite()
     test_roundtrip_verification()
     test_writer_has_no_baseline_mutation()
