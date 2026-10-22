@@ -1,6 +1,6 @@
 # Source Registry v1
 
-Status: STAGING MVP / PNAP STAGING WRITER v1 VERIFIED + FROZEN / CANONICAL PROMOTION DESIGN NEXT
+Status: STAGING MVP / PNAP STAGING WRITER v1 FROZEN / CANONICAL PROMOTION v1 CI VALIDATED / DRY-RUN NEXT
 
 ## Purpose
 
@@ -510,3 +510,18 @@ Therefore the first official-document Staging upload completed without modifying
 PNAP Staging Writer v1 is now considered VERIFIED and FROZEN for this milestone. Future changes to this layer require regression coverage.
 
 Next work should be a separate Canonical Promotion module. It must remain independent from the Staging writer so transport validation and canonical acceptance stay decoupled.
+
+
+## Canonical Promotion v1 implementation
+
+Canonical Promotion v1 is implemented as a separate module on `staging`.
+
+It reads the registry-approved Staging source, verifies the staged PDF against the approved runtime baseline, confirms the exact `Current` destination is absent, and defaults to a read-only dry-run.
+
+An explicit execute may copy verified bytes into the canonical `Current` path and then read them back for SHA-256 verification.
+
+The module does not modify the frozen PNAP Staging Writer, does not delete the Staging source, does not update the baseline, and does not trigger Knowledge ingestion or Production writes.
+
+GitHub Actions Validation #196 passed the new Canonical Promotion regression test together with all existing validation checks.
+
+No canonical promotion has been executed yet. The next gate is a live Staging dry-run against the already staged APP-145 object.
