@@ -1,6 +1,6 @@
 # Source Registry v1
 
-Status: STAGING MVP / BASELINE + DRIVE MAPPING + WRITER CONFIG VALIDATED / WRITE CANARY NEXT
+Status: STAGING MVP / STORAGE TRANSPORT VALIDATED / PNAP WRITER NEXT
 
 ## Purpose
 
@@ -353,3 +353,42 @@ Source_ZIP
 This confirms OAuth write scope and root isolation at the BD_PNAP folder boundary.
 
 The next gate is a tiny Staging-only write/read-back/delete canary under `_Staging_Write_Canary`. No real PNAP document or `Current/APP` content should be modified during that test.
+
+
+## Business Drive write canary validation
+
+On 2026-10-23 HKT, the isolated `gdrive-bd-write:` remote completed a full Staging write/read-back/delete canary under:
+
+```text
+BD_PNAP/_Staging_Write_Canary/write-canary.txt
+```
+
+The local file SHA-256 and round-trip SHA-256 were identical:
+
+```text
+14b832475ce123989cb4e009d46acf0fdcee31386a7336f3ec5c1d7e7aee8903
+```
+
+The temporary canary folder was deleted successfully after verification.
+
+This validates:
+
+- writable OAuth scope;
+- BD_PNAP root isolation;
+- create/upload capability;
+- read-back capability;
+- byte integrity after round trip;
+- cleanup capability.
+
+No real PNAP document, `Current`, `APP`, `ADM`, `ADV`, or `Source_ZIP` content was modified.
+
+The next phase is PNAP Drive Writer v1. Its first implementation must:
+
+1. operate in Staging only;
+2. download to a temporary local file;
+3. verify SHA-256 before upload;
+4. upload only to a registry-approved path under `gdrive-bd-write:`;
+5. verify the remote object after upload;
+6. refuse destructive overwrite in the first MVP;
+7. leave baseline acceptance as an explicit later step;
+8. never write directly to Production.
