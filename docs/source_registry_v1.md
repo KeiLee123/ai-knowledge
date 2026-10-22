@@ -1,6 +1,6 @@
 # Source Registry v1
 
-Status: STAGING MVP / BASELINE + DRIVE MAPPING VALIDATED / WRITE SCOPE BLOCKED
+Status: STAGING MVP / BASELINE + DRIVE MAPPING + WRITER CONFIG VALIDATED / WRITE CANARY NEXT
 
 ## Purpose
 
@@ -325,3 +325,31 @@ gdrive-business-write:
 The existing read-only remote should remain untouched so current ingestion behavior cannot regress.
 
 Before creating a writable remote, inspect the redacted remote configuration and confirm the existing scope/root settings without exposing tokens.
+
+
+## Writable BD PNAP remote
+
+On 2026-10-23 HKT, a separate writable rclone remote was configured without modifying the existing read-only `gdrive:` remote.
+
+```text
+gdrive:
+    scope = drive.readonly
+    purpose = existing Knowledge read source
+    status = unchanged / frozen
+
+gdrive-bd-write:
+    scope = drive
+    root_folder_id = BD_PNAP
+    purpose = approved BD PNAP writer
+```
+
+The writable remote root was verified to expose only:
+
+```text
+Current
+Source_ZIP
+```
+
+This confirms OAuth write scope and root isolation at the BD_PNAP folder boundary.
+
+The next gate is a tiny Staging-only write/read-back/delete canary under `_Staging_Write_Canary`. No real PNAP document or `Current/APP` content should be modified during that test.
