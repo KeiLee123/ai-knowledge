@@ -1,6 +1,6 @@
 # Source Registry v1
 
-Status: STAGING MVP / FIRST OFFICIAL DOCUMENT STAGED + ROUNDTRIP VERIFIED / CANONICAL PROMOTION DESIGN NEXT
+Status: STAGING MVP / PNAP STAGING WRITER v1 VERIFIED + FROZEN / CANONICAL PROMOTION DESIGN NEXT
 
 ## Purpose
 
@@ -479,3 +479,34 @@ Official BD source
 No `Current/APP`, Production, Knowledge DB, or baseline state was modified.
 
 The next phase is canonical promotion design and regression coverage. Promotion must remain a separate explicit action and must not be merged into the Staging writer without tests.
+
+
+## Staging object and canonical path inspection
+
+On 2026-10-23 HKT, a read-only Drive inspection confirmed the staged official document exists at:
+
+```text
+gdrive-bd-write:_Staging_Incoming/APP/APP145.pdf
+```
+
+Observed metadata:
+
+```text
+Name: APP145.pdf
+Size: 54814
+MimeType: application/pdf
+```
+
+A separate read-only inspection of:
+
+```text
+gdrive-bd-write:Current/APP
+```
+
+returned an empty listing.
+
+Therefore the first official-document Staging upload completed without modifying the canonical Current path.
+
+PNAP Staging Writer v1 is now considered VERIFIED and FROZEN for this milestone. Future changes to this layer require regression coverage.
+
+Next work should be a separate Canonical Promotion module. It must remain independent from the Staging writer so transport validation and canonical acceptance stay decoupled.
