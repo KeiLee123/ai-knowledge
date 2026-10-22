@@ -34,3 +34,13 @@ sources:
       remote: "gdrive-bd-write:"
       destination: "_Staging_Incoming/APP/APP145.pdf"
       allow_overwrite: false
+    canonical_promotion:
+      enabled: true
+      controller_environment: staging
+      remote: "gdrive-bd-write:"
+      source: "_Staging_Incoming/APP/APP145.pdf"
+      destination: "Current/APP/APP145.pdf"
+      allow_overwrite: false
+      retain_staging_source: true
+      update_baseline: false
+      trigger_ingestion: false
