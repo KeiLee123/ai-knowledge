@@ -1,6 +1,6 @@
 # Canonical Promotion v1
 
-Status: IMPLEMENTED / CI VALIDATED / STAGING DRY-RUN NEXT
+Status: IMPLEMENTED / CI + LIVE DRY-RUN VALIDATED / FIRST CANONICAL PROMOTION NEXT
 
 ## Purpose
 
@@ -164,3 +164,44 @@ test_promote_pnap_canonical_v1.py
 GitHub Actions Validation #196 completed successfully. The Canonical Promotion regression test passed together with the existing PNAP Staging Writer, multimodal ingestion, source provenance, retrieval, and spaced-repetition regression checks.
 
 No canonical promotion has been executed yet. `Current/APP` remains unchanged until an explicit Staging dry-run passes and a later `--execute` command is intentionally run.
+
+
+## Live dry-run validation
+
+On 2026-10-23 HKT, the Staging VPS ran Canonical Promotion v1 without `--execute` for `BD_PNAP_APP145`.
+
+Result:
+
+```text
+mode = dry-run
+status = READY_TO_PROMOTE
+```
+
+The approved baseline and staged Drive object matched exactly:
+
+```text
+SHA-256
+dc3262cc55c5fd79d29f337fd811cdd871543f59d795972d9f30f558e313127c
+
+Bytes
+54814
+```
+
+The approved canonical destination is:
+
+```text
+gdrive-bd-write:Current/APP/APP145.pdf
+```
+
+Dry-run confirmed:
+
+```text
+overwrite_allowed = false
+staging_source_retained = true
+baseline_changed = false
+ingestion_triggered = false
+```
+
+A read-only check after the dry-run confirmed `Current/APP` remained empty.
+
+The next gate is the first explicit canonical promotion using `--execute`.
