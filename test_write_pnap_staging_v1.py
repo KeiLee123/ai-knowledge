@@ -237,7 +237,10 @@ def test_roundtrip_verification():
             b"%PDF-roundtrip"
         )
 
-        def fake_run(args):
+        def fake_run(
+            args,
+            **_kwargs,
+        ):
             if (
                 args[0]
                 == "lsjson"
