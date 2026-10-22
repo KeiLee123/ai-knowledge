@@ -315,7 +315,11 @@ def download_document(
     }
 
 
-def run_rclone(args):
+def run_rclone(
+    args,
+    *,
+    missing_ok=False,
+):
     result = subprocess.run(
         ["rclone", *args],
         check=False,
@@ -325,11 +329,29 @@ def run_rclone(args):
     )
 
     if result.returncode != 0:
+        stderr = (
+            result.stderr or ""
+        ).strip()
+
+        if missing_ok:
+            missing_markers = (
+                "directory not found",
+                "object not found",
+            )
+
+            lowered = stderr.lower()
+
+            if any(
+                marker in lowered
+                for marker in missing_markers
+            ):
+                return None
+
         raise RuntimeError(
             "rclone command failed: "
             + " ".join(args)
             + "\n"
-            + result.stderr.strip()
+            + stderr
         )
 
     return result.stdout
@@ -368,8 +390,12 @@ def remote_file_exists(
         [
             "lsjson",
             target,
-        ]
+        ],
+        missing_ok=True,
     )
+
+    if output is None:
+        return False
 
     items = json.loads(
         output or "[]"
