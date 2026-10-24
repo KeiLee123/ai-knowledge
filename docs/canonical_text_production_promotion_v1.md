@@ -657,3 +657,40 @@ place.
 
 GitHub Actions run #235 passed the P4 contract step together with P1-P3 and
 the frozen-layer regression suite.
+
+
+## P8 pre-write readiness gate
+
+Status: IMPLEMENTED / STAGING CI VERIFIED / LIVE MAIN READINESS PENDING
+
+Before any normal Production write executor is introduced, the read-only gate
+`validate_production_write_readiness_v1.py` must pass on `main`.
+
+The gate verifies:
+
+```text
+P1 Production guard passes
+current main contains reviewed release baseline be5de81
+Git-controlled APP-145 release profile resolves
+Production checksum state = 0 documents / 0 chunks / 0 embeddings
+P7 prepared canonical PDF matches reviewed SHA-256
+P7 prepared chunks still satisfy the frozen 8-chunk native-text contract
+P3 recovery transaction contract is structurally ready
+P4 validator remains read-only and has integrity + two semantic checks
+normal Production write remains disabled
+```
+
+The gate binds the live P7 artifact directory with
+`--prepared-workdir`.
+
+Expected successful status:
+
+```text
+STATUS: PRODUCTION_WRITE_READINESS_VERIFIED
+Normal Production write remains disabled.
+Database writes performed: False
+```
+
+Passing this gate authorizes only the next implementation step: adding a
+separate explicit Production write executor behind its own confirmation flag.
+It does not itself enable or execute a Production write.
