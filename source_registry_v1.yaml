@@ -54,3 +54,13 @@ sources:
       document_type: "official-regulatory"
       language: "en"
       allow_production_write: false
+    canonical_text_ingestion:
+      enabled: true
+      controller_environment: staging
+      remote: "gdrive-bd-write:"
+      source: "Current/APP/APP145.pdf"
+      db_container: "jason-os-knowledge-db-staging"
+      required_route: "legacy-v1"
+      document_type: "official-regulatory"
+      language: "en"
+      allow_production_write: false
