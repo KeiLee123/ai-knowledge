@@ -82,21 +82,14 @@ Do not use it as the template for every new source.
 
 ### Structured table evidence
 
-Current state:
+Status: COMPLETE in GitHub `staging` / CI VERIFIED; VPS deployment pending.
 
-```text
-PDF
--> table detector
--> structured rows/columns in manifest
--> [gap]
--> retrieval evidence
-```
-
-Target:
+Implemented:
 
 - emit `structured_table` evidence;
 - preserve page number, bbox, table index, row/column counts and detection strategy;
-- add regression tests;
+- treat source-grounded structured tables as primary table evidence;
+- add regression coverage for serialization, metadata, summary counts and ingestion role;
 - preserve existing native/OCR/Vision behavior.
 
 ### Official Source Processing v1
@@ -280,7 +273,11 @@ Production impact: none.
 
 ### M1 — Structured table evidence
 
-Add first-class table evidence and tests.
+Status: COMPLETE in GitHub `staging` / CI VERIFIED.
+
+First-class table evidence and regression tests are implemented.
+
+VPS deployment: pending.
 
 Production impact: none until separately promoted.
 

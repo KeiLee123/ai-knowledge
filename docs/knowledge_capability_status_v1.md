@@ -36,7 +36,7 @@ At the architecture-freeze point, GitHub `staging` was ahead of the live Staging
 | Multimodal Document v2 | IMPLEMENTED | Production and Staging core files match |
 | Native PDF text | IMPLEMENTED | Existing v2 extraction |
 | Table detection | IMPLEMENTED | Structured rows/columns extracted |
-| Structured table retrieval evidence | GAP | Extracted tables are not first-class chunks |
+| Structured table retrieval evidence | GITHUB STAGING / CI VERIFIED | First-class `structured_table` chunks with table provenance metadata; VPS deployment pending |
 | OCR | IMPLEMENTED | Selective candidate-page OCR |
 | Vision | IMPLEMENTED | Selective visual understanding |
 | Page-aware routing signals | IMPLEMENTED | Final router decision remains document-level |
@@ -94,14 +94,17 @@ GitHub `staging` was ahead of VPS Staging with the Generic Production Promotion 
 
 Priority order:
 
-1. structured-table retrieval evidence;
-2. multimodal official-source Staging close-loop;
-3. release-artifact profile abstraction;
-4. live VPS Staging verification of Generic Production Promotion v2;
-5. safe CLI/deployment reconciliation;
-6. source-monitor scheduling;
-7. HKeL watch modernization;
-8. cleanup / retirement.
+1. multimodal official-source Staging close-loop;
+2. release-artifact profile abstraction;
+3. live VPS Staging verification of Generic Production Promotion v2;
+4. safe CLI/deployment reconciliation;
+5. source-monitor scheduling;
+6. HKeL watch modernization;
+7. cleanup / retirement.
+
+Completed in GitHub `staging` / CI verified:
+
+- structured-table retrieval evidence (M1); VPS deployment pending.
 
 ## Freeze rules
 

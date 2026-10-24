@@ -54,7 +54,7 @@ Normalized Evidence
     +-- ocr_text
     +-- fused_text
     +-- visual_understanding
-    +-- structured_table   [target addition]
+    +-- structured_table
     |
     v
 STAGING DB
@@ -116,7 +116,7 @@ For multimodal documents, the current v2 stack already provides:
 - chunk metadata;
 - source-page provenance.
 
-The primary evidence-granularity gap is that structured tables are extracted but are not yet emitted as first-class retrieval evidence.
+Structured tables are now emitted as first-class `structured_table` retrieval evidence in GitHub `staging`, with table provenance metadata and CI regression coverage. This implementation has not yet been deployed to the audited VPS environments.
 
 ### 3. Staging lifecycle
 
@@ -213,7 +213,7 @@ Internal engines may remain write-capable where required, but approved operation
 ## Migration sequence
 
 1. Freeze this architecture and capability inventory in GitHub.
-2. Add structured-table retrieval evidence with regression tests.
+2. Structured-table retrieval evidence with regression tests — COMPLETE in GitHub `staging` / CI verified; VPS deployment pending.
 3. Close the official-source multimodal Staging lifecycle using existing v2 components.
 4. Generalize the release contract to artifact profiles.
 5. Live-verify the generic Production v2 path on VPS Staging.
