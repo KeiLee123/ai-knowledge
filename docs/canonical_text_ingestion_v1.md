@@ -1,6 +1,6 @@
 # Canonical Text Ingestion v1
 
-Status: STAGING MVP / IMPLEMENTED / LIVE PREPARE PENDING
+Status: VERIFIED / FROZEN\n\nFrozen baseline: staging commit `c1ef9eb`\n\nValidated source: `BD_PNAP_APP145`\n\nValidated canonical SHA-256: `dc3262cc55c5fd79d29f337fd811cdd871543f59d795972d9f30f558e313127c`
 
 ## Purpose
 
@@ -172,3 +172,70 @@ Multimodal document
 ```
 
 Do not force every document through OCR or Vision.
+
+
+## Freeze evidence
+
+The Staging milestone was live-validated after an actual isolated Staging DB write and a separate read-only integrity/retrieval validation.
+
+Validated invariants:
+
+```text
+document_count = 1
+chunk_count = 8
+embedding_count = 8
+native_text_chunks = 8
+text_primary_chunks = 8
+embedding_dimensions = 384
+routing_profile = legacy-v1
+multimodal = false
+integrity_ok = true
+semantic_ok = true
+production_write = false
+```
+
+The semantic validation returned relevant APP-145 fire-safety content for multiple queries.
+
+The final live validator reported:
+
+```text
+STATUS: CANONICAL_TEXT_STAGING_MILESTONE_VERIFIED
+```
+
+## Frozen-layer policy
+
+The following v1 contract is now frozen:
+
+- canonical checksum verification before ingestion;
+- full-document deterministic route gate;
+- `legacy-v1` requirement for this text-only path;
+- Staging DB isolation;
+- native-text-only chunk evidence;
+- `text-primary` retrieval role;
+- `multimodal = false` metadata;
+- local `multilingual-e5-small` 384-dimensional embedding contract;
+- checksum duplicate prevention;
+- atomic document/chunk/embedding transaction;
+- read-only post-write integrity and semantic retrieval validation.
+
+Do not modify the frozen contract without regression coverage first.
+
+Any future change must:
+
+1. be developed in `staging`;
+2. add or update regression tests before changing behavior;
+3. preserve Production / Staging isolation;
+4. re-run the live Staging milestone validator;
+5. establish a new verified baseline before the changed layer is treated as frozen again.
+
+## Production boundary after freeze
+
+This freeze does not authorize a Production database write.
+
+```text
+Staging verified/frozen
+        !=
+Production promoted
+```
+
+Production promotion must be implemented as a separate release gate with its own Production guard, dry-run/prepare mode, explicit write confirmation, duplicate prevention, post-write retrieval validation, and rollback/recovery procedure.
