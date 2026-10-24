@@ -1,6 +1,6 @@
 # Source Registry v1
 
-Status: STAGING MVP / PNAP STAGING WRITER v1 FROZEN / CANONICAL PROMOTION v1 LIVE DRY-RUN VALIDATED / EXECUTE NEXT
+Status: STAGING MVP / PNAP STAGING WRITER v1 FROZEN / CANONICAL PROMOTION v1 VERIFIED + FROZEN
 
 ## Purpose
 
@@ -552,3 +552,27 @@ ingestion_triggered: false
 A read-only Drive listing confirmed `Current/APP` remained empty after the dry-run.
 
 The next gate is the first explicit canonical promotion. It must be followed immediately by read-only verification of both `Current/APP` and the retained Staging source.
+
+
+## Canonical Promotion verified and frozen
+
+The first APP-145 canonical promotion completed successfully.
+
+Business Google Drive now contains both:
+
+```text
+Current/APP/APP145.pdf
+_Staging_Incoming/APP/APP145.pdf
+```
+
+Both are 54814-byte PDF objects.
+
+Read-only SHA-256 verification confirmed that the Current object, retained Staging object, and approved baseline are byte-identical:
+
+```text
+dc3262cc55c5fd79d29f337fd811cdd871543f59d795972d9f30f558e313127c
+```
+
+Canonical Promotion v1 is now VERIFIED and FROZEN. Future changes require regression coverage.
+
+This milestone does not imply Knowledge ingestion or Production deployment. Those remain separate downstream gates.
