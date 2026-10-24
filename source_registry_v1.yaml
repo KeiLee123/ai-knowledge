@@ -44,3 +44,13 @@ sources:
       retain_staging_source: true
       update_baseline: false
       trigger_ingestion: false
+    canonical_ingestion:
+      enabled: true
+      controller_environment: staging
+      remote: "gdrive-bd-write:"
+      source: "Current/APP/APP145.pdf"
+      db_container: "jason-os-knowledge-db-staging"
+      pipeline: "multimodal-v2"
+      document_type: "official-regulatory"
+      language: "en"
+      allow_production_write: false
