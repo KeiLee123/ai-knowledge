@@ -106,6 +106,12 @@ jobs:
           set -euo pipefail
           python test_validate_canonical_text_staging_milestone_v1.py
 
+      - name: Production Promotion Guard v1 test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_production_promotion_guard_v1.py
+
       - name: Multimodal ingestion contract test
         shell: bash
         run: |
