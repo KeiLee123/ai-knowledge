@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 
 
-BUILDER_VERSION = "phase-d-1.2"
+BUILDER_VERSION = "phase-d-1.3"
 SUPPORTED_SCHEMA = "document-manifest-v2"
 
 DEFAULT_TARGET_CHARS = 1800
@@ -404,7 +404,7 @@ def build_output(
         "schema_version": "retrieval-chunks-v2",
         "builder_version": BUILDER_VERSION,
         "source_manifest": {
-            "path": str(manifest_path),
+            "path": manifest_path.name,
             "sha256": sha256_file(manifest_path),
             "document_sha256": manifest["source"]["sha256"],
             "document_name": manifest["source"].get("filename"),

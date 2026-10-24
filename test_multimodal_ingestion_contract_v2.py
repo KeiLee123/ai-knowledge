@@ -355,6 +355,66 @@ def assert_provenance_contract():
     assert merged["ingestion_version"] == "v2"
 
 
+def assert_release_artifact_path_independence():
+    manifest = manifest_with_units([
+        page(
+            1,
+            text=(
+                "Authorized signatory "
+                "requirements for minor works."
+            ),
+        )
+    ])
+
+    payload = json.dumps(
+        manifest,
+        ensure_ascii=False,
+        indent=2,
+    )
+
+    with (
+        tempfile.TemporaryDirectory() as tmp1,
+        tempfile.TemporaryDirectory() as tmp2,
+    ):
+        path1 = Path(tmp1) / "phase-a.json"
+        path2 = Path(tmp2) / "phase-a.json"
+
+        path1.write_text(
+            payload,
+            encoding="utf-8",
+        )
+        path2.write_text(
+            payload,
+            encoding="utf-8",
+        )
+
+        output1 = build_output(
+            manifest_path=path1,
+            manifest=manifest,
+            target_chars=1800,
+            overlap_chars=250,
+        )
+
+        output2 = build_output(
+            manifest_path=path2,
+            manifest=manifest,
+            target_chars=1800,
+            overlap_chars=250,
+        )
+
+    assert output1 == output2
+
+    assert output1[
+        "source_manifest"
+    ]["path"] == "phase-a.json"
+
+    assert output1[
+        "source_manifest"
+    ]["sha256"] == output2[
+        "source_manifest"
+    ]["sha256"]
+
+
 def assert_no_write_contract():
     route = assess_manifest(
         manifest_with_units([
@@ -383,6 +443,7 @@ def main():
     assert_evidence_normalization_contract()
     assert_structured_table_evidence_contract()
     assert_provenance_contract()
+    assert_release_artifact_path_independence()
     assert_no_write_contract()
 
     print("Multimodal ingestion contract test PASS")
@@ -390,6 +451,7 @@ def main():
     print("Evidence normalization contract: PASS")
     print("Structured table evidence contract: PASS")
     print("Provenance contract: PASS")
+    print("Release artifact path independence: PASS")
     print("No-write safety contract: PASS")
 
 
