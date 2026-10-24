@@ -64,3 +64,17 @@ sources:
       document_type: "official-regulatory"
       language: "en"
       allow_production_write: false
+    canonical_text_production_promotion:
+      enabled: true
+      controller_environment: production
+      remote: "gdrive-bd-write:"
+      source: "Current/APP/APP145.pdf"
+      db_container: "ai-knowledge-db-jiyckdrlappwgimwebnzxwmr"
+      required_route: "legacy-v1"
+      frozen_ingestion_version: "canonical-text-ingestion-v1"
+      expected_sha256: "dc3262cc55c5fd79d29f337fd811cdd871543f59d795972d9f30f558e313127c"
+      expected_chunk_count: 8
+      expected_embedding_count: 8
+      document_type: "official-regulatory"
+      language: "en"
+      allow_production_write: false
