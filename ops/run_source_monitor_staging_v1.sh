@@ -22,6 +22,24 @@ if [ "$SOURCE_ID" != "BD_PNAP_APP149" ]; then
   exit 64
 fi
 
+command -v git >/dev/null 2>&1 || {
+  echo "REFUSED: git is required"
+  exit 64
+}
+
+REPO_BRANCH="$(git -C "$REPO_ROOT" branch --show-current)"
+if [ "$REPO_BRANCH" != "staging" ]; then
+  echo "REFUSED: scheduler checkout must be on staging branch"
+  exit 64
+fi
+
+if [ -n "$(git -C "$REPO_ROOT" status --porcelain)" ]; then
+  echo "REFUSED: scheduler checkout worktree must be clean"
+  exit 64
+fi
+
+REPO_COMMIT="$(git -C "$REPO_ROOT" rev-parse HEAD)"
+
 test -x "$PYTHON" || {
   echo "REFUSED: Python runtime not executable: $PYTHON"
   exit 64
@@ -60,6 +78,8 @@ echo "============================================================"
 echo "source_id=$SOURCE_ID"
 echo "state_root=$STATE_ROOT"
 echo "run_dir=$RUN_DIR"
+echo "repo_branch=$REPO_BRANCH"
+echo "repo_commit=$REPO_COMMIT"
 echo "production_access=false"
 echo "production_write=false"
 
