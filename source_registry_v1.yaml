@@ -64,6 +64,11 @@ sources:
       document_type: "official-regulatory"
       language: "en"
       allow_production_write: false
+    staging_validation:
+      query: "What fire safety measures and requirements apply to target buildings?"
+      expect_terms:
+        - fire
+        - safety
     canonical_text_production_promotion:
       enabled: true
       controller_environment: production
@@ -188,4 +193,11 @@ sources:
       document_type: "official-regulatory"
       language: "en"
       allow_production_write: false
+    staging_validation:
+      query: "What are the requirements for appointing an authorized signatory for minor works?"
+      expect_terms:
+        - authorized
+        - signatory
+        - minor
+        - works
 
