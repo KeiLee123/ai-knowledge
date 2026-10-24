@@ -224,7 +224,8 @@ Internal engines may remain write-capable where required, but approved operation
 4. Release Artifact Profiles — COMPLETE / CI verified and deployed to VPS Staging; operational Generic Production v2 verification pending.
 5. APP149 Generic Production v2 release proposal — LIVE VERIFIED on VPS Staging at commit `4936069`, including deterministic two-run artifact proof and no Production access/write.
 6. Automatic Version Qualification Policy v1 — COMPLETE in GitHub `staging` / CI verified.
-7. Version Signal Extraction v1 — COMPLETE in GitHub `staging` / CI verified; VPS live verification pending.
+7. Version Signal Extraction v1 — VPS STAGING LIVE VERIFIED with APP149 at commit `55c9dff`.
+8. Version Snapshot Persistence / Comparison — next milestone; persist previous accepted snapshots and drive `version_update` policy automatically.
 7. Prove a multimodal generic release candidate.
 8. Reconcile and install safe CLI deployment definitions.
 9. Enable scheduled source monitoring only after the lifecycle closes end-to-end.

@@ -1,8 +1,8 @@
 # M5C — Version Signal Extraction v1
 
-Status: GITHUB STAGING / CI VERIFIED  
+Status: VPS STAGING LIVE VERIFIED  
 Production impact: NONE  
-VPS live verification: pending
+VPS live verification: COMPLETE
 
 ## Purpose
 
@@ -128,10 +128,37 @@ Regression tests cover:
 - snapshot comparison driving AUTO_QUALIFIED;
 - packaging/checksum-only changes driving REVIEW_REQUIRED.
 
+## Live verification record
+
+Verified on 2026-10-24 using APP149 on VPS Staging.
+
+- deployed commit: `55c9dffcd203e8e06297f6068f06a9fce08f7c6f`
+- source ID: `BD_PNAP_APP149`
+- authority: `BD`
+- document code: `APP-149`
+- canonical host: `www.bd.gov.hk`
+- issue date: `2010-12`
+- first issue date: `2010-12`
+- revision date: `2010-12`
+- revision source: `pnap_footer_month_year`
+- page count: `5`
+- metadata fingerprint: `e562a224e3f14f92a08ccd6129c857f6364c4355f61404fb6b50ac1247cb0aa3`
+- normalized-content fingerprint: `6204cefef72c45e11942eabab04a87b9d89d6002f8c12fb26af5254f1c8c0358`
+- document SHA-256: `a5b4d5a1af5f4a32b43973db33d95436f9390e8e2da77747ee666015077bb1a8`
+- two independent proposal runs produced identical version snapshots
+- two independent proposal runs produced identical chunk hashes
+- initial-release policy decision: `AUTO_QUALIFIED`
+- `write_authorized = false`
+- `production_access = false`
+- `production_write = false`
+- Production release registry remained empty
+- Git worktree remained clean
+- command block exit code: `0`
+
 ## Current boundary
 
-M5C is implemented and CI-verified in GitHub `staging`.
+M5C is live-verified on VPS Staging.
 
-It is not yet live-verified against the actual APP149 canonical file on the VPS.
+The remaining gap is not signal extraction. It is persistence and comparison of the previous accepted snapshot so future source changes can automatically enter the `version_update` policy path.
 
 Production is untouched.

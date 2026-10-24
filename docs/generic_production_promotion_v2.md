@@ -136,7 +136,7 @@ deterministic release
 
 Ambiguous changes go to `REVIEW_REQUIRED`.
 
-M5C implements issue/revision extraction plus material-metadata and normalized-content fingerprints in GitHub `staging`; VPS live verification remains pending.
+M5C issue/revision extraction plus material-metadata and normalized-content fingerprints are VPS STAGING LIVE VERIFIED with APP149 at commit `55c9dff`.
 
 ## Production verify / prepare
 
@@ -200,7 +200,7 @@ The hash-path determinism defect was fixed at commit `4936069`.
 
 The Production v2 registry remains empty.
 
-M5B policy code and M5C version-signal extraction are CI-verified in GitHub `staging` but not yet live-deployed/verified together on VPS Staging.
+M5B policy qualification and M5C version-signal extraction are live-verified together on VPS Staging with APP149. The next gap is storing the previous accepted snapshot so future changes can enter the `version_update` comparison path automatically.
 
 No APP149 Production write is authorized.
 

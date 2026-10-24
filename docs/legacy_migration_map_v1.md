@@ -352,9 +352,19 @@ Version updates auto-qualify only when identity matches, issue/revision/edition 
 
 Ambiguous changes route to `REVIEW_REQUIRED`; date regression or identity mismatch is `BLOCKED`.
 
-M5C now implements issue/revision extraction, material metadata fingerprints and normalized-content fingerprints in GitHub `staging`.
+M5C is VPS STAGING LIVE VERIFIED with APP149.
 
-Remaining gap: VPS live verification and persistence/comparison of prior version snapshots in the automated monitor lifecycle.
+Live proof at commit `55c9dff` verified:
+
+- issue date `2010-12`;
+- revision date `2010-12`;
+- stable metadata fingerprint;
+- stable normalized-content fingerprint;
+- deterministic snapshots across two runs;
+- `AUTO_QUALIFIED`;
+- Production access/write false.
+
+Remaining gap: persistence/comparison of prior accepted version snapshots in the automated monitor lifecycle.
 
 Production write authorization remains a separate later gate.
 
