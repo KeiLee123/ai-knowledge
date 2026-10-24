@@ -112,6 +112,12 @@ jobs:
           set -euo pipefail
           python test_process_official_source_staging_v1.py
 
+      - name: Generic Production Promotion v2 contract test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_generic_production_promotion_v2.py
+
       - name: Production Promotion Guard v1 test
         shell: bash
         run: |
