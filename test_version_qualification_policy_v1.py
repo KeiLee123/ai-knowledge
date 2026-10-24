@@ -3,10 +3,12 @@
 from version_qualification_policy_v1 import (
     AUTO_QUALIFIED,
     BLOCKED,
+    CANDIDATE_NEW_VERSION,
     NO_CHANGE,
     QUALIFIED,
     REVIEW_REQUIRED,
     evaluate_initial_release,
+    evaluate_version_candidate,
     evaluate_version_update,
     validate_qualification_record,
 )
@@ -204,6 +206,61 @@ def test_ambiguous_dates_require_review():
     )
 
 
+
+def test_monitor_candidate_new_version():
+    signals = update_signals()
+    signals[
+        "staging_validation_verified"
+    ] = False
+    signals[
+        "deterministic_release"
+    ] = False
+
+    result = evaluate_version_candidate(
+        signals
+    )
+
+    assert (
+        result["decision"]
+        == CANDIDATE_NEW_VERSION
+    )
+    assert (
+        result["mode"]
+        == "version_candidate"
+    )
+
+
+def test_monitor_candidate_packaging_only_review():
+    signals = update_signals()
+    signals[
+        "normalized_content_changed"
+    ] = False
+
+    result = evaluate_version_candidate(
+        signals
+    )
+
+    assert (
+        result["status"]
+        == REVIEW_REQUIRED
+    )
+
+
+def test_monitor_candidate_date_regression_blocks():
+    signals = update_signals()
+    signals[
+        "previous_issue_date"
+    ] = "2026-08"
+    signals[
+        "current_issue_date"
+    ] = "2025-03"
+
+    result = evaluate_version_candidate(
+        signals
+    )
+
+    assert result["status"] == BLOCKED
+
 def main():
     test_initial_release()
     test_initial_release_fail_closed()
@@ -214,6 +271,9 @@ def main():
     test_packaging_only_change_requires_review()
     test_unchanged_is_not_release()
     test_ambiguous_dates_require_review()
+    test_monitor_candidate_new_version()
+    test_monitor_candidate_packaging_only_review()
+    test_monitor_candidate_date_regression_blocks()
 
     print(
         "Version Qualification Policy v1: PASS"
@@ -229,6 +289,9 @@ def main():
     )
     print(
         "Identity/date regression blocking: PASS"
+    )
+    print(
+        "Monitor candidate pre-gate: PASS"
     )
 
 

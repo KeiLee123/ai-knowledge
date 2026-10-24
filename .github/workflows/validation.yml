@@ -130,6 +130,12 @@ jobs:
           set -euo pipefail
           python test_version_snapshot_store_v1.py
 
+      - name: Official Source Monitor Integration v1 test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_monitor_official_source_v1.py
+
       - name: Generic Production Promotion v2 contract test
         shell: bash
         run: |

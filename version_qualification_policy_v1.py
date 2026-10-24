@@ -181,6 +181,190 @@ def evaluate_initial_release(
     )
 
 
+
+CANDIDATE = "candidate"
+CANDIDATE_NEW_VERSION = "CANDIDATE_NEW_VERSION"
+
+
+def evaluate_version_candidate(
+    signals: dict,
+) -> dict:
+    identity_keys = (
+        "authority_match",
+        "document_code_match",
+        "official_host_match",
+    )
+
+    required_change_keys = (
+        "checksum_changed",
+        "normalized_content_changed",
+        "metadata_changed",
+    )
+
+    missing = [
+        key
+        for key in (
+            *identity_keys,
+            *required_change_keys,
+        )
+        if key not in signals
+    ]
+
+    if missing:
+        return result(
+            mode="version_candidate",
+            status=REVIEW_REQUIRED,
+            decision=EXCEPTION_REVIEW,
+            reasons=[
+                "missing_signals:"
+                + ",".join(
+                    sorted(missing)
+                )
+            ],
+            signals=signals,
+        )
+
+    failed_identity = [
+        key
+        for key in identity_keys
+        if signals.get(key)
+        is not True
+    ]
+
+    if failed_identity:
+        return result(
+            mode="version_candidate",
+            status=BLOCKED,
+            decision=POLICY_BLOCKED,
+            reasons=[
+                "source_identity_mismatch:"
+                + ",".join(
+                    sorted(
+                        failed_identity
+                    )
+                )
+            ],
+            signals=signals,
+        )
+
+    issue_cmp = compare_version_date(
+        signals.get(
+            "previous_issue_date"
+        ),
+        signals.get(
+            "current_issue_date"
+        ),
+    )
+
+    revision_cmp = compare_version_date(
+        signals.get(
+            "previous_revision_date"
+        ),
+        signals.get(
+            "current_revision_date"
+        ),
+    )
+
+    normalized_signals = dict(
+        signals
+    )
+    normalized_signals[
+        "issue_date_comparison"
+    ] = issue_cmp
+    normalized_signals[
+        "revision_date_comparison"
+    ] = revision_cmp
+
+    if (
+        issue_cmp == "older"
+        or revision_cmp == "older"
+    ):
+        return result(
+            mode="version_candidate",
+            status=BLOCKED,
+            decision=POLICY_BLOCKED,
+            reasons=[
+                "version_date_regression"
+            ],
+            signals=normalized_signals,
+        )
+
+    if (
+        signals.get(
+            "checksum_changed"
+        )
+        is False
+        and signals.get(
+            "normalized_content_changed"
+        )
+        is False
+        and signals.get(
+            "metadata_changed"
+        )
+        is False
+    ):
+        return result(
+            mode="version_candidate",
+            status=NO_CHANGE,
+            decision=UNCHANGED,
+            reasons=[
+                "no_material_change"
+            ],
+            signals=normalized_signals,
+        )
+
+    forward_version = (
+        issue_cmp == "newer"
+        or revision_cmp == "newer"
+        or signals.get(
+            "edition_changed"
+        )
+        is True
+    )
+
+    material_change = (
+        signals.get(
+            "checksum_changed"
+        )
+        is True
+        and signals.get(
+            "normalized_content_changed"
+        )
+        is True
+        and signals.get(
+            "metadata_changed"
+        )
+        is True
+    )
+
+    if (
+        forward_version
+        and material_change
+    ):
+        return result(
+            mode="version_candidate",
+            status=CANDIDATE,
+            decision=CANDIDATE_NEW_VERSION,
+            reasons=[
+                "forward_version_signal",
+                "material_metadata_change",
+                "normalized_content_change",
+                "checksum_change",
+                "staging_validation_required",
+            ],
+            signals=normalized_signals,
+        )
+
+    return result(
+        mode="version_candidate",
+        status=REVIEW_REQUIRED,
+        decision=EXCEPTION_REVIEW,
+        reasons=[
+            "ambiguous_version_change"
+        ],
+        signals=normalized_signals,
+    )
+
 def evaluate_version_update(
     signals: dict,
 ) -> dict:
