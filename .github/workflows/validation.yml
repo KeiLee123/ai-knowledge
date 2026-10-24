@@ -52,6 +52,60 @@ jobs:
           set -euo pipefail
           git ls-files -z '*.py' | xargs -0 -r python -m py_compile
 
+      - name: Changedetection staging deployment contract test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_changedetection_deployment_v1.py
+
+      - name: VPS storage audit contract test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_vps_storage_guard_v1.py
+
+      - name: Source Registry v1 contract test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_source_registry_v1.py
+
+      - name: Source Monitor baseline v1 test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_source_monitor_baseline_v1.py
+
+      - name: PNAP staging writer v1 test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_write_pnap_staging_v1.py
+
+      - name: Canonical Promotion v1 test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_promote_pnap_canonical_v1.py
+
+      - name: Canonical Ingestion v1 test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_ingest_canonical_staging_v1.py
+
+      - name: Canonical Text Ingestion v1 test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_ingest_canonical_text_staging_v1.py
+
+      - name: Canonical Text Staging Milestone validator test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_validate_canonical_text_staging_milestone_v1.py
+
       - name: Production Promotion Guard v1 test
         shell: bash
         run: |
@@ -87,6 +141,12 @@ jobs:
         run: |
           set -euo pipefail
           python test_validate_production_write_readiness_v1.py
+
+      - name: Production Canonical Text Writer contract test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_write_canonical_text_production_v1.py
 
       - name: Multimodal ingestion contract test
         shell: bash
