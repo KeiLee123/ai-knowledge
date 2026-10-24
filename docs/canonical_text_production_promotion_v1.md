@@ -698,7 +698,7 @@ It does not itself enable or execute a Production write.
 
 ## P9 explicit Production writer
 
-Status: IMPLEMENTED IN STAGING / CI VERIFICATION PENDING
+Status: IMPLEMENTED / STAGING CI VERIFIED / LIVE MAIN WRITE PENDING
 
 The normal Production write path is isolated in
 `write_canonical_text_production_v1.py`.
