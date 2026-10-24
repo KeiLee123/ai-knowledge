@@ -1,0 +1,17 @@
+[Unit]
+Description=Jason OS Official Source Monitor - Staging Canary
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/ai-knowledge-staging
+
+Environment=JASON_REPO_ROOT=/opt/ai-knowledge-staging
+Environment=JASON_PYTHON=/opt/ai-knowledge-staging/.venv/bin/python
+Environment=JASON_SOURCE_MONITOR_SOURCE_ID=BD_PNAP_APP149
+Environment=JASON_SOURCE_MONITOR_STATE_ROOT=/var/lib/jason-os/source-monitor-staging
+Environment=JASON_SOURCE_MONITOR_RUN_ROOT=/var/lib/jason-os/source-monitor-staging/runs
+Environment=JASON_SOURCE_MONITOR_LOCK_FILE=/run/lock/jason-os-source-monitor-staging.lock
+
+ExecStart=/bin/bash /opt/ai-knowledge-staging/ops/run_source_monitor_staging_v1.sh
