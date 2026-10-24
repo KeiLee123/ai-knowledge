@@ -1,6 +1,6 @@
 # Canonical Promotion v1
 
-Status: IMPLEMENTED / CI + LIVE DRY-RUN VALIDATED / FIRST CANONICAL PROMOTION NEXT
+Status: VERIFIED + FROZEN / FIRST CANONICAL PROMOTION COMPLETE
 
 ## Purpose
 
@@ -205,3 +205,45 @@ ingestion_triggered = false
 A read-only check after the dry-run confirmed `Current/APP` remained empty.
 
 The next gate is the first explicit canonical promotion using `--execute`.
+
+
+## First canonical promotion verification
+
+The first explicit canonical promotion for `BD_PNAP_APP145` completed successfully.
+
+Read-only Google Drive inspection confirmed both objects exist:
+
+```text
+gdrive-bd-write:Current/APP/APP145.pdf
+gdrive-bd-write:_Staging_Incoming/APP/APP145.pdf
+```
+
+Both objects reported:
+
+```text
+Size: 54814 bytes
+MimeType: application/pdf
+```
+
+A separate byte-level verification using `rclone cat | sha256sum` produced the same SHA-256 for the canonical Current object, the retained Staging object, and the approved baseline:
+
+```text
+dc3262cc55c5fd79d29f337fd811cdd871543f59d795972d9f30f558e313127c
+```
+
+Therefore Canonical Promotion v1 is considered VERIFIED and FROZEN for this milestone.
+
+Verified properties:
+
+```text
+Current canonical object created
+Staging source retained
+Byte size matched
+SHA-256 matched
+Overwrite protection retained
+Baseline unchanged
+Knowledge ingestion not triggered
+Production not modified
+```
+
+Future changes to Canonical Promotion v1 require regression coverage before use.
