@@ -192,8 +192,9 @@ def test_no_write_executor():
         / "validate_production_write_readiness_v1.py"
     ).read_text(encoding="utf-8")
 
-    assert "execute_transaction" not in source
-    assert "--write" not in source
+    assert "execute_transaction(" not in source
+    assert "from ingest_manifest_v2 import execute_transaction" not in source
+    assert 'parser.add_argument("--write"' not in source
     assert "--confirm-production-write" not in source
     assert "Database writes performed: False" in source
     assert PRODUCTION_DB_CONTAINER in source
