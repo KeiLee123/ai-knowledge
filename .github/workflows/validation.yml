@@ -112,6 +112,12 @@ jobs:
           set -euo pipefail
           python test_process_official_source_staging_v1.py
 
+      - name: Version Qualification Policy v1 test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_version_qualification_policy_v1.py
+
       - name: Generic Production Promotion v2 contract test
         shell: bash
         run: |

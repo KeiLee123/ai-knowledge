@@ -7,7 +7,8 @@ defaults:
   user_agent: Jason-OS-Source-Monitor/1.0
   lifecycle:
     production_write: false
-    require_human_review: true
+    qualification_policy: official-source-version-policy-v1
+    exception_review: true
 
 sources:
   BD_PNAP_APP145:

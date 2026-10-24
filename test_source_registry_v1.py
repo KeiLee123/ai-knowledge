@@ -38,6 +38,37 @@ def test_registry_contract():
         == 1
     )
 
+    lifecycle = (
+        registry[
+            "defaults"
+        ][
+            "lifecycle"
+        ]
+    )
+
+    assert (
+        lifecycle[
+            "production_write"
+        ]
+        is False
+    )
+    assert (
+        lifecycle[
+            "qualification_policy"
+        ]
+        == "official-source-version-policy-v1"
+    )
+    assert (
+        lifecycle[
+            "exception_review"
+        ]
+        is True
+    )
+    assert (
+        "require_human_review"
+        not in lifecycle
+    )
+
     source = registry[
         "sources"
     ]["BD_PNAP_APP145"]

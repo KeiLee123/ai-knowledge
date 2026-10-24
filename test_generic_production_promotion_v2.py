@@ -25,6 +25,9 @@ from release_artifact_profiles_v2 import (
     MULTIMODAL_PROFILE,
     artifact_profile_contract,
 )
+from version_qualification_policy_v1 import (
+    evaluate_initial_release,
+)
 
 
 ROOT = Path(__file__).resolve().parent
@@ -126,8 +129,21 @@ def fixture(
                             }
                         ]
                     },
-                    "release_reviewed":
-                        True,
+                    "qualification":
+                        evaluate_initial_release(
+                            {
+                                "official_source_identity":
+                                    True,
+                                "staging_validation_verified":
+                                    True,
+                                "deterministic_release":
+                                    True,
+                                "canonical_checksum_locked":
+                                    True,
+                                "chunks_checksum_locked":
+                                    True,
+                            }
+                        ),
                     "write_authorized":
                         authorized,
                     "require_confirmation":
@@ -362,8 +378,18 @@ assert (
 )
 
 assert (
-    '"release_reviewed":\n                False'
+    '"qualification":'
     in proposal_source
+)
+
+assert (
+    "evaluate_initial_release"
+    in proposal_source
+)
+
+assert (
+    '"release_reviewed"'
+    not in proposal_source
 )
 
 assert (
@@ -422,6 +448,36 @@ validate_release_config(
     require_write_authorized=True,
 )
 
+bad_qualification = dict(
+    config
+)
+bad_qualification[
+    "qualification"
+] = {
+    **config[
+        "qualification"
+    ],
+    "status": "review_required",
+    "decision": "REVIEW_REQUIRED",
+}
+
+try:
+    validate_release_config(
+        bad_qualification,
+        require_write_authorized=True,
+    )
+except RuntimeError as exc:
+    assert (
+        "not policy-qualified"
+        in str(exc)
+        or "does not match"
+        in str(exc)
+    )
+else:
+    raise AssertionError(
+        "Unqualified release was accepted"
+    )
+
 bad_route = dict(
     config
 )
@@ -450,6 +506,9 @@ print(
 )
 print(
     "Canonical text profile: PASS"
+)
+print(
+    "Policy qualification gate: PASS"
 )
 print(
     "Multimodal profile: PASS"

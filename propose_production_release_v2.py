@@ -40,6 +40,9 @@ from run_multimodal_canary_v2 import (
 from release_artifact_profiles_v2 import (
     CANONICAL_TEXT_PROFILE,
 )
+from version_qualification_policy_v1 import (
+    evaluate_initial_release,
+)
 
 
 VERSION = "production-release-proposal-v2"
@@ -143,6 +146,7 @@ def build_contract_proposal(
     chunk_count: int,
     staging_document_id: str,
     semantic: dict,
+    qualification: dict,
 ) -> dict:
     return {
         "enabled": True,
@@ -239,8 +243,8 @@ def build_contract_proposal(
                     }
                 ]
             },
-            "release_reviewed":
-                False,
+            "qualification":
+                qualification,
             "write_authorized":
                 False,
             "require_confirmation":
@@ -448,6 +452,29 @@ def main() -> None:
             overlap_chars=250,
         )
 
+        deterministic_check = build_output(
+            manifest_path=phase_a,
+            manifest=manifest,
+            target_chars=1800,
+            overlap_chars=250,
+        )
+
+        if (
+            json.dumps(
+                chunks,
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+            != json.dumps(
+                deterministic_check,
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+        ):
+            raise RuntimeError(
+                "Release artifact is not deterministic"
+            )
+
         write_json(
             chunks_path,
             chunks,
@@ -485,6 +512,34 @@ def main() -> None:
                 "non-native-text chunks"
             )
 
+        qualification = (
+            evaluate_initial_release(
+                {
+                    "official_source_identity":
+                        True,
+                    "staging_validation_verified":
+                        True,
+                    "deterministic_release":
+                        True,
+                    "canonical_checksum_locked":
+                        True,
+                    "chunks_checksum_locked":
+                        True,
+                }
+            )
+        )
+
+        if (
+            qualification[
+                "status"
+            ]
+            != "qualified"
+        ):
+            raise RuntimeError(
+                "Initial release failed "
+                "policy qualification"
+            )
+
         proposal = (
             build_contract_proposal(
                 source_id=
@@ -505,6 +560,8 @@ def main() -> None:
                     staging_document_id,
                 semantic=
                     semantic,
+                qualification=
+                    qualification,
             )
         )
 

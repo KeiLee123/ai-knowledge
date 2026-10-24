@@ -17,10 +17,13 @@ from release_artifact_profiles_v2 import (
     artifact_profile_contract,
     validate_expected_evidence_counts,
 )
+from version_qualification_policy_v1 import (
+    validate_qualification_record,
+)
 
 
 REGISTRY_VERSION = 2
-VERSION = "production-release-contract-v2.1"
+VERSION = "production-release-contract-v2.2"
 ALLOWED_REMOTE = "gdrive-bd-write:"
 
 # Compatibility aliases used by the current text-specific
@@ -456,14 +459,15 @@ def validate_release_config(
             "must be VERIFIED"
         )
 
-    if (
-        config.get(
-            "release_reviewed"
+    try:
+        validate_qualification_record(
+            config.get(
+                "qualification"
+            )
         )
-        is not True
-    ):
+    except RuntimeError as exc:
         errors.append(
-            "release_reviewed must be true"
+            str(exc)
         )
 
     if not isinstance(
