@@ -5,7 +5,9 @@ import json
 import subprocess
 from pathlib import Path
 
-from ingest_canonical_staging_v1 import load_registry
+from production_release_source_v1 import (
+    load_release_registry,
+)
 from production_promotion_guard_v1 import (
     PRODUCTION_DB_CONTAINER,
     STAGING_DB_CONTAINER,
@@ -441,7 +443,7 @@ def main():
     parser.add_argument(
         "--registry",
         default=str(
-            Path(__file__).resolve().parent / "source_registry_v1.yaml"
+            Path(__file__).resolve().parent / "production_release_registry_v1.yaml"
         ),
     )
 
@@ -499,7 +501,7 @@ def main():
     try:
         guard = verify_runtime(repo_root)
 
-        registry = load_registry(
+        registry = load_release_registry(
             Path(args.registry).expanduser().resolve()
         )
 
