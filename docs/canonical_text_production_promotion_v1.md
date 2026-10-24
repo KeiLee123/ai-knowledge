@@ -1,6 +1,6 @@
 # Canonical Text Production Promotion v1
 
-Status: ARCHITECTURE DEFINED / NOT IMPLEMENTED
+Status: P1 GUARD IMPLEMENTED / CI VERIFIED / LIVE MAIN VERIFY PENDING
 
 ## Goal
 
@@ -403,7 +403,7 @@ The Staging counts are acceptance evidence, not rows to copy.
 ## Implementation order
 
 ```text
-P1  Production guard + tests
+P1  Production guard + tests — IMPLEMENTED / CI VERIFIED
 P2  verify/prepare promotion path + tests
 P3  recovery path + tests
 P4  Production post-write validator + tests
@@ -416,3 +416,29 @@ P10 freeze Production Promotion v1
 ```
 
 No Production write should occur before P1-P7 pass.
+
+
+## P1 implementation evidence
+
+P1 added:
+
+```text
+production_promotion_guard_v1.py
+test_production_promotion_guard_v1.py
+```
+
+The guard contract enforces:
+
+- Git branch must be exactly `main`;
+- DB target is the fixed Production container
+  `ai-knowledge-db-jiyckdrlappwgimwebnzxwmr`;
+- the Staging DB container is explicitly forbidden;
+- arbitrary DB container names are rejected;
+- Docker inspect identity must match the fixed Production container;
+- the Production container must be running;
+- an unhealthy Docker health check is rejected when one is configured;
+- P1 performs no SQL query and no DB write.
+
+GitHub CI contract validation passed for the P1 guard test.
+
+P1 is not yet live-verified because the guard is intentionally designed to reject execution from the `staging` branch. Live verification belongs after the reviewed code reaches `main`.
