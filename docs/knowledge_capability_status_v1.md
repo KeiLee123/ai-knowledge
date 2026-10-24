@@ -47,8 +47,8 @@ At the architecture-freeze point, GitHub `staging` was ahead of the live Staging
 | Source registry / baseline / change detection | IMPLEMENTED | New checksum requires review |
 | Scheduled official-source monitoring | NOT OPERATIONAL | Policy says daily; no matching timer in audited deployment |
 | APP-145 Production Promotion v1 | VERIFIED / FROZEN | Historical Production milestone |
-| Generic Production Promotion v2 | VPS STAGING DEPLOYED / CI VERIFIED | M3 profile-based `release_v2` code is deployed with M4 commit; Generic Production v2 operational live verification remains pending |
-| Canonical-text-v1 Production profile | CONTRACT + TEXT WRITER CI VERIFIED | Production-write qualified in contract; no real release authorized |
+| Generic Production Promotion v2 | VPS STAGING OPERATIONALLY VERIFIED | M5A APP149 proposal path live-verified with deterministic hashes and no Production access/write; reviewed registry contract still pending |
+| Canonical-text-v1 Production profile | LIVE PROPOSAL QUALIFIED | APP149 deterministic proposal live-verified; release remains unreviewed and unauthorized for write |
 | Multimodal-v2 Production profile | CONTRACT REGISTERED / WRITE BLOCKED | Profile validates multimodal evidence expectations, but Production authorization is explicitly rejected until writer/validator qualification |
 | Learning / Anki source provenance | IMPLEMENTED | Read-only source locator |
 | Card generation | IMPLEMENTED | Selected chunks only |
@@ -96,8 +96,8 @@ GitHub `staging` was ahead of VPS Staging with the Generic Production Promotion 
 
 Priority order:
 
-1. live VPS verification of Generic Production Promotion v2 through non-writing gates;
-2. qualify APP-149 as the first generic canonical-text release candidate;
+1. human-review the exact APP149 M5A proposal and, only if approved, add a reviewed-but-not-write-authorized contract to GitHub;
+2. live-verify Production v2 through non-writing verify/prepare gates for that reviewed contract;
 3. qualify a profile-safe multimodal Production artifact path only after the generic text proof;
 4. safe CLI/deployment reconciliation;
 5. source-monitor scheduling;
@@ -109,7 +109,8 @@ Completed / deployed:
 - M1 structured-table retrieval evidence: CI verified and deployed to VPS Staging; table-specific live chunk proof not exercised by APP146;
 - M2 official-source multimodal Staging close-loop: VPS LIVE VERIFIED with APP146, document ID 4, 12 chunks and semantic matches `hinge` / `stopper`;
 - M3 release artifact profiles: CI verified and code deployed to VPS Staging; Generic Production v2 operational verification pending;
-- M4 VPS Staging qualification: LIVE VERIFIED at commit `921e899`, Production write false.
+- M4 VPS Staging qualification: LIVE VERIFIED at commit `921e899`, Production write false;
+- M5A APP149 Generic Production v2 proposal: LIVE VERIFIED at commit `4936069`; canonical SHA `a5b4d5a1...`, chunks SHA `4accbc06...`, 8 native-text chunks, release reviewed false, write authorized false, Production access/write false.
 
 ## Freeze rules
 

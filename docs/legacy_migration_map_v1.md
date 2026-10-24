@@ -322,9 +322,36 @@ APP146 completed the multimodal Staging lifecycle and semantic retrieval validat
 
 Production impact: none.
 
-### M5 — APP-149 generic text proof
+### M5A — APP-149 generic release proposal proof
 
-Use explicit Production gates and human authorization.
+Status: VPS STAGING LIVE VERIFIED.
+
+APP149 produced two byte-equivalent release contract proposals with:
+
+- release ID `bd_pnap_app149-a5b4d5a1af5f`;
+- canonical SHA `a5b4d5a1af5f4a32b43973db33d95436f9390e8e2da77747ee666015077bb1a8`;
+- chunks SHA `4accbc06df6f304f6bed49545a5132639af23a01385f406f8252a3a46db71cdd`;
+- 8 chunks;
+- `native_text = 8`;
+- `release_reviewed = false`;
+- `write_authorized = false`;
+- Production access false;
+- Production write false.
+
+A pre-qualification determinism bug caused by absolute temporary paths in the hash-critical chunk artifact was fixed at commit `4936069` and regression-tested.
+
+### M5B — APP-149 reviewed contract gate
+
+Pending explicit human review.
+
+If approved, add the exact M5A contract values to `production_release_registry_v2.yaml` with:
+
+```text
+release_reviewed = true
+write_authorized = false
+```
+
+This is still not Production write authorization.
 
 ### M6 — Multimodal generic promotion proof
 

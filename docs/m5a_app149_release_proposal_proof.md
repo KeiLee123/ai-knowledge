@@ -1,6 +1,6 @@
 # M5A — APP149 Generic Release Proposal Proof
 
-Status: RUNBOOK READY  
+Status: LIVE VERIFIED  
 Environment: VPS Staging only  
 Production access: NONE  
 Production write: NONE
@@ -109,3 +109,50 @@ write_authorized = false
 That is still not Production write authorization.
 
 The separate `write_authorized = true` change remains a later explicit gate.
+
+## Live verification record
+
+Verified on 2026-10-24.
+
+- VPS Staging commit: `49360697647ec66d8233ce0190a1a1ebd8a94c8e`
+- source ID: `BD_PNAP_APP149`
+- artifact profile: `canonical-text-v1`
+- Staging document ID: `3`
+- canonical SHA-256: `a5b4d5a1af5f4a32b43973db33d95436f9390e8e2da77747ee666015077bb1a8`
+- deterministic chunks SHA-256: `4accbc06df6f304f6bed49545a5132639af23a01385f406f8252a3a46db71cdd`
+- chunk count: `8`
+- expected evidence counts: `native_text = 8`
+- release ID: `bd_pnap_app149-a5b4d5a1af5f`
+- Staging validation status: `VERIFIED`
+- semantic expected terms: `authorized`, `signatory`, `minor`, `works`
+- two independent proposal runs produced the same `contract_proposal`
+- two independent proposal runs produced the same `chunks_sha256`
+- `release_reviewed = false`
+- `write_authorized = false`
+- `production_access = false`
+- `production_write = false`
+- Git worktree remained clean
+- command block exit code: `0`
+
+## Determinism defect found and fixed
+
+The first determinism proof failed because the release chunk artifact included the absolute temporary manifest path under `source_manifest.path`.
+
+This made otherwise-identical release artifacts differ across work directories.
+
+The fix at commit `4936069` changes the path field to the stable manifest basename and adds a regression test proving identical outputs across different temporary directories.
+
+This correction preserved manifest SHA, document SHA, chunk content and provenance. It removed only machine-local path volatility from the hash-critical artifact.
+
+## Governance state after M5A
+
+M5A qualifies the proposal as deterministic evidence for human review.
+
+It does **not** mean:
+
+- `release_reviewed = true`;
+- `write_authorized = true`;
+- the APP149 release contract is present in `production_release_registry_v2.yaml`;
+- Production has been queried or modified.
+
+The next gate is explicit human review of this exact proposal before any registry change.

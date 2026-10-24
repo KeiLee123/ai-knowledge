@@ -218,8 +218,8 @@ Internal engines may remain write-capable where required, but approved operation
 2. Structured-table retrieval evidence with regression tests — COMPLETE in GitHub `staging` / CI verified; VPS deployment pending.
 3. Official-source multimodal Staging close-loop — VPS LIVE VERIFIED with APP146 at commit `921e899`.
 4. Release Artifact Profiles — COMPLETE / CI verified and deployed to VPS Staging; operational Generic Production v2 verification pending.
-5. Live-verify Generic Production Promotion v2 through non-writing gates, then qualify APP-149 as the first generic canonical-text release candidate.
-6. Qualify APP-149 as the first generic text release candidate.
+5. APP149 Generic Production v2 release proposal — LIVE VERIFIED on VPS Staging at commit `4936069`, including deterministic two-run artifact proof and no Production access/write.
+6. Human-review the exact APP149 proposal, then optionally add a reviewed contract with `write_authorized: false` before any Production verify/prepare step.
 7. Prove a multimodal generic release candidate.
 8. Reconcile and install safe CLI deployment definitions.
 9. Enable scheduled source monitoring only after the lifecycle closes end-to-end.

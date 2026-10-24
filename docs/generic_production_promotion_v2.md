@@ -1,6 +1,6 @@
 # Generic Production Promotion v2
 
-Status: GITHUB STAGING / CI VERIFIED; VPS LIVE VERIFICATION PENDING
+Status: VPS STAGING PROPOSAL PATH LIVE VERIFIED; REVIEWED CONTRACT PENDING
 
 ## Purpose
 
@@ -215,10 +215,58 @@ M3 defines two profiles in `release_artifact_profiles_v2.py`:
 
 The profile registry is code-controlled. A release contract may describe a multimodal artifact for review, but Production authorization is rejected until a dedicated profile-safe writer/validator path is qualified.
 
+## APP149 M5A live proposal proof
+
+APP149 is the first real `canonical-text-v1` proposal candidate.
+
+M5A was live-verified on VPS Staging at commit `4936069`.
+
+Qualified immutable proposal values:
+
+```text
+release_id
+bd_pnap_app149-a5b4d5a1af5f
+
+canonical_sha256
+a5b4d5a1af5f4a32b43973db33d95436f9390e8e2da77747ee666015077bb1a8
+
+expected_chunks_sha256
+4accbc06df6f304f6bed49545a5132639af23a01385f406f8252a3a46db71cdd
+
+expected_chunk_count
+8
+
+expected_embedding_count
+8
+
+expected_evidence_counts
+native_text = 8
+```
+
+Two independent work directories produced identical release proposals and identical chunks SHA.
+
+During M5A:
+
+```text
+release_reviewed = false
+write_authorized = false
+production_access = false
+production_write = false
+```
+
+The first determinism attempt exposed an absolute-temp-path defect in the hash-critical artifact. Commit `4936069` removed that path volatility and added a regression test.
+
 ## Current boundary
 
-The v2 registry intentionally begins empty.
+The v2 registry intentionally remains empty.
 
-The first real Production candidate remains APP-149 under `canonical-text-v1`. Its release contract is not populated until the Staging proposal generator is live-run and its hashes are reviewed.
+M5A qualifies the APP149 proposal as deterministic review evidence only.
 
-No APP-149 Production write is authorized by the implementation itself. Multimodal Production write remains blocked.
+The next gate requires explicit human review before adding the exact APP149 contract to GitHub with:
+
+```text
+release_reviewed = true
+write_authorized = false
+```
+
+No APP149 Production write is authorized. Multimodal Production write remains blocked.
