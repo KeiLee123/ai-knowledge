@@ -20,6 +20,7 @@ PRODUCTION_RELEASE_FILES = [
     "promote_canonical_text_production_v1.py",
     "recover_canonical_text_production_v1.py",
     "validate_canonical_text_production_v1.py",
+    "validate_production_write_readiness_v1.py",
 ]
 
 FORBIDDEN_DEPENDENCIES = [
