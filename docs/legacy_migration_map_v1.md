@@ -340,18 +340,21 @@ APP149 produced two byte-equivalent release contract proposals with:
 
 A pre-qualification determinism bug caused by absolute temporary paths in the hash-critical chunk artifact was fixed at commit `4936069` and regression-tested.
 
-### M5B — APP-149 reviewed contract gate
+### M5B — Automatic Version Qualification Policy v1
 
-Pending explicit human review.
+Status: GITHUB STAGING / CI VERIFIED.
 
-If approved, add the exact M5A contract values to `production_release_registry_v2.yaml` with:
+Routine human review has been replaced by a policy gate.
 
-```text
-release_reviewed = true
-write_authorized = false
-```
+Initial releases auto-qualify only after official identity, Staging validation, deterministic release and artifact hash locks pass.
 
-This is still not Production write authorization.
+Version updates auto-qualify only when identity matches, issue/revision/edition moves forward, material metadata changes, checksum changes and normalized content changes.
+
+Ambiguous changes route to `REVIEW_REQUIRED`; date regression or identity mismatch is `BLOCKED`.
+
+Current integration gap: automatic extraction of issue/revision dates, material metadata fingerprints and normalized-content fingerprints.
+
+Production write authorization remains a separate later gate.
 
 ### M6 — Multimodal generic promotion proof
 

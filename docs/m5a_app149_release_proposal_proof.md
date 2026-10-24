@@ -156,3 +156,19 @@ It does **not** mean:
 - Production has been queried or modified.
 
 The next gate is explicit human review of this exact proposal before any registry change.
+
+## M5B supersession note
+
+M5A was executed before policy qualification replaced routine human review.
+
+The historical `release_reviewed = false` field records the M5A proof exactly as it ran.
+
+The forward Generic Production v2 qualification mechanism is now:
+
+```text
+qualification.method = policy
+qualification.policy_version = official-source-version-policy-v1
+qualification.status = qualified | review_required | blocked | no_change
+```
+
+Human review is exception-only.

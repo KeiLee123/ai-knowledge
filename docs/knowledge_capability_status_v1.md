@@ -44,11 +44,11 @@ At the architecture-freeze point, GitHub `staging` was ahead of the live Staging
 | Source-page provenance | IMPLEMENTED | Deterministic page render + SHA metadata |
 | Region-level figure evidence | LATER GAP | Page-level Vision exists; region evidence does not |
 | Official Source Processing v1 | VPS STAGING LIVE VERIFIED | APP146 multimodal-v2 closed loop to semantic validation and READY_FOR_PRODUCTION_REVIEW at commit 921e899 |
-| Source registry / baseline / change detection | IMPLEMENTED | New checksum requires review |
+| Source registry / baseline / change detection | IMPLEMENTED | Baseline/change detection exists; automatic issue/revision/content-fingerprint acquisition is still incomplete |
 | Scheduled official-source monitoring | NOT OPERATIONAL | Policy says daily; no matching timer in audited deployment |
 | APP-145 Production Promotion v1 | VERIFIED / FROZEN | Historical Production milestone |
-| Generic Production Promotion v2 | VPS STAGING OPERATIONALLY VERIFIED | M5A APP149 proposal path live-verified with deterministic hashes and no Production access/write; reviewed registry contract still pending |
-| Canonical-text-v1 Production profile | LIVE PROPOSAL QUALIFIED | APP149 deterministic proposal live-verified; release remains unreviewed and unauthorized for write |
+| Generic Production Promotion v2 | M5A LIVE / M5B CI VERIFIED | APP149 deterministic proposal is live-proven; routine human review replaced by policy qualification in GitHub staging; VPS deploy pending |
+| Canonical-text-v1 Production profile | LIVE PROPOSAL + POLICY CONTRACT | APP149 deterministic proposal live-verified; M5B initial-release policy is CI-verified; write authorization remains false |
 | Multimodal-v2 Production profile | CONTRACT REGISTERED / WRITE BLOCKED | Profile validates multimodal evidence expectations, but Production authorization is explicitly rejected until writer/validator qualification |
 | Learning / Anki source provenance | IMPLEMENTED | Read-only source locator |
 | Card generation | IMPLEMENTED | Selected chunks only |
@@ -96,9 +96,10 @@ GitHub `staging` was ahead of VPS Staging with the Generic Production Promotion 
 
 Priority order:
 
-1. human-review the exact APP149 M5A proposal and, only if approved, add a reviewed-but-not-write-authorized contract to GitHub;
-2. live-verify Production v2 through non-writing verify/prepare gates for that reviewed contract;
-3. qualify a profile-safe multimodal Production artifact path only after the generic text proof;
+1. deploy/live-verify M5B policy qualification on VPS Staging;
+2. add automatic issue/revision date, material-metadata and normalized-content fingerprint acquisition;
+3. live-verify Production v2 through non-writing verify/prepare gates using a policy-qualified contract;
+4. qualify a profile-safe multimodal Production artifact path only after the generic text proof;
 4. safe CLI/deployment reconciliation;
 5. source-monitor scheduling;
 6. HKeL watch modernization;
@@ -110,7 +111,8 @@ Completed / deployed:
 - M2 official-source multimodal Staging close-loop: VPS LIVE VERIFIED with APP146, document ID 4, 12 chunks and semantic matches `hinge` / `stopper`;
 - M3 release artifact profiles: CI verified and code deployed to VPS Staging; Generic Production v2 operational verification pending;
 - M4 VPS Staging qualification: LIVE VERIFIED at commit `921e899`, Production write false;
-- M5A APP149 Generic Production v2 proposal: LIVE VERIFIED at commit `4936069`; canonical SHA `a5b4d5a1...`, chunks SHA `4accbc06...`, 8 native-text chunks, release reviewed false, write authorized false, Production access/write false.
+- M5A APP149 Generic Production v2 proposal: LIVE VERIFIED at commit `4936069`; canonical SHA `a5b4d5a1...`, chunks SHA `4accbc06...`, 8 native-text chunks, Production access/write false;
+- M5B Automatic Version Qualification Policy v1: GitHub staging / CI VERIFIED at commit `8b095e1`; routine human review removed, exception review retained, VPS deployment pending.
 
 ## Freeze rules
 

@@ -72,7 +72,11 @@ Release Artifact
 Git-controlled Release Contract
     |
     v
-Human Approval
+Policy Qualification
+    |
+    +-- AUTO_QUALIFIED
+    +-- REVIEW_REQUIRED (exception only)
+    +-- BLOCKED
     |
     v
 Generic Production Promotion
@@ -189,10 +193,10 @@ The preferred safety model is:
 ```text
 Staging validated
 -> release proposal
--> Git review
+-> policy qualification
+-> exception review only when ambiguous
 -> Production verify / prepare
--> human review
--> Git write authorization
+-> write-authorization gate
 -> readiness gate
 -> explicit CLI confirmation
 -> atomic write
@@ -219,7 +223,7 @@ Internal engines may remain write-capable where required, but approved operation
 3. Official-source multimodal Staging close-loop — VPS LIVE VERIFIED with APP146 at commit `921e899`.
 4. Release Artifact Profiles — COMPLETE / CI verified and deployed to VPS Staging; operational Generic Production v2 verification pending.
 5. APP149 Generic Production v2 release proposal — LIVE VERIFIED on VPS Staging at commit `4936069`, including deterministic two-run artifact proof and no Production access/write.
-6. Human-review the exact APP149 proposal, then optionally add a reviewed contract with `write_authorized: false` before any Production verify/prepare step.
+6. Automatic Version Qualification Policy v1 — COMPLETE in GitHub `staging` / CI verified; VPS deployment and automatic version-signal extraction pending.
 7. Prove a multimodal generic release candidate.
 8. Reconcile and install safe CLI deployment definitions.
 9. Enable scheduled source monitoring only after the lifecycle closes end-to-end.
@@ -235,4 +239,5 @@ This architecture freeze does not:
 - modify APP-145;
 - delete pre-Git files;
 - change frozen retrieval v1.3;
-- enable automatic Production promotion.
+- treat missing or ambiguous version metadata as automatically qualified;
+- enable automatic Production write before its separate readiness policy is qualified.
