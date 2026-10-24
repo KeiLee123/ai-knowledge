@@ -694,3 +694,60 @@ Database writes performed: False
 Passing this gate authorizes only the next implementation step: adding a
 separate explicit Production write executor behind its own confirmation flag.
 It does not itself enable or execute a Production write.
+
+
+## P9 explicit Production writer
+
+Status: IMPLEMENTED IN STAGING / CI VERIFICATION PENDING
+
+The normal Production write path is isolated in
+`write_canonical_text_production_v1.py`.
+
+It is intentionally separate from P2 verify/prepare, P3 recovery, P4 validation,
+and P8 readiness.
+
+The writer requires all of the following:
+
+```text
+branch = main
+P1 Production guard passes
+current main contains reviewed P8 baseline b5aed0b
+source = BD_PNAP_APP145
+Production DB = fixed Production container
+P7 prepared PDF SHA-256 = approved APP-145 checksum
+P7 prepared chunks file SHA-256 =
+9f6433b3065c4906bff32935c63fba25ae8c9daba3760674034153f839a391d1
+chunk_count = 8
+embedding_count = 8
+initial Production checksum state = 0 / 0 / 0
+database schema contract passes
+duplicate checksum = absent
+all 8 embeddings precomputed successfully
+transaction structural contract passes
+second Production checksum state = 0 / 0 / 0 immediately before execute
+--write is supplied
+--confirm-production-write is supplied
+```
+
+Only then is the reviewed atomic transaction executed.
+
+After COMMIT, the writer immediately runs
+`validate_canonical_text_production_v1.py`.
+A successful write therefore ends only when the existing P4 integrity and
+semantic validation also passes.
+
+If the transaction commits but post-write validation fails, the writer does not
+automatically delete anything. It exits with an explicit post-commit failure and
+the separate P3 recovery procedure remains available for manual review.
+
+The Production write authorization is deliberately candidate-specific:
+
+```text
+canonical_text_production_write.enabled = true
+checksum = dc3262cc55c5fd79d29f337fd811cdd871543f59d795972d9f30f558e313127c
+chunks SHA-256 = 9f6433b3065c4906bff32935c63fba25ae8c9daba3760674034153f839a391d1
+chunks = 8
+embeddings = 8
+```
+
+This does not create a generic Production ingestion API.
