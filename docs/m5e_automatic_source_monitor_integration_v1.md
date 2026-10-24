@@ -1,8 +1,8 @@
 # M5E — Automatic Source Monitor Integration v1
 
-Status: GITHUB STAGING / CI VERIFIED  
+Status: STAGING LIVE VERIFIED
 Production impact: NONE  
-VPS live verification: pending
+VPS live verification: PASS
 
 ## Purpose
 
@@ -157,8 +157,22 @@ Tests verify:
 
 ## Current boundary
 
-M5E is CI-verified in GitHub `staging` at commit `1b04dea`.
+### Post-reconciliation live verification
 
-VPS live verification is pending.
+Staging commit: `61941f6782e45e7cfff5f41401d000dcef622ee5`
 
-The expected APP149 live result, while the official document remains unchanged, is `NO_CHANGE` with no candidate download.
+Source: `BD_PNAP_APP149`
+
+Result:
+
+```text
+decision = NO_CHANGE
+action = NONE
+candidate_downloaded = false
+production_access = false
+production_write = false
+reference_advanced = false
+stored_reference_sha256 = 4514531e59caf76782120cf83377bcea6ad8a23f076e6b03b2247b193ae8682c
+```
+
+The stored reference SHA-256 was unchanged before and after the live run. Production was not accessed or modified, and no Source Monitor timer was installed.
