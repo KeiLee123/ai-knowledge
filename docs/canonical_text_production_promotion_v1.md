@@ -1,6 +1,6 @@
 # Canonical Text Production Promotion v1
 
-Status: P1 GUARD IMPLEMENTED / CI VERIFIED / LIVE MAIN VERIFY PENDING
+Status: P1 + P2 IMPLEMENTED / CI VERIFIED / LIVE MAIN VERIFY + PREPARE PENDING
 
 ## Goal
 
@@ -404,7 +404,7 @@ The Staging counts are acceptance evidence, not rows to copy.
 
 ```text
 P1  Production guard + tests — IMPLEMENTED / CI VERIFIED
-P2  verify/prepare promotion path + tests
+P2  verify/prepare promotion path + tests — IMPLEMENTED / CI VERIFIED
 P3  recovery path + tests
 P4  Production post-write validator + tests
 P5  full GitHub CI
@@ -442,3 +442,83 @@ The guard contract enforces:
 GitHub CI contract validation passed for the P1 guard test.
 
 P1 is not yet live-verified because the guard is intentionally designed to reject execution from the `staging` branch. Live verification belongs after the reviewed code reaches `main`.
+
+
+## P2 implementation evidence
+
+P2 added:
+
+```text
+promote_canonical_text_production_v1.py
+test_promote_canonical_text_production_v1.py
+```
+
+and a Git-controlled APP-145 Production promotion candidate profile in
+`source_registry_v1.yaml`.
+
+The candidate profile locks:
+
+```text
+source = Current/APP/APP145.pdf
+Production DB = ai-knowledge-db-jiyckdrlappwgimwebnzxwmr
+required_route = legacy-v1
+frozen_ingestion_version = canonical-text-ingestion-v1
+expected_sha256 =
+dc3262cc55c5fd79d29f337fd811cdd871543f59d795972d9f30f558e313127c
+expected_chunk_count = 8
+expected_embedding_count = 8
+allow_production_write = false
+```
+
+P2 supports only:
+
+```text
+--verify
+--prepare
+```
+
+There is intentionally no `--write` mode, no production-write confirmation
+flag, and no transaction executor in P2.
+
+### Verify mode
+
+After the P1 Production guard passes, Verify mode performs:
+
+- fresh download from Google Drive `Current`;
+- SHA-256 comparison against the Git-controlled release candidate;
+- deterministic Phase A extraction;
+- full-document `legacy-v1` route revalidation;
+- deterministic native-text chunk rebuild;
+- exact 8-chunk frozen-contract comparison;
+- read-only Production DB schema inspection;
+- read-only Production checksum duplicate check.
+
+No embeddings are persisted and no SQL transaction is executed.
+
+### Prepare mode
+
+Prepare mode additionally:
+
+- rebuilds all 8 local embeddings;
+- requires the expected embedding count of 8;
+- builds a complete atomic Production transaction in memory;
+- adds Production release metadata;
+- structurally validates the transaction;
+- does not execute the transaction.
+
+Production document metadata prepared by P2 includes:
+
+```text
+ingestion_version = canonical-text-ingestion-v1
+release_gate = canonical-text-production-promotion-v1
+multimodal = false
+routing_profile = legacy-v1
+canonical_source = Current/APP/APP145.pdf
+canonical_sha256 = dc3262cc...
+```
+
+GitHub Actions run #227 passed the complete regression suite including the P2
+contract test.
+
+Live P2 verification and preparation remain pending because P1 correctly
+requires the Git branch to be `main`.
