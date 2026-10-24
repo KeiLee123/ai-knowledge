@@ -8,6 +8,7 @@ from ingest_canonical_staging_v1 import (
     STAGING_DB_CONTAINER,
     build_canary_command,
     canonical_remote_path,
+    classify_pipeline_result,
     resolve_source,
     validate_ingestion_config,
 )
@@ -139,7 +140,7 @@ def test_prepare_command_contract():
         source=source,
         ingestion=ingestion,
         defaults=defaults,
-        workdir="/tmp/app145-work",
+        workdir=Path("/tmp/app145-work"),
         write=False,
     )
 
@@ -150,6 +151,8 @@ def test_prepare_command_contract():
     assert "--confirm-staging-write" not in command
     assert PRODUCTION_DB_CONTAINER not in command
     assert source["canonical_url"] in command
+    assert "--workdir" in command
+    assert "/tmp/app145-work" in command
 
 
 def test_write_command_contract():
@@ -170,7 +173,7 @@ def test_write_command_contract():
         source=source,
         ingestion=ingestion,
         defaults=defaults,
-        workdir="",
+        workdir=Path("/tmp/app145-work"),
         write=True,
     )
 
@@ -179,11 +182,66 @@ def test_write_command_contract():
     assert PRODUCTION_DB_CONTAINER not in command
 
 
+def test_multimodal_prepare_result():
+    result = classify_pipeline_result(
+        {
+            "route": {
+                "recommended_pipeline": "multimodal-v2",
+                "eligible_for_v2": True,
+            },
+            "database_write_performed": False,
+        },
+        write=False,
+    )
+
+    assert result["status"] == "PREPARED_FOR_STAGING"
+    assert result["database_write_performed"] is False
+
+
+def test_legacy_prepare_result():
+    result = classify_pipeline_result(
+        {
+            "route": {
+                "recommended_pipeline": "legacy-v1",
+                "eligible_for_v2": False,
+            },
+            "database_write_performed": False,
+        },
+        write=False,
+    )
+
+    assert result["status"] == "ROUTED_TO_LEGACY_V1_NO_WRITE"
+    assert result["pipeline"] == "legacy-v1"
+
+
+def test_legacy_write_rejected():
+    try:
+        classify_pipeline_result(
+            {
+                "route": {
+                    "recommended_pipeline": "legacy-v1",
+                    "eligible_for_v2": False,
+                },
+                "database_write_performed": False,
+            },
+            write=True,
+        )
+    except RuntimeError:
+        return
+
+    raise AssertionError(
+        "legacy-v1 route must not be reported as a Staging DB write"
+    )
+
+
 def main():
     test_registry_contract()
     test_safety_contract()
     test_prepare_command_contract()
     test_write_command_contract()
+    test_multimodal_prepare_result()
+    test_legacy_prepare_result()
+    test_legacy_write_rejected()
 
     print(
         "Canonical ingestion v1 contract test PASS"
@@ -192,6 +250,7 @@ def main():
     print("Staging DB lock: PASS")
     print("Production DB rejection: PASS")
     print("Explicit write confirmation: PASS")
+    print("Route-result reporting: PASS")
 
 
 if __name__ == "__main__":
