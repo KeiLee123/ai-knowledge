@@ -124,6 +124,12 @@ jobs:
           set -euo pipefail
           python test_version_signal_extractor_v1.py
 
+      - name: Version Snapshot Store v1 test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_version_snapshot_store_v1.py
+
       - name: Generic Production Promotion v2 contract test
         shell: bash
         run: |
