@@ -112,6 +112,12 @@ jobs:
           set -euo pipefail
           python test_production_promotion_guard_v1.py
 
+      - name: Production Promotion P2 contract test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_promote_canonical_text_production_v1.py
+
       - name: Multimodal ingestion contract test
         shell: bash
         run: |
