@@ -229,6 +229,8 @@ def build_canary_command(
         str(defaults.get("jurisdiction") or "HK"),
         "--language",
         str(ingestion.get("language") or "en"),
+        "--workdir",
+        str(workdir),
     ]
 
     source_url = source.get("canonical_url") or ""
@@ -236,13 +238,72 @@ def build_canary_command(
     if source_url:
         command.extend(["--source-url", str(source_url)])
 
-    if workdir:
-        command.extend(["--workdir", workdir])
-
     if write:
         command.extend(["--write", "--confirm-staging-write"])
 
     return command
+
+
+def read_pipeline_state(workdir):
+    path = Path(workdir) / "orchestration-state.json"
+
+    if not path.is_file():
+        raise RuntimeError(
+            f"Pipeline state not found: {path}"
+        )
+
+    payload = json.loads(path.read_text(encoding="utf-8"))
+
+    if not isinstance(payload, dict):
+        raise RuntimeError("Pipeline state must be a JSON object")
+
+    return payload
+
+
+def classify_pipeline_result(state, write):
+    route = state.get("route") or {}
+    pipeline = route.get("recommended_pipeline")
+    eligible = route.get("eligible_for_v2")
+    db_write = bool(state.get("database_write_performed"))
+
+    if eligible is False or pipeline == "legacy-v1":
+        if write:
+            raise RuntimeError(
+                "Document routed to legacy-v1; refusing to report "
+                "a Staging DB write because no v2 database write occurred"
+            )
+
+        return {
+            "status": "ROUTED_TO_LEGACY_V1_NO_WRITE",
+            "pipeline": "legacy-v1",
+            "database_write_performed": False,
+        }
+
+    if pipeline != "multimodal-v2" or eligible is not True:
+        raise RuntimeError(
+            "Pipeline state did not contain a valid routing decision"
+        )
+
+    if write and not db_write:
+        raise RuntimeError(
+            "Staging write was requested but pipeline state reports "
+            "database_write_performed=false"
+        )
+
+    if not write and db_write:
+        raise RuntimeError(
+            "Prepare-only mode unexpectedly reports a database write"
+        )
+
+    return {
+        "status": (
+            "INGESTED_TO_STAGING"
+            if write
+            else "PREPARED_FOR_STAGING"
+        ),
+        "pipeline": "multimodal-v2",
+        "database_write_performed": db_write,
+    }
 
 
 def main():
@@ -317,7 +378,8 @@ def main():
         with tempfile.TemporaryDirectory(
             prefix="jason-os-canonical-ingestion-"
         ) as temp_dir:
-            local_file = Path(temp_dir) / Path(ingestion["source"]).name
+            temp_root = Path(temp_dir)
+            local_file = temp_root / Path(ingestion["source"]).name
 
             download_canonical(ingestion, local_file)
             verified = verify_download(local_file, expected)
@@ -356,6 +418,13 @@ def main():
                 )
                 return
 
+            pipeline_workdir = (
+                Path(args.workdir).expanduser().resolve()
+                if args.workdir
+                else temp_root / "pipeline-work"
+            )
+            pipeline_workdir.mkdir(parents=True, exist_ok=True)
+
             command = build_canary_command(
                 repo_root=repo_root,
                 python=sys.executable,
@@ -363,7 +432,7 @@ def main():
                 source=source,
                 ingestion=ingestion,
                 defaults=defaults,
-                workdir=args.workdir,
+                workdir=pipeline_workdir,
                 write=bool(args.write),
             )
 
@@ -376,13 +445,29 @@ def main():
 
             run_checked(command)
 
+            state = read_pipeline_state(pipeline_workdir)
+            result = classify_pipeline_result(
+                state,
+                write=bool(args.write),
+            )
+
             print()
             print(
-                "STATUS:",
-                "INGESTED_TO_STAGING"
-                if args.write
-                else "PREPARED_FOR_STAGING",
+                json.dumps(
+                    {
+                        "pipeline_result": result,
+                        "route": state.get("route") or {},
+                        "stages": state.get("stages") or [],
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                )
             )
+            print()
+            print("STATUS:", result["status"])
+
+            if args.workdir:
+                print("Artifacts retained at:", pipeline_workdir)
 
     except Exception as exc:
         raise SystemExit(
