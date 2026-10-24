@@ -20,7 +20,7 @@ from run_multimodal_canary_v2 import (
 )
 
 
-VERSION = "official-source-processing-staging-v1"
+VERSION = "official-source-processing-staging-v1.1"
 DEFAULT_STATE_ROOT = Path(
     "/var/lib/jason-os/source-monitor-staging"
 )
@@ -457,6 +457,118 @@ def build_text_write_command(
     ]
 
 
+def build_multimodal_write_command(
+    *,
+    python: str,
+    repo_root: Path,
+    source: dict,
+    source_file: Path,
+    workdir: Path,
+    defaults: dict,
+) -> list[str]:
+    config = source.get(
+        "canonical_ingestion"
+    )
+
+    if not isinstance(config, dict):
+        raise RuntimeError(
+            "canonical_ingestion config missing"
+        )
+
+    if (
+        config.get("enabled") is not True
+        or config.get("pipeline")
+        != "multimodal-v2"
+        or config.get("db_container")
+        != STAGING_DB_CONTAINER
+        or config.get("allow_production_write")
+        is not False
+    ):
+        raise RuntimeError(
+            "Unsafe multimodal Staging ingestion config"
+        )
+
+    return [
+        python,
+        str(
+            script_path(
+                repo_root,
+                "run_multimodal_canary_v2.py",
+            )
+        ),
+        str(source_file),
+        "--title",
+        str(
+            source.get("title")
+            or source.get("document_code")
+            or source_file.name
+        ),
+        "--domain",
+        str(source.get("domain") or ""),
+        "--topic",
+        str(source.get("topic") or ""),
+        "--document-type",
+        str(
+            config.get("document_type")
+            or source.get("source_type")
+            or "official-document"
+        ),
+        "--authority",
+        str(source.get("authority_code") or ""),
+        "--jurisdiction",
+        str(
+            defaults.get("jurisdiction")
+            or "HK"
+        ),
+        "--language",
+        str(config.get("language") or "en"),
+        "--source-url",
+        str(source.get("canonical_url") or ""),
+        "--workdir",
+        str(workdir),
+        "--write",
+        "--confirm-staging-write",
+    ]
+
+
+def build_multimodal_validation_command(
+    *,
+    python: str,
+    repo_root: Path,
+    source: dict,
+    checksum: str,
+) -> list[str]:
+    config = validation_config(
+        source
+    )
+
+    command = [
+        python,
+        str(
+            script_path(
+                repo_root,
+                "validate_staging_retrieval_v2.py",
+            )
+        ),
+        "--query",
+        config["query"],
+        "--checksum",
+        checksum,
+        "--limit",
+        "10",
+    ]
+
+    for term in config[
+        "expect_terms"
+    ]:
+        command.extend([
+            "--expect-term",
+            term,
+        ])
+
+    return command
+
+
 def validation_config(
     source: dict,
 ) -> dict:
@@ -652,8 +764,8 @@ def main() -> None:
             "Execution may initialize a missing "
             "baseline, stage and canonically promote "
             "approved bytes, and run the reusable "
-            "text ingestion path. Multimodal sources "
-            "stop at an explicit handoff in v1."
+            "text or multimodal ingestion path. Both routes "
+            "must validate in Staging before Production review."
         )
     )
 
@@ -941,6 +1053,56 @@ def main() -> None:
         database_write_performed = False
 
         if pipeline == "multimodal-v2":
+            if not existing_document_id:
+                multimodal_workdir = (
+                    workdir
+                    / "multimodal-ingestion"
+                )
+
+                multimodal_workdir.mkdir(
+                    parents=True,
+                    exist_ok=True,
+                )
+
+                run_checked(
+                    build_multimodal_write_command(
+                        python=python,
+                        repo_root=repo_root,
+                        source=source,
+                        source_file=
+                            _local_source,
+                        workdir=
+                            multimodal_workdir,
+                        defaults=defaults,
+                    )
+                )
+
+                database_write_performed = True
+
+                existing_document_id = (
+                    read_existing_document(
+                        expected["sha256"],
+                        STAGING_DB_CONTAINER,
+                    )
+                )
+
+                if not existing_document_id:
+                    raise RuntimeError(
+                        "Multimodal ingestion completed "
+                        "but the document is not present "
+                        "in the Staging DB"
+                    )
+
+            run_checked(
+                build_multimodal_validation_command(
+                    python=python,
+                    repo_root=repo_root,
+                    source=source,
+                    checksum=
+                        expected["sha256"],
+                )
+            )
+
             final = build_summary(
                 source_id=args.source_id,
                 mode="execute",
@@ -958,13 +1120,13 @@ def main() -> None:
             final.update(
                 {
                     "database_write_requested":
-                        False,
+                        True,
                     "database_write_performed":
-                        False,
+                        database_write_performed,
                     "staging_status":
-                        "MULTIMODAL_HANDOFF_REQUIRED",
+                        "VALIDATED",
                     "production_ready":
-                        False,
+                        True,
                 }
             )
 
@@ -979,7 +1141,7 @@ def main() -> None:
             print()
             print(
                 "STATUS: "
-                "MULTIMODAL_STAGING_HANDOFF_REQUIRED"
+                "READY_FOR_PRODUCTION_REVIEW"
             )
 
             return

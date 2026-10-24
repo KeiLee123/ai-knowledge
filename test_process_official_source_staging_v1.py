@@ -73,6 +73,17 @@ assert validation_149["expect_terms"] == [
     "works",
 ]
 
+validation_146 = (
+    pipeline.validation_config(
+        sources["BD_PNAP_APP146"]
+    )
+)
+
+assert validation_146["expect_terms"] == [
+    "hinge",
+    "stopper",
+]
+
 writer_command = (
     pipeline.build_writer_command(
         python="python",
@@ -125,6 +136,45 @@ assert validate_command.count(
     "--expect-term"
 ) == 4
 
+multimodal_command = (
+    pipeline.build_multimodal_write_command(
+        python="python",
+        repo_root=ROOT,
+        source=sources["BD_PNAP_APP146"],
+        source_file=Path("/tmp/APP146.pdf"),
+        workdir=Path("/tmp/mm-work"),
+        defaults=registry.get("defaults") or {},
+    )
+)
+
+assert "run_multimodal_canary_v2.py" in (
+    " ".join(multimodal_command)
+)
+assert "--write" in multimodal_command
+assert "--confirm-staging-write" in multimodal_command
+assert "jason-os-knowledge-db-staging" not in (
+    multimodal_command
+)
+
+multimodal_validate_command = (
+    pipeline.build_multimodal_validation_command(
+        python="python",
+        repo_root=ROOT,
+        source=sources["BD_PNAP_APP146"],
+        checksum="a" * 64,
+    )
+)
+
+assert "validate_staging_retrieval_v2.py" in (
+    " ".join(multimodal_validate_command)
+)
+assert "--checksum" in multimodal_validate_command
+assert multimodal_validate_command.count(
+    "--expect-term"
+) == 2
+assert "hinge" in multimodal_validate_command
+assert "stopper" in multimodal_validate_command
+
 source_text = (
     ROOT
     / "process_official_source_staging_v1.py"
@@ -142,6 +192,16 @@ for forbidden in (
 
 assert (
     "MULTIMODAL_STAGING_HANDOFF_REQUIRED"
+    not in source_text
+)
+
+assert (
+    "build_multimodal_write_command"
+    in source_text
+)
+
+assert (
+    "build_multimodal_validation_command"
     in source_text
 )
 
@@ -165,7 +225,7 @@ print(
     "Legacy-v1 reusable text path: PASS"
 )
 print(
-    "Multimodal handoff boundary: PASS"
+    "Multimodal Staging close-loop: PASS"
 )
 print(
     "Production write path: ABSENT"

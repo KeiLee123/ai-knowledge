@@ -138,6 +138,11 @@ sources:
       document_type: "official-regulatory"
       language: "en"
       allow_production_write: false
+    staging_validation:
+      query: "What safety measures are recommended for swing-type and sliding metal gates?"
+      expect_terms:
+        - hinge
+        - stopper
 
   BD_PNAP_APP149:
     enabled: true
@@ -200,4 +205,3 @@ sources:
         - signatory
         - minor
         - works
-
