@@ -275,31 +275,38 @@ Production impact: none.
 
 ### M1 — Structured table evidence
 
-Status: COMPLETE in GitHub `staging` / CI VERIFIED.
+Status: COMPLETE / CI VERIFIED / VPS STAGING DEPLOYED.
 
-First-class table evidence and regression tests are implemented.
+First-class table evidence and regression tests are implemented and deployed in M4.
 
-VPS deployment: pending.
+APP146 did not emit a structured-table chunk, so table-specific live retrieval evidence remains unexercised.
 
 Production impact: none until separately promoted.
 
 ### M2 — Multimodal Staging close-loop
 
-Status: COMPLETE in GitHub `staging` / CI VERIFIED.
+Status: VPS STAGING LIVE VERIFIED.
 
-Existing v2 canary/write/validation components are integrated into official-source processing, including expected-term semantic retrieval validation.
+APP146 live proof at commit `921e899` verified:
 
-VPS live verification: pending.
+- `multimodal-v2` routing;
+- guarded Staging write;
+- document ID 4;
+- 12 chunks;
+- 1 `visual_understanding` chunk;
+- semantic matches `hinge` and `stopper`;
+- `READY_FOR_PRODUCTION_REVIEW`;
+- Production write false.
 
 Production impact: none.
 
 ### M3 — Release artifact profiles
 
-Status: COMPLETE in GitHub `staging` / CI VERIFIED.
+Status: COMPLETE / CI VERIFIED / VPS STAGING DEPLOYED.
 
-Generic Production Promotion v2 now uses a code-controlled artifact profile registry and `release_v2` contract. The existing canonical-text path remains compatible; multimodal Production authorization is fail-closed.
+Generic Production Promotion v2 uses a code-controlled artifact profile registry and `release_v2` contract. The existing canonical-text path remains compatible; multimodal Production authorization is fail-closed.
 
-VPS live verification: pending.
+Operational Generic Production v2 live verification: pending.
 
 APP-145 v1: unchanged.
 
@@ -307,7 +314,11 @@ Production impact: none.
 
 ### M4 — VPS Staging verification
 
-Deploy and validate the consolidated lifecycle on VPS Staging.
+Status: LIVE VERIFIED.
+
+Deployed commit: `921e899fed7109b526700b470a5eeaa32d4539f2`.
+
+APP146 completed the multimodal Staging lifecycle and semantic retrieval validation, ending at `READY_FOR_PRODUCTION_REVIEW`.
 
 Production impact: none.
 

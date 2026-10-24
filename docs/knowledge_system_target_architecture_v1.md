@@ -116,7 +116,7 @@ For multimodal documents, the current v2 stack already provides:
 - chunk metadata;
 - source-page provenance.
 
-Structured tables are now emitted as first-class `structured_table` retrieval evidence in GitHub `staging`, with table provenance metadata and CI regression coverage. This implementation has not yet been deployed to the audited VPS environments.
+Structured tables are emitted as first-class `structured_table` retrieval evidence with provenance metadata and CI regression coverage. M4 deployed this implementation to VPS Staging. The APP146 live qualification did not emit a structured-table chunk, so a table-specific live canary remains optional future proof rather than an M4 blocker.
 
 ### 3. Staging lifecycle
 
@@ -216,9 +216,9 @@ Internal engines may remain write-capable where required, but approved operation
 
 1. Freeze this architecture and capability inventory in GitHub.
 2. Structured-table retrieval evidence with regression tests — COMPLETE in GitHub `staging` / CI verified; VPS deployment pending.
-3. Official-source multimodal Staging close-loop — COMPLETE in GitHub `staging` / CI verified; VPS live verification pending.
-4. Release Artifact Profiles — COMPLETE in GitHub `staging` / CI verified; VPS live verification pending.
-5. Live-verify the generic Production v2 path on VPS Staging.
+3. Official-source multimodal Staging close-loop — VPS LIVE VERIFIED with APP146 at commit `921e899`.
+4. Release Artifact Profiles — COMPLETE / CI verified and deployed to VPS Staging; operational Generic Production v2 verification pending.
+5. Live-verify Generic Production Promotion v2 through non-writing gates, then qualify APP-149 as the first generic canonical-text release candidate.
 6. Qualify APP-149 as the first generic text release candidate.
 7. Prove a multimodal generic release candidate.
 8. Reconcile and install safe CLI deployment definitions.
@@ -230,7 +230,7 @@ Internal engines may remain write-capable where required, but approved operation
 This architecture freeze does not:
 
 - merge `staging` to `main`;
-- deploy K3 v2 to VPS;
+- merge K3 v2 to Production;
 - authorize APP-149 Production write;
 - modify APP-145;
 - delete pre-Git files;

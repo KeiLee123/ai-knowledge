@@ -1,6 +1,6 @@
 # M4 — VPS Staging Live Verification
 
-Status: RUNBOOK READY  
+Status: LIVE VERIFIED  
 Environment: VPS Staging only  
 Production impact: NONE
 
@@ -170,10 +170,32 @@ If Vision fails because Hermes configuration is unavailable, repair the Staging 
 
 If the official source checksum changed, treat it as a new source-review event rather than an ingestion failure.
 
+## Live verification record
+
+Verified on 2026-10-24.
+
+- VPS Staging path: `/opt/ai-knowledge-staging`
+- deployed commit: `921e899fed7109b526700b470a5eeaa32d4539f2`
+- candidate: `BD_PNAP_APP146`
+- approved checksum: `60127b85a99b2a2931975ced68200cc0c468744c8d0df30a2e94e287dcd8a61e`
+- route: `multimodal-v2`
+- Staging document ID: `4`
+- chunks: `12`
+- evidence origins observed:
+  - `native_text`: 11
+  - `visual_understanding`: 1
+- semantic query results: 10
+- expected terms matched: `hinge`, `stopper`
+- final Staging status: `VALIDATED`
+- final status: `READY_FOR_PRODUCTION_REVIEW`
+- Production write: false
+- command block exit code: 0
+
+The APP146 qualification exercised page-level Vision evidence. It did not contain a structured-table retrieval chunk, so M1 code is deployed to VPS Staging but table-specific live evidence remains a separate future canary if needed.
+
 ## After success
 
-After M4 is live-verified:
-
-1. update the capability/status documents with the deployed commit and APP146 proof;
-2. keep Production unchanged;
-3. proceed to the next Production-v2 live verification milestone only through read-only Production gates first.
+1. keep Production unchanged;
+2. treat M2 as VPS LIVE VERIFIED;
+3. treat M1 as deployed to VPS Staging, with table-specific live proof not yet exercised by APP146;
+4. proceed to Generic Production Promotion v2 live verification through non-writing gates first.

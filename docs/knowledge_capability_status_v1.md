@@ -15,7 +15,8 @@ Date: 2026-10-24
 
 - Path: `/opt/ai-knowledge-staging`
 - Branch: `staging`
-- Audited commit: `f58dc65826266563c55e85d195fe93923611f00d`
+- Previous audited commit: `f58dc65826266563c55e85d195fe93923611f00d`
+- M4 deployed / live-verified commit: `921e899fed7109b526700b470a5eeaa32d4539f2`
 
 ### GitHub staging
 
@@ -36,17 +37,17 @@ At the architecture-freeze point, GitHub `staging` was ahead of the live Staging
 | Multimodal Document v2 | IMPLEMENTED | Production and Staging core files match |
 | Native PDF text | IMPLEMENTED | Existing v2 extraction |
 | Table detection | IMPLEMENTED | Structured rows/columns extracted |
-| Structured table retrieval evidence | GITHUB STAGING / CI VERIFIED | First-class `structured_table` chunks with table provenance metadata; VPS deployment pending |
+| Structured table retrieval evidence | VPS STAGING DEPLOYED / CI VERIFIED | First-class `structured_table` chunks are deployed; APP146 did not emit a table chunk, so table-specific live canary remains unexercised |
 | OCR | IMPLEMENTED | Selective candidate-page OCR |
 | Vision | IMPLEMENTED | Selective visual understanding |
 | Page-aware routing signals | IMPLEMENTED | Final router decision remains document-level |
 | Source-page provenance | IMPLEMENTED | Deterministic page render + SHA metadata |
 | Region-level figure evidence | LATER GAP | Page-level Vision exists; region evidence does not |
-| Official Source Processing v1 | GITHUB STAGING / CI VERIFIED | Text and multimodal routes close-loop to Staging validation; VPS live verification of the new multimodal path pending |
+| Official Source Processing v1 | VPS STAGING LIVE VERIFIED | APP146 multimodal-v2 closed loop to semantic validation and READY_FOR_PRODUCTION_REVIEW at commit 921e899 |
 | Source registry / baseline / change detection | IMPLEMENTED | New checksum requires review |
 | Scheduled official-source monitoring | NOT OPERATIONAL | Policy says daily; no matching timer in audited deployment |
 | APP-145 Production Promotion v1 | VERIFIED / FROZEN | Historical Production milestone |
-| Generic Production Promotion v2 | GITHUB STAGING / CI VERIFIED | M3 profile-based `release_v2` contract; VPS live verification pending |
+| Generic Production Promotion v2 | VPS STAGING DEPLOYED / CI VERIFIED | M3 profile-based `release_v2` code is deployed with M4 commit; Generic Production v2 operational live verification remains pending |
 | Canonical-text-v1 Production profile | CONTRACT + TEXT WRITER CI VERIFIED | Production-write qualified in contract; no real release authorized |
 | Multimodal-v2 Production profile | CONTRACT REGISTERED / WRITE BLOCKED | Profile validates multimodal evidence expectations, but Production authorization is explicitly rejected until writer/validator qualification |
 | Learning / Anki source provenance | IMPLEMENTED | Read-only source locator |
@@ -95,19 +96,20 @@ GitHub `staging` was ahead of VPS Staging with the Generic Production Promotion 
 
 Priority order:
 
-1. VPS Staging live verification of the consolidated M1/M2 lifecycle;
-2. live VPS Staging verification of Generic Production Promotion v2;
-3. qualify a profile-safe multimodal Production artifact path only after Staging proof;
+1. live VPS verification of Generic Production Promotion v2 through non-writing gates;
+2. qualify APP-149 as the first generic canonical-text release candidate;
+3. qualify a profile-safe multimodal Production artifact path only after the generic text proof;
 4. safe CLI/deployment reconciliation;
 5. source-monitor scheduling;
 6. HKeL watch modernization;
 7. cleanup / retirement.
 
-Completed in GitHub `staging` / CI verified:
+Completed / deployed:
 
-- structured-table retrieval evidence (M1); VPS deployment pending;
-- official-source multimodal Staging close-loop (M2); VPS live verification pending;
-- release artifact profiles (M3); `canonical-text-v1` write-qualified, `multimodal-v2` write-blocked pending qualification.
+- M1 structured-table retrieval evidence: CI verified and deployed to VPS Staging; table-specific live chunk proof not exercised by APP146;
+- M2 official-source multimodal Staging close-loop: VPS LIVE VERIFIED with APP146, document ID 4, 12 chunks and semantic matches `hinge` / `stopper`;
+- M3 release artifact profiles: CI verified and code deployed to VPS Staging; Generic Production v2 operational verification pending;
+- M4 VPS Staging qualification: LIVE VERIFIED at commit `921e899`, Production write false.
 
 ## Freeze rules
 

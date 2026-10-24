@@ -1,6 +1,6 @@
 # Official Source Processing Pipeline v1
 
-Status: GITHUB STAGING / CI VERIFIED; VPS LIVE VERIFICATION PENDING
+Status: VPS STAGING LIVE VERIFIED
 
 ## Purpose
 
@@ -110,7 +110,7 @@ For either validated route:
 STATUS: READY_FOR_PRODUCTION_REVIEW
 ```
 
-The multimodal close-loop is implemented and CI-verified in GitHub `staging`. Live VPS Staging verification is still pending.
+The multimodal close-loop is live-verified on VPS Staging with APP146 at commit `921e899`. The run wrote only to the isolated Staging DB and ended at `READY_FOR_PRODUCTION_REVIEW`.
 
 ## Source changes
 
@@ -141,11 +141,11 @@ This keeps the generic orchestrator source-independent while preserving meaningf
 ## Qualified examples
 
 - APP-145: legacy-v1; Production milestone already VERIFIED / FROZEN.
-- APP-146: multimodal-v2 due to a genuine diagram page; GitHub `staging` now contains the guarded Staging write + semantic retrieval validation close-loop. VPS live verification remains pending.
+- APP-146: multimodal-v2; VPS LIVE VERIFIED at commit `921e899`, document ID 4, 12 chunks (11 native text + 1 visual understanding), semantic matches `hinge` / `stopper`, Production write false.
 - APP-149: legacy-v1; Staging document_id 3; 8 chunks; 8 embeddings; 384 dimensions; semantic retrieval VERIFIED.
 
 ## Next milestone
 
-Deploy the consolidated Staging lifecycle to the VPS and live-verify APP-146 without touching Production.
+Generic Production Promotion v2 profile contracts are implemented and deployed to VPS Staging. The next milestone is operational live verification of the generic v2 proposal/readiness path using non-writing gates first, with APP149 as the first canonical-text candidate.
 
-After that, evolve Generic Production Promotion v2 toward profile-based release artifacts rather than creating a candidate-specific or modality-specific Production writer.
+Production remains unchanged until explicit review and authorization.
