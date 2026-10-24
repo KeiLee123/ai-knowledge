@@ -661,7 +661,7 @@ the frozen-layer regression suite.
 
 ## P8 pre-write readiness gate
 
-Status: IMPLEMENTED IN STAGING / CI VERIFICATION PENDING
+Status: IMPLEMENTED / STAGING CI VERIFIED / LIVE MAIN READINESS PENDING
 
 Before any normal Production write executor is introduced, the read-only gate
 `validate_production_write_readiness_v1.py` must pass on `main`.
