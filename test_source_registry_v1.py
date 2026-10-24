@@ -88,6 +88,35 @@ def test_registry_contract():
         source_146
     )
 
+    source_149 = registry[
+        "sources"
+    ]["BD_PNAP_APP149"]
+
+    assert source_149["enabled"] is True
+    assert (
+        source_149["authority_code"]
+        == "BD"
+    )
+    assert (
+        source_149["source_family"]
+        == "PNAP"
+    )
+    assert (
+        source_149["document_code"]
+        == "APP-149"
+    )
+
+    monitor.validate_source(
+        "BD_PNAP_APP149",
+        source_149
+    )
+
+    assert (
+        registry["sources"]["BD_PNAP_APP146"]
+        ["canonical_text_ingestion"]["enabled"]
+        is False
+    )
+
     selected = monitor.select_sources(
         registry
     )
@@ -95,6 +124,7 @@ def test_registry_contract():
     assert list(selected) == [
         "BD_PNAP_APP145",
         "BD_PNAP_APP146",
+        "BD_PNAP_APP149",
     ]
 
 
