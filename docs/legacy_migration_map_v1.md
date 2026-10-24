@@ -352,7 +352,9 @@ Version updates auto-qualify only when identity matches, issue/revision/edition 
 
 Ambiguous changes route to `REVIEW_REQUIRED`; date regression or identity mismatch is `BLOCKED`.
 
-Current integration gap: automatic extraction of issue/revision dates, material metadata fingerprints and normalized-content fingerprints.
+M5C now implements issue/revision extraction, material metadata fingerprints and normalized-content fingerprints in GitHub `staging`.
+
+Remaining gap: VPS live verification and persistence/comparison of prior version snapshots in the automated monitor lifecycle.
 
 Production write authorization remains a separate later gate.
 

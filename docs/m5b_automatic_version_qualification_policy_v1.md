@@ -130,7 +130,7 @@ It performs no Production access or write.
 
 The policy engine is implemented and CI-verified.
 
-Automatic version-update signal acquisition is not yet complete. The Source Monitor still needs reliable extraction of:
+M5C now implements a canonical-artifact signal extractor for:
 
 - issue date;
 - revision date;
@@ -138,7 +138,9 @@ Automatic version-update signal acquisition is not yet complete. The Source Moni
 - material metadata fingerprint;
 - normalized-content fingerprint.
 
-Missing signals must not be guessed. They correctly produce `REVIEW_REQUIRED`.
+The remaining work is VPS live verification and wiring previous/current snapshots into the scheduled monitor lifecycle.
+
+Missing signals are still never guessed; incomplete evidence produces `REVIEW_REQUIRED`.
 
 ## Production boundary
 

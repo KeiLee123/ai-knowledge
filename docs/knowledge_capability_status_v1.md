@@ -44,7 +44,7 @@ At the architecture-freeze point, GitHub `staging` was ahead of the live Staging
 | Source-page provenance | IMPLEMENTED | Deterministic page render + SHA metadata |
 | Region-level figure evidence | LATER GAP | Page-level Vision exists; region evidence does not |
 | Official Source Processing v1 | VPS STAGING LIVE VERIFIED | APP146 multimodal-v2 closed loop to semantic validation and READY_FOR_PRODUCTION_REVIEW at commit 921e899 |
-| Source registry / baseline / change detection | IMPLEMENTED | Baseline/change detection exists; automatic issue/revision/content-fingerprint acquisition is still incomplete |
+| Source registry / baseline / change detection | IMPLEMENTED + M5C SIGNAL EXTRACTOR | HTTP baseline exists; issue/revision/material-metadata/normalized-content signals are now implemented in GitHub staging; VPS live verification pending |
 | Scheduled official-source monitoring | NOT OPERATIONAL | Policy says daily; no matching timer in audited deployment |
 | APP-145 Production Promotion v1 | VERIFIED / FROZEN | Historical Production milestone |
 | Generic Production Promotion v2 | M5A LIVE / M5B CI VERIFIED | APP149 deterministic proposal is live-proven; routine human review replaced by policy qualification in GitHub staging; VPS deploy pending |
@@ -96,8 +96,8 @@ GitHub `staging` was ahead of VPS Staging with the Generic Production Promotion 
 
 Priority order:
 
-1. deploy/live-verify M5B policy qualification on VPS Staging;
-2. add automatic issue/revision date, material-metadata and normalized-content fingerprint acquisition;
+1. deploy/live-verify M5B + M5C on VPS Staging using APP149;
+2. persist/compare prior version snapshots for automatic future-update qualification;
 3. live-verify Production v2 through non-writing verify/prepare gates using a policy-qualified contract;
 4. qualify a profile-safe multimodal Production artifact path only after the generic text proof;
 4. safe CLI/deployment reconciliation;
@@ -112,7 +112,8 @@ Completed / deployed:
 - M3 release artifact profiles: CI verified and code deployed to VPS Staging; Generic Production v2 operational verification pending;
 - M4 VPS Staging qualification: LIVE VERIFIED at commit `921e899`, Production write false;
 - M5A APP149 Generic Production v2 proposal: LIVE VERIFIED at commit `4936069`; canonical SHA `a5b4d5a1...`, chunks SHA `4accbc06...`, 8 native-text chunks, Production access/write false;
-- M5B Automatic Version Qualification Policy v1: GitHub staging / CI VERIFIED at commit `8b095e1`; routine human review removed, exception review retained, VPS deployment pending.
+- M5B Automatic Version Qualification Policy v1: GitHub staging / CI VERIFIED at commit `8b095e1`; routine human review removed, exception review retained;
+- M5C Version Signal Extraction v1: GitHub staging / CI VERIFIED at commit `0d8cb92`; PNAP dates, material metadata fingerprint and normalized-content fingerprint implemented; VPS live verification pending.
 
 ## Freeze rules
 
