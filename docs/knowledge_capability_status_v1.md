@@ -46,8 +46,9 @@ At the architecture-freeze point, GitHub `staging` was ahead of the live Staging
 | Source registry / baseline / change detection | IMPLEMENTED | New checksum requires review |
 | Scheduled official-source monitoring | NOT OPERATIONAL | Policy says daily; no matching timer in audited deployment |
 | APP-145 Production Promotion v1 | VERIFIED / FROZEN | Historical Production milestone |
-| Generic Production Promotion v2 | GITHUB STAGING / CI VERIFIED | Not deployed to VPS at audited point |
-| Generic v2 multimodal promotion | GAP | Current v2 contract is legacy-v1 / text-specific |
+| Generic Production Promotion v2 | GITHUB STAGING / CI VERIFIED | M3 profile-based `release_v2` contract; VPS live verification pending |
+| Canonical-text-v1 Production profile | CONTRACT + TEXT WRITER CI VERIFIED | Production-write qualified in contract; no real release authorized |
+| Multimodal-v2 Production profile | CONTRACT REGISTERED / WRITE BLOCKED | Profile validates multimodal evidence expectations, but Production authorization is explicitly rejected until writer/validator qualification |
 | Learning / Anki source provenance | IMPLEMENTED | Read-only source locator |
 | Card generation | IMPLEMENTED | Selected chunks only |
 | Original-page media | IMPLEMENTED | Media rendering infrastructure exists |
@@ -94,9 +95,9 @@ GitHub `staging` was ahead of VPS Staging with the Generic Production Promotion 
 
 Priority order:
 
-1. release-artifact profile abstraction;
-2. VPS Staging live verification of the consolidated M1/M2 lifecycle;
-3. live VPS Staging verification of Generic Production Promotion v2;
+1. VPS Staging live verification of the consolidated M1/M2 lifecycle;
+2. live VPS Staging verification of Generic Production Promotion v2;
+3. qualify a profile-safe multimodal Production artifact path only after Staging proof;
 4. safe CLI/deployment reconciliation;
 5. source-monitor scheduling;
 6. HKeL watch modernization;
@@ -105,7 +106,8 @@ Priority order:
 Completed in GitHub `staging` / CI verified:
 
 - structured-table retrieval evidence (M1); VPS deployment pending;
-- official-source multimodal Staging close-loop (M2); VPS live verification pending.
+- official-source multimodal Staging close-loop (M2); VPS live verification pending;
+- release artifact profiles (M3); `canonical-text-v1` write-qualified, `multimodal-v2` write-blocked pending qualification.
 
 ## Freeze rules
 

@@ -141,7 +141,7 @@ Production promotion should decide **whether a validated release may enter Produ
 
 It should not know how OCR, Vision, table extraction or legal XML parsing works.
 
-The target is a profile-based release contract, for example:
+The GitHub `staging` contract is now profile-based (M3 / CI verified), for example:
 
 ```yaml
 release:
@@ -155,7 +155,9 @@ release:
   artifact_profile: multimodal-v2
 ```
 
-The promotion engine remains common; the artifact profile defines evidence expectations.
+The release governance remains common; the artifact profile defines route, ingestion version and allowed evidence expectations.
+
+Current safety boundary: `canonical-text-v1` is Production-write qualified; `multimodal-v2` is registered for contract validation but Production write authorization is explicitly blocked until its writer/validator path is separately qualified.
 
 ### 5. Frozen retrieval core
 
@@ -215,7 +217,7 @@ Internal engines may remain write-capable where required, but approved operation
 1. Freeze this architecture and capability inventory in GitHub.
 2. Structured-table retrieval evidence with regression tests — COMPLETE in GitHub `staging` / CI verified; VPS deployment pending.
 3. Official-source multimodal Staging close-loop — COMPLETE in GitHub `staging` / CI verified; VPS live verification pending.
-4. Generalize the release contract to artifact profiles.
+4. Release Artifact Profiles — COMPLETE in GitHub `staging` / CI verified; VPS live verification pending.
 5. Live-verify the generic Production v2 path on VPS Staging.
 6. Qualify APP-149 as the first generic text release candidate.
 7. Prove a multimodal generic release candidate.

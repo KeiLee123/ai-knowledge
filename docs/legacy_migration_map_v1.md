@@ -109,16 +109,22 @@ The route remains fixed to the isolated Staging DB and does not add a Production
 
 ### Generic Production Promotion v2
 
-Evolve the contract from text-specific:
+Status: PROFILE CONTRACT COMPLETE in GitHub `staging` / CI VERIFIED; VPS live verification pending.
+
+M3 introduces:
 
 ```text
-canonical_text_release_v2
-required_route = legacy-v1
+release_v2
+└─ artifact_profile
+   ├─ canonical-text-v1
+   └─ multimodal-v2
 ```
 
-toward profile-based release artifacts.
+The profile owns route, ingestion version and allowed evidence origins. Compatibility route/version fields remain mirrored for the current text writer and are checked against the profile to prevent drift.
 
-Do not create separate full promotion engines for each modality.
+`canonical-text-v1` is Production-write qualified. `multimodal-v2` is deliberately write-blocked until a profile-safe writer and validator are qualified.
+
+Do not create separate approval lifecycles for each modality.
 
 ## Retire as operational entrypoints
 
@@ -289,7 +295,13 @@ Production impact: none.
 
 ### M3 — Release artifact profiles
 
-Generalize Generic Production Promotion v2 contract without changing APP-145 v1.
+Status: COMPLETE in GitHub `staging` / CI VERIFIED.
+
+Generic Production Promotion v2 now uses a code-controlled artifact profile registry and `release_v2` contract. The existing canonical-text path remains compatible; multimodal Production authorization is fail-closed.
+
+VPS live verification: pending.
+
+APP-145 v1: unchanged.
 
 Production impact: none.
 
