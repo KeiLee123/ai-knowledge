@@ -1,6 +1,6 @@
 # Official Source Processing Pipeline v1
 
-Status: STAGING AUTOMATION LAYER
+Status: GITHUB STAGING / CI VERIFIED; VPS LIVE VERIFICATION PENDING
 
 ## Purpose
 
@@ -30,13 +30,15 @@ Deterministic router
 legacy-v1          multimodal-v2
    |                   |
    v                   v
-Reusable text       Explicit handoff
-Staging ingestion   (no automatic DB write in v1)
-   |
-   v
-Read-only milestone validation
-   |
-   v
+Reusable text       Guarded multimodal-v2
+Staging ingestion   Staging ingestion
+   |                   |
+   v                   v
+Text semantic       Multimodal semantic
+validation          retrieval validation
+   \                  /
+    \                /
+     v              v
 READY_FOR_PRODUCTION_REVIEW
 ```
 
@@ -49,7 +51,7 @@ v1 is Staging-only.
 - No Production writer
 - No Production release registry
 - No automatic baseline replacement when document bytes change
-- No automatic multimodal DB write
+- Multimodal DB writes are permitted only through the fixed Staging canary guard and explicit Staging confirmation
 - No change to frozen APP-145 Production code
 
 Production approval and Production promotion remain separate milestones.
@@ -96,23 +98,19 @@ Execution may:
 3. create the approved Canonical Current object if missing;
 4. use the deterministic router;
 5. for `legacy-v1`, reuse the frozen canonical text Staging writer;
-6. run the read-only canonical text Staging milestone validator.
+6. for `multimodal-v2`, reuse the guarded Multimodal v2 canary path locked to the isolated Staging DB;
+7. run the route-appropriate read-only semantic validation;
+8. emit `READY_FOR_PRODUCTION_REVIEW` only after the Staging document exists and validation passes.
 
 Existing matching Drive objects and an existing matching Staging DB document are verified and reused rather than overwritten.
 
-For a validated text source:
+For either validated route:
 
 ```text
 STATUS: READY_FOR_PRODUCTION_REVIEW
 ```
 
-For a multimodal source:
-
-```text
-STATUS: MULTIMODAL_STAGING_HANDOFF_REQUIRED
-```
-
-The v1 automation deliberately stops there until the official-source multimodal lifecycle is operationalized.
+The multimodal close-loop is implemented and CI-verified in GitHub `staging`. Live VPS Staging verification is still pending.
 
 ## Source changes
 
@@ -128,7 +126,7 @@ An index-page change with unchanged document bytes is reported by the baseline l
 
 ## Semantic validation profiles
 
-Text sources that participate in the automated Staging lifecycle define source-specific semantic validation hints in `source_registry_v1.yaml`:
+Sources that participate in the automated Staging lifecycle define source-specific semantic validation hints in `source_registry_v1.yaml`:
 
 ```yaml
 staging_validation:
@@ -143,11 +141,11 @@ This keeps the generic orchestrator source-independent while preserving meaningf
 ## Qualified examples
 
 - APP-145: legacy-v1; Production milestone already VERIFIED / FROZEN.
-- APP-146: multimodal-v2 due to a genuine diagram page; retained as a multimodal candidate.
+- APP-146: multimodal-v2 due to a genuine diagram page; GitHub `staging` now contains the guarded Staging write + semantic retrieval validation close-loop. VPS live verification remains pending.
 - APP-149: legacy-v1; Staging document_id 3; 8 chunks; 8 embeddings; 384 dimensions; semantic retrieval VERIFIED.
 
 ## Next milestone
 
-After v1 Staging automation is live-verified, the next architecture milestone is Generic Production Promotion v2.
+Deploy the consolidated Staging lifecycle to the VPS and live-verify APP-146 without touching Production.
 
-That layer should consume reviewed release contracts rather than create a new candidate-specific Python writer for every source.
+After that, evolve Generic Production Promotion v2 toward profile-based release artifacts rather than creating a candidate-specific or modality-specific Production writer.

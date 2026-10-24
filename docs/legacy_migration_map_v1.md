@@ -94,22 +94,18 @@ Implemented:
 
 ### Official Source Processing v1
 
-Extend the current multimodal branch from:
+Status: COMPLETE in GitHub `staging` / CI VERIFIED; VPS live verification pending.
 
-```text
-MULTIMODAL_STAGING_HANDOFF_REQUIRED
-```
-
-to:
+The multimodal branch now reuses existing Multimodal v2 modules:
 
 ```text
 multimodal evidence build
--> Staging write
--> multimodal retrieval validation
+-> guarded Staging write
+-> semantic retrieval validation
 -> READY_FOR_PRODUCTION_REVIEW
 ```
 
-Use existing Multimodal v2 modules.
+The route remains fixed to the isolated Staging DB and does not add a Production write path.
 
 ### Generic Production Promotion v2
 
@@ -283,7 +279,11 @@ Production impact: none until separately promoted.
 
 ### M2 — Multimodal Staging close-loop
 
-Integrate existing v2 canary/write/validation path with official-source processing.
+Status: COMPLETE in GitHub `staging` / CI VERIFIED.
+
+Existing v2 canary/write/validation components are integrated into official-source processing, including expected-term semantic retrieval validation.
+
+VPS live verification: pending.
 
 Production impact: none.
 

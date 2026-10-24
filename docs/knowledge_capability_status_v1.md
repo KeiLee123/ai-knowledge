@@ -42,7 +42,7 @@ At the architecture-freeze point, GitHub `staging` was ahead of the live Staging
 | Page-aware routing signals | IMPLEMENTED | Final router decision remains document-level |
 | Source-page provenance | IMPLEMENTED | Deterministic page render + SHA metadata |
 | Region-level figure evidence | LATER GAP | Page-level Vision exists; region evidence does not |
-| Official Source Processing v1 | LIVE-VERIFIED STAGING | Text route closed-loop; multimodal stops at handoff |
+| Official Source Processing v1 | GITHUB STAGING / CI VERIFIED | Text and multimodal routes close-loop to Staging validation; VPS live verification of the new multimodal path pending |
 | Source registry / baseline / change detection | IMPLEMENTED | New checksum requires review |
 | Scheduled official-source monitoring | NOT OPERATIONAL | Policy says daily; no matching timer in audited deployment |
 | APP-145 Production Promotion v1 | VERIFIED / FROZEN | Historical Production milestone |
@@ -94,8 +94,8 @@ GitHub `staging` was ahead of VPS Staging with the Generic Production Promotion 
 
 Priority order:
 
-1. multimodal official-source Staging close-loop;
-2. release-artifact profile abstraction;
+1. release-artifact profile abstraction;
+2. VPS Staging live verification of the consolidated M1/M2 lifecycle;
 3. live VPS Staging verification of Generic Production Promotion v2;
 4. safe CLI/deployment reconciliation;
 5. source-monitor scheduling;
@@ -104,7 +104,8 @@ Priority order:
 
 Completed in GitHub `staging` / CI verified:
 
-- structured-table retrieval evidence (M1); VPS deployment pending.
+- structured-table retrieval evidence (M1); VPS deployment pending;
+- official-source multimodal Staging close-loop (M2); VPS live verification pending.
 
 ## Freeze rules
 

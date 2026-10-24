@@ -214,7 +214,7 @@ Internal engines may remain write-capable where required, but approved operation
 
 1. Freeze this architecture and capability inventory in GitHub.
 2. Structured-table retrieval evidence with regression tests — COMPLETE in GitHub `staging` / CI verified; VPS deployment pending.
-3. Close the official-source multimodal Staging lifecycle using existing v2 components.
+3. Official-source multimodal Staging close-loop — COMPLETE in GitHub `staging` / CI verified; VPS live verification pending.
 4. Generalize the release contract to artifact profiles.
 5. Live-verify the generic Production v2 path on VPS Staging.
 6. Qualify APP-149 as the first generic text release candidate.
