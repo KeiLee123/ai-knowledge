@@ -1,0 +1,6 @@
+production_release_registry_version: 2
+
+defaults:
+  jurisdiction: HK
+
+sources: {}

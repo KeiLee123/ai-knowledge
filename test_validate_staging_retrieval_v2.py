@@ -10,6 +10,7 @@ from validate_staging_retrieval_v2 import (
     build_retrieval_sql,
     parse_rows,
     validate_checksum,
+    validate_expected_terms,
 )
 
 
@@ -75,11 +76,49 @@ def assert_row_parser():
     assert rows[0]["content"] == content
 
 
+def assert_expected_term_validation():
+    rows = [
+        {
+            "content": (
+                "Swing-type gates use hinge fittings. "
+                "Sliding gates require a stopper."
+            )
+        }
+    ]
+
+    result = validate_expected_terms(
+        rows,
+        [
+            "hinge",
+            "stopper",
+        ],
+    )
+
+    assert result["expected_terms_ok"] is True
+    assert result["missing_terms"] == []
+
+    try:
+        validate_expected_terms(
+            rows,
+            [
+                "hinge",
+                "anchor",
+            ],
+        )
+    except RuntimeError as exc:
+        assert "anchor" in str(exc)
+    else:
+        raise AssertionError(
+            "Missing expected term was accepted"
+        )
+
+
 def main():
     assert_staging_is_not_production()
     assert_sql_is_read_only()
     assert_invalid_checksum_rejected()
     assert_row_parser()
+    assert_expected_term_validation()
 
     print(
         "Staging retrieval validator test PASS"
@@ -95,6 +134,9 @@ def main():
     )
     print(
         "Result parser: PASS"
+    )
+    print(
+        "Expected-term semantic validation: PASS"
     )
 
 
