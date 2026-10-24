@@ -61,12 +61,40 @@ def test_registry_contract():
         source
     )
 
+    source_146 = registry[
+        "sources"
+    ]["BD_PNAP_APP146"]
+
+    assert source_146["enabled"] is True
+    assert (
+        source_146["authority_code"]
+        == "BD"
+    )
+    assert (
+        source_146["source_family"]
+        == "PNAP"
+    )
+    assert (
+        source_146["document_code"]
+        == "APP-146"
+    )
+    assert (
+        source_146["title"]
+        == "Metal Gates"
+    )
+
+    monitor.validate_source(
+        "BD_PNAP_APP146",
+        source_146
+    )
+
     selected = monitor.select_sources(
         registry
     )
 
     assert list(selected) == [
-        "BD_PNAP_APP145"
+        "BD_PNAP_APP145",
+        "BD_PNAP_APP146",
     ]
 
 
