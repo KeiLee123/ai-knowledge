@@ -37,6 +37,9 @@ from run_multimodal_canary_v2 import (
     STAGING_DB_CONTAINER,
     verify_runtime,
 )
+from release_artifact_profiles_v2 import (
+    CANONICAL_TEXT_PROFILE,
+)
 
 
 VERSION = "production-release-proposal-v2"
@@ -175,8 +178,10 @@ def build_contract_proposal(
             source.get(
                 "topic"
             ),
-        "canonical_text_release_v2": {
+        "release_v2": {
             "enabled": True,
+            "artifact_profile":
+                CANONICAL_TEXT_PROFILE,
             "release_id":
                 f"{source_id.lower()}-{checksum[:12]}",
             "controller_environment":
@@ -199,6 +204,10 @@ def build_contract_proposal(
                 chunk_count,
             "expected_embedding_count":
                 chunk_count,
+            "expected_evidence_counts": {
+                "native_text":
+                    chunk_count,
+            },
             "document_type":
                 text_config.get(
                     "document_type"
