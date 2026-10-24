@@ -200,7 +200,11 @@ The hash-path determinism defect was fixed at commit `4936069`.
 
 The Production v2 registry remains empty.
 
-M5B policy qualification and M5C version-signal extraction are live-verified together on VPS Staging with APP149. The next gap is storing the previous accepted snapshot so future changes can enter the `version_update` comparison path automatically.
+M5B policy qualification, M5C version-signal extraction, and M5D persisted reference comparison are live-verified together on VPS Staging with APP149.
+
+The APP149 current reference is stored under the Staging Source Monitor state root, and comparing the same proposal returns `NO_CHANGE`.
+
+The next gap is automatic Source Monitor integration so future detected changes generate candidate snapshots and enter the `version_update` policy path without manual invocation.
 
 No APP149 Production write is authorized.
 

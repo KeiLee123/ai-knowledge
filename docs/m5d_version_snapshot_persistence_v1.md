@@ -1,9 +1,9 @@
 # M5D — Version Snapshot Persistence / Comparison v1
 
-Status: GITHUB STAGING / CI VERIFIED  
+Status: VPS STAGING LIVE VERIFIED  
 Environment: Staging state only  
 Production impact: NONE  
-VPS live verification: pending
+VPS live verification: COMPLETE
 
 ## Purpose
 
@@ -77,10 +77,36 @@ Regression tests verify:
 - ambiguous updates cannot advance;
 - Production state-root exclusion.
 
+## Live verification record
+
+Verified on 2026-10-24 using APP149 on VPS Staging.
+
+- deployed commit: `a7e353f0037e17a1e5d7e46a37f0a58cfc449091`
+- source ID: `BD_PNAP_APP149`
+- reference path: `/var/lib/jason-os/source-monitor-staging/version-snapshots/current/BD_PNAP_APP149.json`
+- release ID: `bd_pnap_app149-a5b4d5a1af5f`
+- issue date: `2010-12`
+- revision date: `2010-12`
+- document SHA-256: `a5b4d5a1af5f4a32b43973db33d95436f9390e8e2da77747ee666015077bb1a8`
+- metadata fingerprint: `e562a224e3f14f92a08ccd6129c857f6364c4355f61404fb6b50ac1247cb0aa3`
+- normalized-content fingerprint: `6204cefef72c45e11942eabab04a87b9d89d6002f8c12fb26af5254f1c8c0358`
+- initial reference status: `REFERENCE_INITIALIZED`
+- same-snapshot comparison decision: `NO_CHANGE`
+- `checksum_changed = false`
+- `metadata_changed = false`
+- `normalized_content_changed = false`
+- `write_authorized = false`
+- `production_access = false`
+- `production_write = false`
+- Production release registry remained empty
+- no Production version-snapshot state was created
+- Git worktree remained clean
+- command block exit code: `0`
+
 ## Current boundary
 
-M5D is CI-verified in GitHub `staging` at commit `0acef1a`.
+M5D is live-verified on VPS Staging.
 
-The first VPS live proof should use APP149 to initialize the current reference and then compare the same proposal, expecting `NO_CHANGE`.
+The remaining gap is automatic Source Monitor integration: when a source changes, generate a candidate snapshot, compare it with the stored reference, and route the policy decision without manually running the snapshot store.
 
 Production remains untouched.

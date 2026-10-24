@@ -364,7 +364,11 @@ Live proof at commit `55c9dff` verified:
 - `AUTO_QUALIFIED`;
 - Production access/write false.
 
-Remaining gap: persistence/comparison of prior accepted version snapshots in the automated monitor lifecycle.
+M5D is VPS STAGING LIVE VERIFIED with APP149.
+
+The current reference was initialized under the Staging runtime state root and the same snapshot compared back as `NO_CHANGE`. Production release registry and Production snapshot state remained untouched.
+
+Remaining gap: automatic Source Monitor integration so detected source changes produce and compare candidate snapshots without manual invocation.
 
 Production write authorization remains a separate later gate.
 
