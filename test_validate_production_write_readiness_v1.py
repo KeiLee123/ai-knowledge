@@ -197,7 +197,8 @@ def test_no_write_executor():
     assert 'parser.add_argument("--write"' not in source
     assert "--confirm-production-write" not in source
     assert "Database writes performed: False" in source
-    assert PRODUCTION_DB_CONTAINER in source
+    assert "PRODUCTION_DB_CONTAINER" in source
+    assert "from production_promotion_guard_v1 import (" in source
 
 
 def main():
