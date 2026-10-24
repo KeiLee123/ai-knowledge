@@ -8,7 +8,7 @@ from validate_canonical_text_production_v1 import (
     validate_integrity,
     validate_semantic_rows,
 )
-from validate_staging_retrieval_v2 import assert_read_only_sql
+from production_read_only_retrieval_v1 import assert_read_only_sql
 
 
 CHECKSUM = (
