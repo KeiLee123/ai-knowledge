@@ -82,6 +82,12 @@ jobs:
           set -euo pipefail
           python test_production_release_packaging_v1.py
 
+      - name: Production Write Readiness contract test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_validate_production_write_readiness_v1.py
+
       - name: Multimodal ingestion contract test
         shell: bash
         run: |
