@@ -698,7 +698,7 @@ It does not itself enable or execute a Production write.
 
 ## P9 explicit Production writer
 
-Status: IMPLEMENTED / STAGING CI VERIFIED / LIVE MAIN WRITE PENDING
+Status: PRODUCTION VERIFIED / FROZEN
 
 The normal Production write path is isolated in
 `write_canonical_text_production_v1.py`.
@@ -751,3 +751,97 @@ embeddings = 8
 ```
 
 This does not create a generic Production ingestion API.
+
+
+## APP-145 Production freeze record
+
+Status: VERIFIED / FROZEN
+
+Validated Production baseline:
+
+```text
+main commit = 436e71e98fd60c4e62ffea307d09cbdd26c8a83f
+source_id = BD_PNAP_APP145
+Production document_id = 22
+canonical SHA-256 =
+dc3262cc55c5fd79d29f337fd811cdd871543f59d795972d9f30f558e313127c
+prepared chunks SHA-256 =
+9f6433b3065c4906bff32935c63fba25ae8c9daba3760674034153f839a391d1
+route = legacy-v1
+multimodal = false
+document_count = 1
+chunk_count = 8
+embedding_count = 8
+native_text_chunks = 8
+text_primary_chunks = 8
+embedding_dimensions = 384
+```
+
+The explicit Production writer completed one atomic transaction and reported:
+
+```text
+PRODUCTION_WRITE_COMMITTED
+DOCUMENT_ID 22
+STATUS: PRODUCTION_TEXT_WRITE_VERIFIED
+```
+
+Immediately after COMMIT, the writer invoked the independent Production
+validator. It passed both integrity and semantic validation:
+
+```text
+integrity_ok = true
+semantic query_a = true
+semantic query_b = true
+STATUS: CANONICAL_TEXT_PRODUCTION_VALIDATED
+```
+
+A second, separately invoked read-only Production validator then passed the
+same integrity and semantic checks again.
+
+Therefore the APP-145 Production milestone is accepted as VERIFIED / FROZEN.
+
+### Frozen Production state
+
+The accepted Production state for this checksum is:
+
+```text
+1 document
+8 chunks
+8 embeddings
+384-dimensional local embeddings
+native_text evidence only
+text-primary retrieval role
+legacy-v1 routing
+canonical-text-ingestion-v1 metadata
+canonical-text-production-promotion-v1 release metadata
+```
+
+Do not re-run the Production writer for this checksum.
+
+The duplicate-check and zero-state gates are expected to reject a second
+Production write attempt for the same checksum.
+
+### Change policy after freeze
+
+Any future official APP-145 revision must have a different canonical checksum
+and must restart the controlled lifecycle:
+
+```text
+source change detection
+  -> canonical promotion
+  -> Staging ingestion
+  -> Staging milestone validation
+  -> Production verify
+  -> Production prepare
+  -> write readiness
+  -> explicit Production write
+  -> independent Production validation
+  -> new freeze baseline
+```
+
+Do not modify the frozen Production ingestion/retrieval contract without
+regression coverage and a new verified Staging baseline first.
+
+The P3 checksum-locked recovery path remains available as a break-glass
+mechanism for a demonstrated Production validation failure. It is not part of
+normal operation and must not be run for this verified milestone.
