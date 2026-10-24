@@ -114,13 +114,19 @@ The multimodal close-loop is live-verified on VPS Staging with APP146 at commit 
 
 ## Source changes
 
-A changed document checksum is not automatically accepted.
+A changed document checksum is not automatically accepted by this processing pipeline.
+
+M5E adds a separate Staging-only Source Monitor candidate router:
 
 ```text
-SOURCE_CHANGED_REVIEW_REQUIRED
+DOCUMENT_CHANGED
+-> candidate download
+-> version snapshot
+-> stored-reference comparison
+-> CANDIDATE_NEW_VERSION / REVIEW_REQUIRED / BLOCKED / NO_CHANGE
 ```
 
-A new checksum must go through a controlled review / baseline lifecycle before processing.
+`CANDIDATE_NEW_VERSION` still requires this Staging processing/validation lifecycle before full release qualification.
 
 An index-page change with unchanged document bytes is reported by the baseline layer but does not alter the approved document checksum.
 

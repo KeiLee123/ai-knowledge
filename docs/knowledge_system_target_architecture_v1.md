@@ -226,8 +226,9 @@ Internal engines may remain write-capable where required, but approved operation
 6. Automatic Version Qualification Policy v1 — COMPLETE in GitHub `staging` / CI verified.
 7. Version Signal Extraction v1 — VPS STAGING LIVE VERIFIED with APP149 at commit `55c9dff`.
 8. Version Snapshot Persistence / Comparison v1 — VPS STAGING LIVE VERIFIED with APP149 at commit `a7e353f`.
-9. Integrate candidate snapshot generation/comparison into the automatic Source Monitor lifecycle.
-10. Prove a multimodal generic release candidate.
+9. Automatic Source Monitor Integration v1 — COMPLETE in GitHub `staging` / CI verified; VPS live verification pending.
+10. Connect `CANDIDATE_NEW_VERSION` to the existing Staging validation lifecycle.
+11. Prove a multimodal generic release candidate.
 11. Reconcile and install safe CLI deployment definitions.
 12. Enable scheduled source monitoring only after the lifecycle closes end-to-end.
 13. Retire legacy direct-Production entrypoints and historical root clutter last.

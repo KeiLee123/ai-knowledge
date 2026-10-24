@@ -368,9 +368,30 @@ M5D is VPS STAGING LIVE VERIFIED with APP149.
 
 The current reference was initialized under the Staging runtime state root and the same snapshot compared back as `NO_CHANGE`. Production release registry and Production snapshot state remained untouched.
 
-Remaining gap: automatic Source Monitor integration so detected source changes produce and compare candidate snapshots without manual invocation.
+M5E now implements automatic Source Monitor candidate routing in GitHub `staging`.
+
+Detected document changes download a candidate, verify the observed checksum, extract version signals, compare the persisted M5D reference, and route to `CANDIDATE_NEW_VERSION`, `REVIEW_REQUIRED`, `BLOCKED`, or `NO_CHANGE`.
+
+`CANDIDATE_NEW_VERSION` deliberately still requires the existing Staging validation lifecycle before full `AUTO_QUALIFIED` release qualification.
+
+Remaining gap: VPS live verification and automatic handoff from candidate routing into Staging validation.
 
 Production write authorization remains a separate later gate.
+
+### M5E — Automatic Source Monitor Integration v1
+
+Status: GITHUB STAGING / CI VERIFIED.
+
+Implemented at commit `1b04dea`:
+
+- baseline-driven no-change short circuit;
+- changed-document candidate download;
+- probe/download checksum race guard;
+- persisted-reference comparison;
+- candidate pre-gate;
+- no Production access/write path.
+
+VPS live verification: pending.
 
 ### M6 — Multimodal generic promotion proof
 

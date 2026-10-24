@@ -44,7 +44,7 @@ At the architecture-freeze point, GitHub `staging` was ahead of the live Staging
 | Source-page provenance | IMPLEMENTED | Deterministic page render + SHA metadata |
 | Region-level figure evidence | LATER GAP | Page-level Vision exists; region evidence does not |
 | Official Source Processing v1 | VPS STAGING LIVE VERIFIED | APP146 multimodal-v2 closed loop to semantic validation and READY_FOR_PRODUCTION_REVIEW at commit 921e899 |
-| Source registry / baseline / change detection | M5D VPS LIVE VERIFIED | APP149 signal extraction plus persisted current reference and NO_CHANGE comparison are live-proven; automatic monitor integration remains pending |
+| Source registry / baseline / change detection | M5D LIVE / M5E CI VERIFIED | Persisted reference is live-proven; automatic monitor candidate routing is CI-verified and awaits VPS live proof |
 | Scheduled official-source monitoring | NOT OPERATIONAL | Policy says daily; no matching timer in audited deployment |
 | APP-145 Production Promotion v1 | VERIFIED / FROZEN | Historical Production milestone |
 | Generic Production Promotion v2 | M5A LIVE / M5B CI VERIFIED | APP149 deterministic proposal is live-proven; routine human review replaced by policy qualification in GitHub staging; VPS deploy pending |
@@ -96,8 +96,9 @@ GitHub `staging` was ahead of VPS Staging with the Generic Production Promotion 
 
 Priority order:
 
-1. integrate M5D reference comparison into the automatic Source Monitor lifecycle;
-2. live-verify Production v2 through non-writing verify/prepare gates using a policy-qualified contract;
+1. deploy/live-verify M5E automatic Source Monitor integration on VPS Staging;
+2. connect CANDIDATE_NEW_VERSION to the existing Staging validation lifecycle;
+3. live-verify Production v2 through non-writing verify/prepare gates using a policy-qualified contract;
 3. qualify a profile-safe multimodal Production artifact path only after the generic text proof;
 4. safe CLI/deployment reconciliation;
 5. source-monitor scheduling;
@@ -113,7 +114,8 @@ Completed / deployed:
 - M5A APP149 Generic Production v2 proposal: LIVE VERIFIED at commit `4936069`; canonical SHA `a5b4d5a1...`, chunks SHA `4accbc06...`, 8 native-text chunks, Production access/write false;
 - M5B Automatic Version Qualification Policy v1: GitHub staging / CI VERIFIED at commit `8b095e1`; routine human review removed, exception review retained;
 - M5C Version Signal Extraction v1: VPS STAGING LIVE VERIFIED at commit `55c9dff`; APP149 yielded issue/revision date `2010-12`, stable metadata/content fingerprints, deterministic repeated snapshots, AUTO_QUALIFIED, Production access/write false;
-- M5D Version Snapshot Persistence / Comparison v1: VPS STAGING LIVE VERIFIED at commit `a7e353f`; APP149 reference initialized, repeated comparison returned `NO_CHANGE`, Production registry/state untouched.
+- M5D Version Snapshot Persistence / Comparison v1: VPS STAGING LIVE VERIFIED at commit `a7e353f`; APP149 reference initialized, repeated comparison returned `NO_CHANGE`, Production registry/state untouched;
+- M5E Automatic Source Monitor Integration v1: GitHub staging / CI VERIFIED at commit `1b04dea`; baseline changes now route to candidate snapshot comparison without bypassing Staging validation.
 
 ## Freeze rules
 
