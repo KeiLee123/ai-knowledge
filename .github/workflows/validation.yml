@@ -100,6 +100,12 @@ jobs:
           set -euo pipefail
           python test_ingest_canonical_text_staging_v1.py
 
+      - name: Canonical Text Staging Milestone validator test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_validate_canonical_text_staging_milestone_v1.py
+
       - name: Multimodal ingestion contract test
         shell: bash
         run: |
