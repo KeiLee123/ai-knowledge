@@ -7,17 +7,17 @@ from pathlib import Path
 
 from build_multimodal_chunks_v2 import build_output
 from extract_document_v2 import build_manifest
-from ingest_canonical_staging_v1 import (
-    ALLOWED_REMOTE,
-    download_canonical,
-    load_registry,
-    validate_source_id,
-)
-from ingest_canonical_text_staging_v1 import (
+from canonical_text_release_contract_v1 import (
+    FROZEN_INGESTION_VERSION,
     REQUIRED_ROUTE,
-    VERSION as FROZEN_INGESTION_VERSION,
     validate_legacy_route,
     write_json,
+)
+from production_release_source_v1 import (
+    ALLOWED_REMOTE,
+    download_canonical,
+    load_release_registry,
+    validate_source_id,
 )
 from ingest_manifest_v2 import (
     DEFAULT_EMBED_URL,
@@ -435,7 +435,7 @@ def prepare_candidate(
     workdir,
     guard,
 ):
-    registry = load_registry(registry_path)
+    registry = load_release_registry(registry_path)
 
     source, config, defaults = resolve_promotion_source(
         registry,
@@ -544,7 +544,7 @@ def main():
     parser.add_argument(
         "--registry",
         default=str(
-            Path(__file__).resolve().parent / "source_registry_v1.yaml"
+            Path(__file__).resolve().parent / "production_release_registry_v1.yaml"
         ),
     )
     parser.add_argument(
