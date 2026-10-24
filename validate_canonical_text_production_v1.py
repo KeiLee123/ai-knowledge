@@ -19,7 +19,7 @@ from promote_canonical_text_production_v1 import (
     VERSION as RELEASE_GATE_VERSION,
     resolve_promotion_source,
 )
-from validate_staging_retrieval_v2 import (
+from production_read_only_retrieval_v1 import (
     DEFAULT_EMBED_URL,
     EMBED_MODEL,
     EXPECTED_DIMENSIONS,
