@@ -1,6 +1,6 @@
 # M8 — Scheduled Source Monitoring v1
 
-Status: STAGING IMPLEMENTATION / TIMER NOT ENABLED
+Status: STAGING LIVE VERIFIED / TIMER NOT ENABLED
 
 ## Purpose
 
@@ -102,3 +102,56 @@ GitHub staging CI
 ```
 
 Timer enablement is a separate operational milestone.
+
+
+## Staging live verification
+
+Verified Staging commit:
+
+```text
+e56a6dd68c44869f55f0029cf19bd553cfd0e41e
+```
+
+Manual systemd service verification completed successfully with the timer still disabled.
+
+Observed run:
+
+```text
+source_id = BD_PNAP_APP149
+run_dir = /var/lib/jason-os/source-monitor-staging/runs/BD_PNAP_APP149/20261024T162333Z
+decision = NO_CHANGE
+action = NONE
+candidate_downloaded = false
+production_access = false
+production_write = false
+```
+
+Stored reference SHA-256 before and after the run:
+
+```text
+4514531e59caf76782120cf83377bcea6ad8a23f076e6b03b2247b193ae8682c
+```
+
+Reference advance:
+
+```text
+false
+```
+
+systemd result:
+
+```text
+Result=success
+ExecMainStatus=0
+ActiveState=inactive
+SubState=dead
+```
+
+Timer state after verification:
+
+```text
+enabled = false
+active = false
+```
+
+Production database writes were not performed, and no Production source-monitor state root was used.
