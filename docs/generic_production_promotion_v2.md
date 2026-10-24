@@ -1,10 +1,10 @@
 # Generic Production Promotion v2
 
-Status: VPS STAGING PROPOSAL PATH LIVE VERIFIED; REVIEWED CONTRACT PENDING
+Status: M5A LIVE VERIFIED / M5B POLICY QUALIFICATION CI VERIFIED
 
 ## Purpose
 
-Generic Production Promotion v2 provides one Git-controlled release lifecycle for validated release artifacts. M3 introduces profile-based release contracts so modality-specific evidence rules do not require separate approval lifecycles.
+Generic Production Promotion v2 provides one Git-controlled release lifecycle for validated release artifacts.
 
 APP-145 Production Promotion v1 remains frozen and unchanged.
 
@@ -14,25 +14,28 @@ APP-145 Production Promotion v1 remains frozen and unchanged.
 Staging VALIDATED
       |
       v
-Release Proposal Generator
+Deterministic Release Proposal
+      |
+      v
+Policy Qualification
+  AUTO_QUALIFIED
+  REVIEW_REQUIRED
+  BLOCKED
+  NO_CHANGE
       |
       v
 Git-controlled Release Contract
-  release_reviewed: true
-  write_authorized: false
+  qualification = policy-qualified
+  write_authorized = false
       |
       v
 Production Verify / Prepare
       |
       v
-Human review of live preflight
-      |
-      v
-Git change:
-  write_authorized: true
-      |
-      v
 Production Readiness Gate
+      |
+      v
+write_authorized gate
       |
       v
 Explicit Production Writer
@@ -45,34 +48,29 @@ Mandatory read-only Validator
       |
       v
 VERIFIED / freeze record
-
-Break-glass Recovery exists separately and is never automatic.
 ```
+
+Break-glass recovery remains separate and manual.
 
 ## Safety principles
 
-- GitHub remains the code and release-contract Source of Truth.
-- Google Drive Current remains the canonical document Source of Truth.
-- Production DB is fixed to `ai-knowledge-db-jiyckdrlappwgimwebnzxwmr`.
-- Staging DB is forbidden from Production v2 write paths.
-- Release contracts lock canonical SHA-256, deterministic chunks SHA-256, chunk count, embedding count and expected evidence counts.
-- `artifact_profile` is the authoritative release profile.
-- Compatibility fields `required_route` and `frozen_ingestion_version` must match the selected profile.
-- `canonical-text-v1` is currently Production-write qualified.
-- `multimodal-v2` is contract-qualified but explicitly NOT Production-write qualified; a contract cannot set `write_authorized: true` for that profile.
+- GitHub is the code and release-contract Source of Truth.
+- Google Drive Current is the canonical document Source of Truth.
+- Production and Staging remain separate.
+- Release contracts lock canonical SHA-256, deterministic chunks SHA-256, chunk/embedding counts and evidence counts.
+- `artifact_profile` defines route, ingestion version and allowed evidence origins.
+- Routine human release approval is replaced by `official-source-version-policy-v1`.
+- Ambiguous changes route to exception review.
+- `canonical-text-v1` is Production-write qualified by profile.
+- `multimodal-v2` remains Production-write blocked.
 - Production verify / prepare is read-only.
 - Production readiness is read-only.
-- Production write requires both Git authorization and explicit CLI confirmation.
-- The writer performs a zero-state check before preparation and again immediately before COMMIT.
-- Post-write validation is mandatory.
-- Recovery is manual break-glass only.
-- No v2 code modifies APP-145 v1 Production behavior.
+- Production write still requires the independent `write_authorized` gate and explicit CLI confirmation until automatic Production promotion is separately qualified.
+- Zero-state checks and mandatory post-write validation remain unchanged.
 
 ## Release contract
 
-Each source is represented under `production_release_registry_v2.yaml`.
-
-A reviewed contract contains:
+Example:
 
 ```yaml
 release_v2:
@@ -85,53 +83,67 @@ release_v2:
   db_container: "ai-knowledge-db-jiyckdrlappwgimwebnzxwmr"
   required_route: "legacy-v1"
   frozen_ingestion_version: "canonical-text-ingestion-v1"
+
   expected_sha256: "..."
   expected_chunks_sha256: "..."
   expected_chunk_count: 8
   expected_embedding_count: 8
   expected_evidence_counts:
     native_text: 8
+
   staging_validation_status: VERIFIED
-  semantic_validation:
-    checks:
-      - label: staging_qualified_query
-        query: "..."
-        expect_terms:
-          - "..."
-  release_reviewed: true
+
+  qualification:
+    method: policy
+    policy_version: official-source-version-policy-v1
+    mode: initial_release
+    status: qualified
+    decision: AUTO_QUALIFIED
+    signals:
+      official_source_identity: true
+      staging_validation_verified: true
+      deterministic_release: true
+      canonical_checksum_locked: true
+      chunks_checksum_locked: true
+
   write_authorized: false
   require_confirmation: true
 ```
 
-The initial proposal always sets:
+The contract validator recomputes qualification from the policy signals.
+
+## Initial-release proposal
+
+The Staging proposal generator validates the Staging milestone, verifies the canonical checksum, builds the release artifact twice, verifies deterministic equivalence, locks the hashes, and evaluates the initial-release policy.
+
+It performs no Production query or write.
+
+## Future version updates
+
+Automatic version qualification requires:
 
 ```text
-release_reviewed = false
-write_authorized = false
+same authority
+same document code
+same official host
+newer issue/revision date OR changed edition
+material metadata changed
+checksum changed
+normalized content changed
+Staging VERIFIED
+deterministic release
 ```
 
-Those values cannot be elevated by the proposal generator.
+Ambiguous changes go to `REVIEW_REQUIRED`.
 
-## Staging proposal
-
-```bash
-python propose_production_release_v2.py SOURCE_ID \
-  --workdir /tmp/source-release-v2
-```
-
-This is Staging-only. It validates the existing Staging milestone, rebuilds deterministic canonical-text chunks, and reports the canonical and chunks hashes needed for review.
-
-The current proposal generator emits `artifact_profile: canonical-text-v1`. A future multimodal proposal path must reuse the same `release_v2` contract rather than create a separate approval lifecycle.
-
-It has no Production query or write path.
+Automatic extraction of issue/revision dates and normalized-content fingerprints is not yet integrated.
 
 ## Production verify / prepare
 
-After the reviewed contract is merged to `main`:
+After a policy-qualified contract exists:
 
 ```bash
-python prepare_canonical_text_production_v2.py SOURCE_ID \
-  --verify
+python prepare_canonical_text_production_v2.py SOURCE_ID --verify
 ```
 
 or:
@@ -142,86 +154,25 @@ python prepare_canonical_text_production_v2.py SOURCE_ID \
   --workdir /tmp/source-production-v2
 ```
 
-Prepare may create embeddings and inspect the transaction in memory. It does not execute SQL.
+Prepare may generate embeddings and inspect an in-memory transaction. It does not execute SQL.
 
-## Write authorization
+## Production write authorization
 
-The final write gate is a separate Git-controlled change:
+The current final write gate remains:
 
 ```yaml
 write_authorized: true
 ```
 
-The readiness gate refuses a contract without that authorization.
+This is deliberately separate from release qualification.
 
-## Production readiness
+A later milestone may replace it with an automatic Production readiness policy after live qualification.
 
-```bash
-python validate_production_write_readiness_v2.py SOURCE_ID \
-  --prepared-workdir /tmp/source-production-v2
-```
+## APP149 M5A proof
 
-It verifies:
+APP149 is the first live `canonical-text-v1` proposal candidate.
 
-- Production guard
-- clean Git worktree
-- reviewed and write-authorized contract
-- canonical artifact SHA
-- chunks artifact SHA
-- deterministic chunk contract
-- Production zero-state
-- recovery transaction structure
-- read-only validator readiness
-
-It performs no database write.
-
-## Production write
-
-```bash
-python write_canonical_text_production_v2.py SOURCE_ID \
-  --write \
-  --confirm-production-write \
-  --prepared-workdir /tmp/source-production-v2
-```
-
-The writer repeats zero-state checks, builds the transaction from the reviewed artifacts, executes one atomic transaction, and immediately invokes the v2 validator.
-
-Automatic recovery is deliberately disabled.
-
-## Recovery
-
-Preview:
-
-```bash
-python recover_canonical_text_production_v2.py SOURCE_ID --preview
-```
-
-Break-glass recovery:
-
-```bash
-python recover_canonical_text_production_v2.py SOURCE_ID \
-  --recover \
-  --confirm-production-recovery
-```
-
-Recovery locks to the exact checksum, v2 release gate, release ID and frozen ingestion version.
-
-## Artifact profiles
-
-M3 defines two profiles in `release_artifact_profiles_v2.py`:
-
-- `canonical-text-v1`: route `legacy-v1`, ingestion version `canonical-text-ingestion-v1`, native-text-only evidence, Production-write qualified.
-- `multimodal-v2`: route `multimodal-v2`, ingestion version `v2`, permits native/OCR/fused/visual/structured-table evidence, NOT Production-write qualified.
-
-The profile registry is code-controlled. A release contract may describe a multimodal artifact for review, but Production authorization is rejected until a dedicated profile-safe writer/validator path is qualified.
-
-## APP149 M5A live proposal proof
-
-APP149 is the first real `canonical-text-v1` proposal candidate.
-
-M5A was live-verified on VPS Staging at commit `4936069`.
-
-Qualified immutable proposal values:
+Qualified deterministic values:
 
 ```text
 release_id
@@ -243,30 +194,14 @@ expected_evidence_counts
 native_text = 8
 ```
 
-Two independent work directories produced identical release proposals and identical chunks SHA.
-
-During M5A:
-
-```text
-release_reviewed = false
-write_authorized = false
-production_access = false
-production_write = false
-```
-
-The first determinism attempt exposed an absolute-temp-path defect in the hash-critical artifact. Commit `4936069` removed that path volatility and added a regression test.
+The hash-path determinism defect was fixed at commit `4936069`.
 
 ## Current boundary
 
-The v2 registry intentionally remains empty.
+The Production v2 registry remains empty.
 
-M5A qualifies the APP149 proposal as deterministic review evidence only.
+M5B policy code is CI-verified in GitHub `staging` but not yet live-deployed to VPS Staging.
 
-The next gate requires explicit human review before adding the exact APP149 contract to GitHub with:
+No APP149 Production write is authorized.
 
-```text
-release_reviewed = true
-write_authorized = false
-```
-
-No APP149 Production write is authorized. Multimodal Production write remains blocked.
+Multimodal Production write remains blocked.
