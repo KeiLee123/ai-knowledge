@@ -1,6 +1,6 @@
 # Canonical Text Production Promotion v1
 
-Status: P1 + P2 + P3 IMPLEMENTED / CI VERIFIED / LIVE MAIN VERIFY + PREPARE PENDING
+Status: P1 + P2 + P3 + P4 IMPLEMENTED / CI VERIFIED / LIVE MAIN VERIFY + PREPARE PENDING
 
 ## Goal
 
@@ -406,7 +406,7 @@ The Staging counts are acceptance evidence, not rows to copy.
 P1  Production guard + tests — IMPLEMENTED / CI VERIFIED
 P2  verify/prepare promotion path + tests — IMPLEMENTED / CI VERIFIED
 P3  recovery path + tests — IMPLEMENTED / CI VERIFIED
-P4  Production post-write validator + tests
+P4  Production post-write validator + tests — IMPLEMENTED / CI VERIFIED
 P5  full GitHub CI
 P6  live Production verify
 P7  live Production prepare
@@ -587,3 +587,73 @@ promotion writes.
 
 GitHub Actions run #231 passed the P3 recovery contract step together with the
 P1/P2 and frozen-layer regression steps.
+
+
+## P4 implementation evidence
+
+P4 added:
+
+```text
+validate_canonical_text_production_v1.py
+test_validate_canonical_text_production_v1.py
+```
+
+The Production validator is read-only and has no write or recovery mode.
+
+It uses the P1 Production guard and the fixed Production Knowledge DB.
+Before every SQL execution, the validator applies a read-only SQL check.
+
+P4 validates the Git-controlled APP-145 release candidate against:
+
+```text
+document_count = 1
+chunk_count = 8
+embedding_count = 8
+native_text_chunks = 8
+text_primary_chunks = 8
+embedding_dimensions = 384
+source_type = canonical-drive-text
+ingestion_version = canonical-text-ingestion-v1
+release_gate = canonical-text-production-promotion-v1
+routing_profile = legacy-v1
+multimodal = false
+canonical_source = Current/APP/APP145.pdf
+canonical_sha256 = reviewed candidate checksum
+```
+
+It also rejects:
+
+- duplicate or missing Production documents;
+- missing chunks or embeddings;
+- embedding-dimension drift;
+- non-primary evidence;
+- wrong chunk release metadata;
+- wrong chunk ingestion metadata;
+- any multimodal-marked chunk in this text-only release.
+
+P4 then performs two independent semantic retrieval checks against the exact
+Production checksum.
+
+Both result sets must:
+
+```text
+evidence_origin = native_text
+evidence_tier = primary
+retrieval_role = text-primary
+```
+
+and each query must contain its configured expected terms somewhere in the
+retrieved content.
+
+Expected successful live status:
+
+```text
+STATUS: CANONICAL_TEXT_PRODUCTION_VALIDATED
+```
+
+P4 does not authorize or execute a Production write. It exists so P8 cannot be
+accepted without an independent P9 post-write verification path already in
+place.
+
+GitHub Actions run #235 passed the P4 contract step together with P1-P3 and
+the frozen-layer regression suite.
