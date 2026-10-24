@@ -1,6 +1,6 @@
 # M8 — Scheduled Source Monitoring v1
 
-Status: STAGING LIVE VERIFIED / TIMER NOT ENABLED
+Status: OPERATIONAL / TIMER ENABLED
 
 ## Purpose
 
@@ -155,3 +155,74 @@ active = false
 ```
 
 Production database writes were not performed, and no Production source-monitor state root was used.
+
+
+## Timer activation record
+
+Activation baseline:
+
+```text
+GitHub main    = 84d220cb84320c7b87f9c84fe4b97fcd14d174da
+GitHub staging = 84d220cb84320c7b87f9c84fe4b97fcd14d174da
+Production VPS = 84d220cb84320c7b87f9c84fe4b97fcd14d174da
+Staging VPS    = 84d220cb84320c7b87f9c84fe4b97fcd14d174da
+```
+
+Activated unit:
+
+```text
+jason-os-source-monitor-staging.timer
+```
+
+Activation result:
+
+```text
+enabled = true
+active = true
+```
+
+Scheduled cadence:
+
+```text
+daily 09:15 Asia/Hong_Kong
+```
+
+Observed next trigger at activation time:
+
+```text
+2026-10-25 01:15:00 UTC
+= 2026-10-25 09:15:00 Asia/Hong_Kong
+```
+
+The service remained a oneshot unit with the previously verified successful manual execution result:
+
+```text
+Result=success
+ExecMainStatus=0
+ActiveState=inactive
+SubState=dead
+```
+
+Activation did not modify the Production database and did not install a Production source-monitor timer.
+
+### Operational boundary
+
+M8 is operational because the reviewed timer definition is installed, enabled, and active on the Staging VPS.
+
+The first timer-triggered autonomous execution has not yet been separately recorded. That future runtime evidence is an operational observation, not a prerequisite for the M8 activation milestone.
+
+## Freeze status
+
+The M8 MVP deployment definition is frozen at the activation baseline above.
+
+Changes to any of the following require regression coverage before rollout:
+
+- scheduler runner behavior;
+- systemd service definition;
+- timer cadence;
+- Staging state-root boundary;
+- APP-149 canary lock;
+- overlap protection;
+- Production-access/write safety guards.
+
+Production source-monitor runtime remains forbidden.
