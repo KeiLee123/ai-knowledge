@@ -1,6 +1,6 @@
 # Canonical Text Production Promotion v1
 
-Status: P1 + P2 IMPLEMENTED / CI VERIFIED / LIVE MAIN VERIFY + PREPARE PENDING
+Status: P1 + P2 + P3 IMPLEMENTED / CI VERIFIED / LIVE MAIN VERIFY + PREPARE PENDING
 
 ## Goal
 
@@ -405,7 +405,7 @@ The Staging counts are acceptance evidence, not rows to copy.
 ```text
 P1  Production guard + tests — IMPLEMENTED / CI VERIFIED
 P2  verify/prepare promotion path + tests — IMPLEMENTED / CI VERIFIED
-P3  recovery path + tests
+P3  recovery path + tests — IMPLEMENTED / CI VERIFIED
 P4  Production post-write validator + tests
 P5  full GitHub CI
 P6  live Production verify
@@ -522,3 +522,68 @@ contract test.
 
 Live P2 verification and preparation remain pending because P1 correctly
 requires the Git branch to be `main`.
+
+
+## P3 implementation evidence
+
+P3 added:
+
+```text
+recover_canonical_text_production_v1.py
+test_recover_canonical_text_production_v1.py
+```
+
+The recovery CLI accepts only a Git-controlled `source_id`; it does not
+accept an arbitrary checksum argument.
+
+The exact recovery checksum therefore comes from the reviewed Production
+promotion candidate profile.
+
+P3 provides two modes:
+
+```text
+--preview
+    read-only
+
+--recover --confirm-production-recovery
+    explicit destructive recovery
+```
+
+The recovery target must satisfy all of the following before deletion:
+
+- exactly one Production document exists for the candidate checksum;
+- exactly one document matches the recovery target;
+- `source_type = canonical-drive-text`;
+- `release_gate = canonical-text-production-promotion-v1`;
+- `ingestion_version = canonical-text-ingestion-v1`;
+- P1 Production guard passes on `main`;
+- the target DB is the fixed Production Knowledge DB.
+
+The recovery transaction does not rely on foreign-key cascade behavior.
+It explicitly deletes in this order:
+
+```text
+embeddings
+    -> chunks
+    -> document
+```
+
+The transaction is atomic and uses `ON_ERROR_STOP`.
+
+Before COMMIT, it verifies no document remains for the candidate checksum.
+It also reports zero remaining documents, chunks, and embeddings tied to the
+captured recovery target.
+
+After COMMIT, a separate read-only query verifies:
+
+```text
+checksum_document_count = 0
+document_id_count = 0
+chunk_count = 0
+```
+
+P3 is a recovery mechanism only. It does not enable normal Production
+promotion writes.
+
+GitHub Actions run #231 passed the P3 recovery contract step together with the
+P1/P2 and frozen-layer regression steps.
