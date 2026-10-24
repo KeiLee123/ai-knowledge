@@ -21,6 +21,11 @@ def main() -> int:
     assert "/var/lib/jason-os/source-monitor-staging" in runner
     assert "BD_PNAP_APP149" in runner
     assert "flock -n 9" in runner
+    assert 'branch --show-current' in runner
+    assert '!= "staging"' in runner
+    assert "status --porcelain" in runner
+    assert "worktree must be clean" in runner
+    assert "repo_commit=$REPO_COMMIT" in runner
     assert "monitor_official_source_v1.py" in runner
     assert "--source" in runner
     assert "--state-root" in runner
@@ -73,6 +78,7 @@ def main() -> int:
     print("Canary source: BD_PNAP_APP149")
     print("Schedule definition: daily 09:15 Asia/Hong_Kong")
     print("Overlap protection: flock")
+    print("Checkout guard: staging branch + clean worktree")
     print("Run artifacts: retained under staging state root")
     print("Automatic timer activation: ABSENT")
     print("Production DB coupling: ABSENT")
