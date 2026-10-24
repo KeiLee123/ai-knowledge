@@ -289,6 +289,57 @@ def parse_rows(
     return rows
 
 
+def validate_expected_terms(
+    rows: list[dict],
+    terms: list[str],
+) -> dict:
+    normalized = [
+        str(term).strip()
+        for term in terms
+        if str(term).strip()
+    ]
+
+    if not normalized:
+        return {
+            "expected_terms": [],
+            "matched_terms": [],
+            "missing_terms": [],
+            "expected_terms_ok": True,
+        }
+
+    haystack = " ".join(
+        row.get("content") or ""
+        for row in rows
+    ).casefold()
+
+    matched = [
+        term
+        for term in normalized
+        if term.casefold() in haystack
+    ]
+
+    missing = [
+        term
+        for term in normalized
+        if term.casefold() not in haystack
+    ]
+
+    result = {
+        "expected_terms": normalized,
+        "matched_terms": matched,
+        "missing_terms": missing,
+        "expected_terms_ok": not missing,
+    }
+
+    if missing:
+        raise RuntimeError(
+            "Expected retrieval term(s) missing: "
+            + ", ".join(missing)
+        )
+
+    return result
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
@@ -328,6 +379,16 @@ def main() -> None:
         ),
     )
 
+    parser.add_argument(
+        "--expect-term",
+        action="append",
+        default=[],
+        help=(
+            "Require this case-insensitive term to appear "
+            "in the returned retrieval evidence. Repeatable."
+        ),
+    )
+
     args = parser.parse_args()
 
     repo_root = (
@@ -361,6 +422,19 @@ def main() -> None:
         )
     )
 
+    if not rows:
+        raise SystemExit(
+            "No retrieval results found for "
+            "the requested staging document"
+        )
+
+    semantic_validation = (
+        validate_expected_terms(
+            rows,
+            args.expect_term,
+        )
+    )
+
     print(
         json.dumps(
             {
@@ -384,6 +458,8 @@ def main() -> None:
                     EXPECTED_DIMENSIONS,
                 "result_count":
                     len(rows),
+                "semantic_validation":
+                    semantic_validation,
             },
             ensure_ascii=False,
             indent=2,
@@ -427,13 +503,6 @@ def main() -> None:
         print(
             content
         )
-
-    if not rows:
-        raise SystemExit(
-            "No retrieval results found for "
-            "the requested staging document"
-        )
-
 
 if __name__ == "__main__":
     main()

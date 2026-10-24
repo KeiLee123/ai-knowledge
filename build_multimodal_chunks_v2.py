@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 
 
-BUILDER_VERSION = "phase-d-1.1"
+BUILDER_VERSION = "phase-d-1.3"
 SUPPORTED_SCHEMA = "document-manifest-v2"
 
 DEFAULT_TARGET_CHARS = 1800
@@ -99,6 +99,59 @@ def split_text(
     return chunks
 
 
+def serialize_structured_table(table: dict) -> str:
+    rows = table.get("rows") or []
+
+    if not isinstance(rows, list):
+        return ""
+
+    rendered_rows = []
+
+    for row_index, row in enumerate(rows, start=1):
+        if not isinstance(row, list):
+            continue
+
+        cells = []
+
+        for cell in row:
+            value = normalize_text(
+                "" if cell is None else str(cell)
+            )
+
+            value = re.sub(
+                r"\s*\n\s*",
+                " ",
+                value,
+            )
+
+            cells.append(value)
+
+        if not any(cells):
+            continue
+
+        rendered_rows.append(
+            "Row "
+            f"{row_index}: "
+            + " | ".join(cells)
+        )
+
+    if not rendered_rows:
+        return ""
+
+    table_index = table.get("table_index")
+
+    if isinstance(table_index, int):
+        label = f"Table {table_index + 1}"
+    else:
+        label = "Table"
+
+    return (
+        label
+        + "\nRows:\n"
+        + "\n".join(rendered_rows)
+    )
+
+
 def unit_evidence(unit: dict) -> list[dict]:
     evidence = []
 
@@ -174,6 +227,45 @@ def unit_evidence(unit: dict) -> list[dict]:
             "text": ocr_text,
         })
 
+    tables = unit.get("tables") or []
+
+    if isinstance(tables, list):
+        for table in tables:
+            if not isinstance(table, dict):
+                continue
+
+            table_text = serialize_structured_table(
+                table
+            )
+
+            if not table_text:
+                continue
+
+            evidence.append({
+                "origin": "structured_table",
+                "modality": "table",
+                "tier": "primary",
+                "derived": True,
+                "derivation": {
+                    "type": "table_extraction",
+                    "detection_strategy":
+                        table.get("detection_strategy"),
+                },
+                "metadata": {
+                    "table_index":
+                        table.get("table_index"),
+                    "table_bbox":
+                        table.get("bbox"),
+                    "table_row_count":
+                        table.get("row_count"),
+                    "table_column_count":
+                        table.get("column_count"),
+                    "table_detection_strategy":
+                        table.get("detection_strategy"),
+                },
+                "text": table_text,
+            })
+
     vision = unit.get("vision") or {}
     result = vision.get("result") or {}
 
@@ -244,6 +336,11 @@ def build_chunks(
                 if evidence.get("derivation"):
                     metadata["derivation"] = evidence["derivation"]
 
+                if evidence.get("metadata"):
+                    metadata.update(
+                        evidence["metadata"]
+                    )
+
                 chunks.append({
                     "chunk_index": len(chunks),
                     "content": content,
@@ -307,7 +404,7 @@ def build_output(
         "schema_version": "retrieval-chunks-v2",
         "builder_version": BUILDER_VERSION,
         "source_manifest": {
-            "path": str(manifest_path),
+            "path": manifest_path.name,
             "sha256": sha256_file(manifest_path),
             "document_sha256": manifest["source"]["sha256"],
             "document_name": manifest["source"].get("filename"),
@@ -317,6 +414,7 @@ def build_output(
             "ocr_text": "primary",
             "fused_text": "primary",
             "visual_understanding": "supplementary",
+            "structured_table": "primary",
             "target_chars": target_chars,
             "overlap_chars": overlap_chars,
             "database_write_performed": False,
