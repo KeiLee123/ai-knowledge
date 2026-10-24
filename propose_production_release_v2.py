@@ -43,6 +43,9 @@ from release_artifact_profiles_v2 import (
 from version_qualification_policy_v1 import (
     evaluate_initial_release,
 )
+from version_signal_extractor_v1 import (
+    build_version_signal_snapshot,
+)
 
 
 VERSION = "production-release-proposal-v2"
@@ -147,6 +150,7 @@ def build_contract_proposal(
     staging_document_id: str,
     semantic: dict,
     qualification: dict,
+    version_signals: dict,
 ) -> dict:
     return {
         "enabled": True,
@@ -229,6 +233,8 @@ def build_contract_proposal(
                 int(staging_document_id),
             "staging_validation_status":
                 "VERIFIED",
+            "version_signals":
+                version_signals,
             "semantic_validation": {
                 "checks": [
                     {
@@ -436,6 +442,14 @@ def main() -> None:
             manifest,
         )
 
+        version_signals = (
+            build_version_signal_snapshot(
+                source_file=source_file,
+                manifest=manifest,
+                source=source,
+            )
+        )
+
         route = assess_manifest(
             manifest,
             allow_partial=False,
@@ -562,6 +576,8 @@ def main() -> None:
                     semantic,
                 qualification=
                     qualification,
+                version_signals=
+                    version_signals,
             )
         )
 
@@ -587,6 +603,8 @@ def main() -> None:
                         ),
                     "chunk_count":
                         chunk_count,
+                    "version_signals":
+                        version_signals,
                     "production_access":
                         False,
                     "production_write":

@@ -118,6 +118,12 @@ jobs:
           set -euo pipefail
           python test_version_qualification_policy_v1.py
 
+      - name: Version Signal Extractor v1 test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_version_signal_extractor_v1.py
+
       - name: Generic Production Promotion v2 contract test
         shell: bash
         run: |
