@@ -78,3 +78,59 @@ sources:
       document_type: "official-regulatory"
       language: "en"
       allow_production_write: false
+
+  BD_PNAP_APP146:
+    enabled: true
+    authority_code: BD
+    publisher: Buildings Department
+    source_family: PNAP
+    source_type: official-document
+    document_code: APP-146
+    title: Metal Gates
+    index_url: https://www.bd.gov.hk/en/resources/codes-and-references/practice-notes-and-circular-letters/index_pnap.html
+    canonical_url: https://www.bd.gov.hk/doc/en/resources/codes-and-references/practice-notes-and-circular-letters/pnap/APP/APP146.pdf
+    allowed_hosts:
+      - www.bd.gov.hk
+    expected_content_types:
+      index: text/html
+      document: application/pdf
+    domain: building-control
+    topic: metal-gates
+    risk_class: regulatory
+    drive_writer:
+      enabled: true
+      environment: staging
+      remote: "gdrive-bd-write:"
+      destination: "_Staging_Incoming/APP/APP146.pdf"
+      allow_overwrite: false
+    canonical_promotion:
+      enabled: true
+      controller_environment: staging
+      remote: "gdrive-bd-write:"
+      source: "_Staging_Incoming/APP/APP146.pdf"
+      destination: "Current/APP/APP146.pdf"
+      allow_overwrite: false
+      retain_staging_source: true
+      update_baseline: false
+      trigger_ingestion: false
+    canonical_ingestion:
+      enabled: true
+      controller_environment: staging
+      remote: "gdrive-bd-write:"
+      source: "Current/APP/APP146.pdf"
+      db_container: "jason-os-knowledge-db-staging"
+      pipeline: "multimodal-v2"
+      document_type: "official-regulatory"
+      language: "en"
+      allow_production_write: false
+    canonical_text_ingestion:
+      enabled: true
+      controller_environment: staging
+      remote: "gdrive-bd-write:"
+      source: "Current/APP/APP146.pdf"
+      db_container: "jason-os-knowledge-db-staging"
+      required_route: "legacy-v1"
+      document_type: "official-regulatory"
+      language: "en"
+      allow_production_write: false
+
