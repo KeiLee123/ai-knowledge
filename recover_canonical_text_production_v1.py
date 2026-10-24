@@ -11,10 +11,14 @@ from production_promotion_guard_v1 import (
     STAGING_DB_CONTAINER,
     verify_runtime,
 )
-from promote_canonical_text_production_v1 import (
+from canonical_text_release_contract_v1 import (
     FROZEN_INGESTION_VERSION,
+)
+from production_release_source_v1 import (
+    load_release_registry,
+)
+from promote_canonical_text_production_v1 import (
     VERSION as RELEASE_GATE_VERSION,
-    load_registry,
     resolve_promotion_source,
 )
 
@@ -453,7 +457,7 @@ def main():
     parser.add_argument(
         "--registry",
         default=str(
-            Path(__file__).resolve().parent / "source_registry_v1.yaml"
+            Path(__file__).resolve().parent / "production_release_registry_v1.yaml"
         ),
     )
 
@@ -473,7 +477,7 @@ def main():
 
     try:
         guard = verify_runtime(repo_root)
-        registry = load_registry(
+        registry = load_release_registry(
             Path(args.registry).expanduser().resolve()
         )
         _, config, _ = resolve_promotion_source(
