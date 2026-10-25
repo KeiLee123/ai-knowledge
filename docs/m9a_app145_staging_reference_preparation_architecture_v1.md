@@ -369,3 +369,114 @@ The next proof is read-only:
 1. compare the stored APP145 reference against the verified deterministic proposal;
 2. run the existing generic M5E monitor manually for APP145;
 3. prove reference integrity remains unchanged and Production access/write remain false.
+
+
+## Final monitor-ready parity verification
+
+Verified on VPS Staging.
+
+Proof directory:
+
+```text
+/tmp/m9a-app145-monitor-parity-20261025T014148Z
+```
+
+### Read-only reference comparison
+
+The newly initialized APP145 reference was compared against the verified deterministic Phase B proposal.
+
+Observed result:
+
+```text
+status = REFERENCE_COMPARED
+decision = NO_CHANGE
+qualification.status = no_change
+qualification.mode = version_update
+reason = no_material_change
+checksum_changed = false
+metadata_changed = false
+normalized_content_changed = false
+issue_date_comparison = same
+revision_date_comparison = same
+```
+
+The stored and current snapshots matched for:
+
+```text
+source_id = BD_PNAP_APP145
+release_id = bd_pnap_app145-dc3262cc55c5
+document_sha256 = dc3262cc55c5fd79d29f337fd811cdd871543f59d795972d9f30f558e313127c
+issue_date = 2010-10
+revision_date = 2010-10
+```
+
+### Manual generic M5E monitor parity
+
+The existing generic monitor was run manually for APP145.
+
+Observed result:
+
+```text
+source_id = BD_PNAP_APP145
+baseline_status = UNCHANGED
+decision = NO_CHANGE
+action = NONE
+candidate_downloaded = false
+production_access = false
+production_write = false
+```
+
+### Reference integrity
+
+APP145 reference before and after:
+
+```text
+26638377376ba8b8f4b1256de583f894e641e386e5f44a4053bc02c978599ecd
+```
+
+APP149 reference before and after:
+
+```text
+4514531e59caf76782120cf83377bcea6ad8a23f076e6b03b2247b193ae8682c
+```
+
+Both remained unchanged.
+
+### Scheduler safety
+
+The frozen M8 timer remained:
+
+```text
+enabled = true
+active = true
+```
+
+No timer modification was performed.
+
+### Production safety
+
+```text
+Production DB accessed = false
+Production DB modified = false
+Production source-monitor state = not used
+```
+
+## M9A completion status
+
+M9A is now complete.
+
+APP145 lifecycle status:
+
+```text
+REGISTERED
+-> STAGING QUALIFIED
+-> DETERMINISTIC PROPOSAL VERIFIED
+-> STAGING REFERENCE INITIALIZED
+-> REFERENCE NO_CHANGE VERIFIED
+-> GENERIC M5E MONITOR NO_CHANGE VERIFIED
+-> MONITOR READY
+```
+
+M9A completion does not schedule APP145.
+
+The next milestone is M9B multi-source orchestration implementation, beginning with contract design and tests while the M8 scheduler remains frozen and active.
