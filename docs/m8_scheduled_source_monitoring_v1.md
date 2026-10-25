@@ -1,6 +1,6 @@
 # M8 — Scheduled Source Monitoring v1
 
-Status: OPERATIONAL / TIMER ENABLED
+Status: AUTONOMOUSLY VERIFIED / OPERATIONAL
 
 ## Purpose
 
@@ -209,7 +209,7 @@ Activation did not modify the Production database and did not install a Producti
 
 M8 is operational because the reviewed timer definition is installed, enabled, and active on the Staging VPS.
 
-The first timer-triggered autonomous execution has not yet been separately recorded. That future runtime evidence is an operational observation, not a prerequisite for the M8 activation milestone.
+The first timer-triggered autonomous execution has now been separately recorded and verified. M8 has therefore progressed from enabled/operational to autonomously verified.
 
 ## Freeze status
 
@@ -226,3 +226,66 @@ Changes to any of the following require regression coverage before rollout:
 - Production-access/write safety guards.
 
 Production source-monitor runtime remains forbidden.
+
+
+## First autonomous scheduled-run verification
+
+The first timer-triggered run was observed at:
+
+```text
+2026-10-25 01:15:08 UTC
+= 2026-10-25 09:15:08 Asia/Hong_Kong
+```
+
+Runtime identity:
+
+```text
+source_id = BD_PNAP_APP149
+repo_branch = staging
+repo_commit = be0a038ef3f3d5bd666a89e4201768e4de2394ae
+run_dir = /var/lib/jason-os/source-monitor-staging/runs/BD_PNAP_APP149/20261025T011508Z
+```
+
+Observed monitor result:
+
+```text
+decision = NO_CHANGE
+action = NONE
+baseline_status = UNCHANGED
+candidate_downloaded = false
+production_access = false
+production_write = false
+```
+
+systemd result:
+
+```text
+Result=success
+ExecMainStatus=0
+ActiveState=inactive
+SubState=dead
+```
+
+Stored reference SHA-256 remained unchanged:
+
+```text
+4514531e59caf76782120cf83377bcea6ad8a23f076e6b03b2247b193ae8682c
+```
+
+The timer remained armed after execution:
+
+```text
+enabled = true
+active = true
+next = 2026-10-26 01:15:00 UTC
+```
+
+No manual service start was performed for this proof.
+
+Verification conclusion:
+
+```text
+M8 FIRST AUTONOMOUS RUN VERIFICATION: PASS
+```
+
+This closes the M8 MVP operational proof: the timer definition, activation state, scheduled execution path, Staging-only safety boundary, retained artifact path, and non-advancing reference behavior have all been observed live.
