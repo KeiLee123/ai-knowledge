@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily Jason OS Official Source Monitor - Staging Multi-Source Batch
+
+[Timer]
+OnCalendar=*-*-* 09:15:00 Asia/Hong_Kong
+Persistent=true
+Unit=jason-os-source-monitor-staging-batch.service
+
+[Install]
+WantedBy=timers.target
