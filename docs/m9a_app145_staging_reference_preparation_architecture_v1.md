@@ -299,3 +299,73 @@ M9A APP145 PHASE B: PASS
 ```
 
 Phase C may now initialize the APP145 Staging reference through the explicit guarded snapshot-store write path. Scheduling remains out of scope.
+
+
+## Phase C live Staging reference initialization
+
+Verified on VPS Staging.
+
+Initialization input remained the Phase B verified deterministic proposal.
+
+Observed initialization result:
+
+```text
+status = REFERENCE_INITIALIZED
+source_id = BD_PNAP_APP145
+accepted_at = 2026-10-25T01:40:24.964057+00:00
+release_id = bd_pnap_app145-dc3262cc55c5
+artifact_profile = canonical-text-v1
+qualification_status = qualified
+qualification_decision = AUTO_QUALIFIED
+qualification_mode = initial_release
+document_sha256 = dc3262cc55c5fd79d29f337fd811cdd871543f59d795972d9f30f558e313127c
+```
+
+Current reference:
+
+```text
+/var/lib/jason-os/source-monitor-staging/version-snapshots/current/BD_PNAP_APP145.json
+```
+
+Reference file SHA-256:
+
+```text
+26638377376ba8b8f4b1256de583f894e641e386e5f44a4053bc02c978599ecd
+```
+
+Stored version signals include:
+
+```text
+first_issue_date = 2007-10
+issue_date = 2010-10
+revision_date = 2010-10
+revision_date_source = explicit_this_revision
+page_count = 5
+metadata_fingerprint = 7146cf0eecb6005afbc8f6946e67427b5adbd865cbd7a5c33680709fc5dde22f
+normalized_content_fingerprint = 7713e99c5921b0d76ac8a293094f4af38078db7f22d7843276e7ded237896879
+```
+
+Safety after initialization:
+
+```text
+APP145 reference initialized = true
+APP149 reference modified = false
+M8 timer modified = false
+M8 timer enabled = true
+M8 timer active = true
+Production DB accessed = false
+Production DB modified = false
+```
+
+Phase C conclusion:
+
+```text
+M9A APP145 PHASE C: PASS
+```
+
+APP145 now satisfies the reference-readiness prerequisite for M9 monitoring, but remains unscheduled.
+
+The next proof is read-only:
+1. compare the stored APP145 reference against the verified deterministic proposal;
+2. run the existing generic M5E monitor manually for APP145;
+3. prove reference integrity remains unchanged and Production access/write remain false.
