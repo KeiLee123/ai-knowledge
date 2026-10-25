@@ -215,3 +215,23 @@ Until then:
 M8 stays enabled + active
 M9 stays disabled + inactive
 ```
+
+
+## Pre-cutover readiness live proof
+
+Verified on VPS Staging at commit `86e4d1bd59f1c2a313902769c0de0ede8b387086`.
+
+- M8 scheduler contract: PASS
+- M9B orchestration contract: PASS
+- M9D cutover contract: PASS
+- Schedule readiness: APP149 + APP145
+- APP145 reference unchanged
+- APP149 reference unchanged
+- M9 unit file hashes match repository files
+- M8 timer: enabled and active
+- M9 timer: installed, disabled, inactive
+- Live cutover performed: false
+
+Conclusion: `M9D PRE-CUTOVER READINESS: PASS`.
+
+The system is at the explicit live-cutover authorization gate.
