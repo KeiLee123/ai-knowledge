@@ -1,0 +1,13 @@
+[Unit]
+Description=Jason OS Official Source Monitor - Staging Multi-Source Batch
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/ai-knowledge-staging
+
+Environment=JASON_REPO_ROOT=/opt/ai-knowledge-staging
+Environment=JASON_PYTHON=/opt/ai-knowledge-staging/.venv/bin/python
+
+ExecStart=/opt/ai-knowledge-staging/.venv/bin/python /opt/ai-knowledge-staging/run_source_monitor_batch_v1.py --schedule /opt/ai-knowledge-staging/source_monitor_schedule_v1.yaml --registry /opt/ai-knowledge-staging/source_registry_v1.yaml --state-root /var/lib/jason-os/source-monitor-staging
