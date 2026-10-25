@@ -235,3 +235,68 @@ Verified on VPS Staging at commit `86e4d1bd59f1c2a313902769c0de0ede8b387086`.
 Conclusion: `M9D PRE-CUTOVER READINESS: PASS`.
 
 The system is at the explicit live-cutover authorization gate.
+
+
+## Live scheduler cutover proof
+
+Verified on VPS Staging.
+
+Cutover proof directory:
+
+```text
+/tmp/m9d-live-cutover-20261025T021551Z
+```
+
+Authorized cutover baseline:
+
+```text
+86e4d1bd59f1c2a313902769c0de0ede8b387086
+```
+
+Observed transition:
+
+```text
+M8 before = enabled + active
+M9 before = disabled + inactive
+
+CUTOVER STEP 1 = disable M8
+CUTOVER STEP 2 = enable M9
+
+M8 after = disabled + inactive
+M9 after = enabled + active
+double scheduling = false
+```
+
+systemd reported:
+
+```text
+STATUS: M9_SCHEDULER_CUTOVER_COMPLETE
+M9D LIVE CUTOVER: PASS
+```
+
+Post-cutover timer:
+
+```text
+jason-os-source-monitor-staging-batch.timer
+enabled = true
+active = waiting
+next trigger = 2026-10-26 01:15:00 UTC
+```
+
+Reference integrity remained unchanged:
+
+```text
+APP145 =
+26638377376ba8b8f4b1256de583f894e641e386e5f44a4053bc02c978599ecd
+
+APP149 =
+4514531e59caf76782120cf83377bcea6ad8a23f076e6b03b2247b193ae8682c
+```
+
+No immediate Persistent=true catch-up batch occurred.
+
+```text
+AUTONOMOUS TIMER RUN DETECTED = false
+```
+
+Therefore the live scheduler cutover itself is complete, while the final M9D completion gate remains the first autonomous multi-source batch triggered by systemd.
