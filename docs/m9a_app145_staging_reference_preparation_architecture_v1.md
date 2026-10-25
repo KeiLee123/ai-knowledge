@@ -241,3 +241,61 @@ M9A architecture is accepted when:
 The next step after this architecture is a read-only APP145 preflight.
 
 No state write is authorized until that preflight succeeds.
+
+
+## Phase B live deterministic proposal proof
+
+Verified on VPS Staging.
+
+Runtime baseline:
+
+```text
+branch = staging
+commit = 4e02befd604640ca12b070ec993ae3104454d20c
+worktree = clean
+```
+
+Two independent proposal runs were generated in separate work directories.
+
+Observed deterministic result:
+
+```text
+source_id = BD_PNAP_APP145
+staging_document_id = 2
+canonical_sha256 = dc3262cc55c5fd79d29f337fd811cdd871543f59d795972d9f30f558e313127c
+chunks_sha256 = d8fecb22255115751ed84dfdd945b1b0b92022d09baaa1bd5c1019586fb74120
+chunk_count = 8
+release_id = bd_pnap_app145-dc3262cc55c5
+artifact_profile = canonical-text-v1
+qualification_status = qualified
+qualification_decision = AUTO_QUALIFIED
+qualification_mode = initial_release
+write_authorized = false
+production_access = false
+production_write = false
+complete_proposal_match = true
+```
+
+Proof directory:
+
+```text
+/tmp/m9a-app145-phase-b-20261025T013921Z
+```
+
+Post-proof safety:
+
+```text
+APP145 reference write performed = false
+APP149 reference modified = false
+M8 timer modified = false
+Production DB accessed = false
+Production DB modified = false
+```
+
+Phase B conclusion:
+
+```text
+M9A APP145 PHASE B: PASS
+```
+
+Phase C may now initialize the APP145 Staging reference through the explicit guarded snapshot-store write path. Scheduling remains out of scope.
