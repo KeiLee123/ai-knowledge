@@ -1,0 +1,15 @@
+source_monitor_schedule_version: 1
+
+environment: staging
+
+defaults:
+  cadence: daily
+  timezone: Asia/Hong_Kong
+  time: "09:15"
+
+sources:
+  - source_id: BD_PNAP_APP149
+    enabled: true
+
+  - source_id: BD_PNAP_APP145
+    enabled: true
