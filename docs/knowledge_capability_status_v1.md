@@ -1,7 +1,7 @@
 # Jason OS Knowledge — Capability Status v1
 
 Status: AUDIT BASELINE  
-Date: 2026-10-24
+Date: 2026-10-25
 
 ## Environment snapshot
 
@@ -9,13 +9,13 @@ Date: 2026-10-24
 
 - Path: `/opt/ai-knowledge`
 - Branch: `main`
-- Current reviewed code baseline: `84d220cb84320c7b87f9c84fe4b97fcd14d174da`
+- Current reviewed code baseline: `be0a038ef3f3d5bd666a89e4201768e4de2394ae`
 
 ### Staging VPS
 
 - Path: `/opt/ai-knowledge-staging`
 - Branch: `staging`
-- Current reviewed code baseline: `84d220cb84320c7b87f9c84fe4b97fcd14d174da`
+- Current reviewed code baseline: `be0a038ef3f3d5bd666a89e4201768e4de2394ae`
 
 ### GitHub staging
 
@@ -44,7 +44,7 @@ At the architecture-freeze point, GitHub `staging` was ahead of the live Staging
 | Region-level figure evidence | LATER GAP | Page-level Vision exists; region evidence does not |
 | Official Source Processing v1 | VPS STAGING LIVE VERIFIED | APP146 multimodal-v2 closed loop to semantic validation and READY_FOR_PRODUCTION_REVIEW at commit 921e899 |
 | Source registry / baseline / change detection | M5E LIVE VERIFIED | Persisted reference and automatic monitor candidate routing are live-verified on Staging; Production access/write remain false |
-| Scheduled official-source monitoring | M8 OPERATIONAL / STAGING | APP149 canary timer enabled and active; daily 09:15 Asia/Hong_Kong; Production timer absent |
+| Scheduled official-source monitoring | M8 AUTONOMOUSLY VERIFIED / STAGING | APP149 timer fired successfully at 2026-10-25 09:15 Asia/Hong_Kong; NO_CHANGE; reference unchanged; Production access/write false; Production timer absent |
 | APP-145 Production Promotion v1 | VERIFIED / FROZEN | Historical Production milestone |
 | Generic Production Promotion v2 | M5A LIVE / M5B CI VERIFIED | APP149 deterministic proposal is live-proven; routine human review replaced by policy qualification in GitHub staging; VPS deploy pending |
 | Canonical-text-v1 Production profile | LIVE PROPOSAL + POLICY CONTRACT | APP149 deterministic proposal live-verified; M5B initial-release policy is CI-verified; write authorization remains false |
@@ -100,7 +100,7 @@ Priority order:
 3. live-verify Production v2 through non-writing verify/prepare gates using a policy-qualified contract;
 3. qualify a profile-safe multimodal Production artifact path only after the generic text proof;
 4. safe CLI/deployment reconciliation;
-5. first autonomous M8 scheduled-run observation and later source expansion;
+5. later source-monitor expansion beyond the APP149 canary;
 6. HKeL watch modernization;
 7. cleanup / retirement.
 
@@ -115,7 +115,7 @@ Completed / deployed:
 - M5C Version Signal Extraction v1: VPS STAGING LIVE VERIFIED at commit `55c9dff`; APP149 yielded issue/revision date `2010-12`, stable metadata/content fingerprints, deterministic repeated snapshots, AUTO_QUALIFIED, Production access/write false;
 - M5D Version Snapshot Persistence / Comparison v1: VPS STAGING LIVE VERIFIED at commit `a7e353f`; APP149 reference initialized, repeated comparison returned `NO_CHANGE`, Production registry/state untouched;
 - M5E Automatic Source Monitor Integration v1: VPS STAGING LIVE VERIFIED; APP149 returned `NO_CHANGE`, reference unchanged, Production access/write false.
-- M8 Scheduled Source Monitoring v1: OPERATIONAL on Staging; APP149 canary timer enabled and active at daily 09:15 Asia/Hong_Kong; Production timer absent; deployment definition frozen at baseline `84d220c`.
+- M8 Scheduled Source Monitoring v1: AUTONOMOUSLY VERIFIED on Staging; first timer-triggered APP149 run at 2026-10-25 01:15:08 UTC returned `NO_CHANGE`, `action=NONE`, reference unchanged, Production access/write false; timer remained enabled/active; deployment definition frozen.
 
 ## Freeze rules
 
@@ -124,4 +124,4 @@ Completed / deployed:
 - Do not remove legacy files until replacement paths are regression-tested and operationally verified.
 - Do not interpret "script exists" as "approved operational capability".
 - Do not interpret registry cadence as proof that a scheduler is installed.
-- M8 Staging scheduler definition is frozen at `84d220c`; modify only with regression coverage.
+- M8 Staging scheduler definition is frozen; modify only with regression coverage.
