@@ -255,3 +255,83 @@ M9B implementation exists in GitHub Staging.
 No M9B unit has been installed or enabled on the VPS yet.
 
 The active autonomous scheduler remains frozen M8 APP149-only.
+
+
+## VPS Staging live contract validation
+
+Verified on VPS Staging.
+
+Deployed commit:
+
+```text
+660e03ee1bd02e730d66453ab198f88a40c42e13
+```
+
+Observed results:
+
+```text
+M8 Source Monitor scheduler contract = PASS
+M9B multi-source orchestration contract = PASS
+Explicit source allowlist = PASS
+Auto-discovery = ABSENT
+Reference readiness gate = PASS
+Sequential failure isolation = PASS
+Per-source lock contract = PASS
+M8 frozen scheduler = PRESERVED
+Automatic M9 timer activation = ABSENT
+Production DB coupling = ABSENT
+```
+
+Live schedule readiness:
+
+```text
+environment = staging
+source_count = 2
+source_ids =
+  BD_PNAP_APP149
+  BD_PNAP_APP145
+production_access = false
+production_write = false
+STATUS = SOURCE_MONITOR_SCHEDULE_VALID
+```
+
+Reference integrity after deployment:
+
+```text
+BD_PNAP_APP145 =
+26638377376ba8b8f4b1256de583f894e641e386e5f44a4053bc02c978599ecd
+
+BD_PNAP_APP149 =
+4514531e59caf76782120cf83377bcea6ad8a23f076e6b03b2247b193ae8682c
+```
+
+Both references remained unchanged.
+
+Scheduler state after validation:
+
+```text
+M8 timer enabled = true
+M8 timer active = true
+M9B timer installed = false
+M9B service installed = false
+M9B timer enabled = false
+```
+
+Safety:
+
+```text
+Multi-source batch executed = false
+M8 timer modified = false
+APP145 reference modified = false
+APP149 reference modified = false
+Production DB accessed = false
+Production DB modified = false
+```
+
+Conclusion:
+
+```text
+M9B STAGING CONTRACT VALIDATION: PASS
+```
+
+M9B implementation is now live-validated on Staging. The next milestone is M9C manual multi-source batch execution. M9B timer activation remains forbidden until M9D cutover.
