@@ -1,6 +1,6 @@
 # M9 — Source Readiness Audit v1
 
-Status: PRELIMINARY REPOSITORY AUDIT / VPS REFERENCE CHECK REQUIRED
+Status: VPS READ-ONLY VERIFIED / APP145 PREPARATION TARGET SELECTED
 
 ## Purpose
 
@@ -175,3 +175,74 @@ This readiness audit authorizes none of the following:
 - reference initialization;
 - reference advancement;
 - Production database access or writes.
+
+
+## VPS read-only verification result
+
+Observed runtime state:
+
+```text
+BD_PNAP_APP145
+reference_exists=false
+
+BD_PNAP_APP146
+reference_exists=false
+
+BD_PNAP_APP149
+reference_exists=true
+reference_sha256=4514531e59caf76782120cf83377bcea6ad8a23f076e6b03b2247b193ae8682c
+source_id=BD_PNAP_APP149
+release_id=bd_pnap_app149-a5b4d5a1af5f
+artifact_profile=canonical-text-v1
+qualification_status=qualified
+qualification_decision=AUTO_QUALIFIED
+document_sha256=a5b4d5a1af5f4a32b43973db33d95436f9390e8e2da77747ee666015077bb1a8
+```
+
+M8 timer safety check during the audit:
+
+```text
+enabled
+active
+```
+
+Audit side effects:
+
+```text
+Reference writes performed = false
+Production DB modified = false
+```
+
+## Selection decision
+
+Because neither APP145 nor APP146 currently has a Staging version reference, neither source is eligible for M9 scheduling.
+
+Per the architecture decision rule, the first preparation target is:
+
+```text
+BD_PNAP_APP145
+```
+
+APP145 is selected for preparation before APP146 because it provides the simpler first expansion path and has the most mature deterministic lifecycle history.
+
+This selection authorizes only preparation of a Staging reference. It does not authorize scheduling, timer changes, Production access, Production writes, or changes to the frozen M8 scheduler.
+
+## Next milestone
+
+The next milestone is:
+
+```text
+M9A — APP145 Staging Reference Preparation
+```
+
+M9A should:
+
+1. derive a deterministic APP145 version-signal proposal using existing guarded Staging tooling;
+2. verify the proposal is source/profile consistent;
+3. initialize the APP145 reference only through the explicit Staging reference-write gate;
+4. record the resulting reference SHA and stored metadata;
+5. prove Production access/write remain false;
+6. leave the M8 timer unchanged;
+7. stop before adding APP145 to any M9 schedule allowlist.
+
+M9A is a prerequisite for the first multi-source M9 monitor proof.
