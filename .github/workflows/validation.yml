@@ -148,6 +148,12 @@ jobs:
           set -euo pipefail
           python test_source_monitor_batch_v1.py
 
+      - name: M9D Source Monitor scheduler cutover contract test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_source_monitor_cutover_v1.py
+
       - name: Generic Production Promotion v2 contract test
         shell: bash
         run: |
