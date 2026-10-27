@@ -215,3 +215,191 @@ Until then:
 M8 stays enabled + active
 M9 stays disabled + inactive
 ```
+
+
+## Pre-cutover readiness live proof
+
+Verified on VPS Staging at commit `86e4d1bd59f1c2a313902769c0de0ede8b387086`.
+
+- M8 scheduler contract: PASS
+- M9B orchestration contract: PASS
+- M9D cutover contract: PASS
+- Schedule readiness: APP149 + APP145
+- APP145 reference unchanged
+- APP149 reference unchanged
+- M9 unit file hashes match repository files
+- M8 timer: enabled and active
+- M9 timer: installed, disabled, inactive
+- Live cutover performed: false
+
+Conclusion: `M9D PRE-CUTOVER READINESS: PASS`.
+
+The system is at the explicit live-cutover authorization gate.
+
+
+## Live scheduler cutover proof
+
+Verified on VPS Staging.
+
+Cutover proof directory:
+
+```text
+/tmp/m9d-live-cutover-20261025T021551Z
+```
+
+Authorized cutover baseline:
+
+```text
+86e4d1bd59f1c2a313902769c0de0ede8b387086
+```
+
+Observed transition:
+
+```text
+M8 before = enabled + active
+M9 before = disabled + inactive
+
+CUTOVER STEP 1 = disable M8
+CUTOVER STEP 2 = enable M9
+
+M8 after = disabled + inactive
+M9 after = enabled + active
+double scheduling = false
+```
+
+systemd reported:
+
+```text
+STATUS: M9_SCHEDULER_CUTOVER_COMPLETE
+M9D LIVE CUTOVER: PASS
+```
+
+Post-cutover timer:
+
+```text
+jason-os-source-monitor-staging-batch.timer
+enabled = true
+active = waiting
+next trigger = 2026-10-26 01:15:00 UTC
+```
+
+Reference integrity remained unchanged:
+
+```text
+APP145 =
+26638377376ba8b8f4b1256de583f894e641e386e5f44a4053bc02c978599ecd
+
+APP149 =
+4514531e59caf76782120cf83377bcea6ad8a23f076e6b03b2247b193ae8682c
+```
+
+No immediate Persistent=true catch-up batch occurred.
+
+```text
+AUTONOMOUS TIMER RUN DETECTED = false
+```
+
+Therefore the live scheduler cutover itself is complete, while the final M9D completion gate remains the first autonomous multi-source batch triggered by systemd.
+
+
+## First autonomous multi-source proof
+
+Verified on VPS Staging.
+
+Proof directory:
+
+```text
+/tmp/m9d-first-autonomous-proof-20261027T172025Z
+```
+
+Target autonomous trigger:
+
+```text
+2026-10-26 01:15 UTC
+```
+
+systemd service journal confirmed autonomous execution:
+
+```text
+Starting jason-os-source-monitor-staging-batch.service
+batch_timestamp = 20261026T011508Z
+git_branch = staging
+git_commit = 86e4d1bd59f1c2a313902769c0de0ede8b387086
+overall_status = SUCCESS
+STATUS: SOURCE_MONITOR_BATCH SUCCESS
+Finished jason-os-source-monitor-staging-batch.service
+```
+
+Autonomous batch summary:
+
+```text
+/var/lib/jason-os/source-monitor-staging/batches/20261026T011508Z/summary.json
+```
+
+Per-source results:
+
+```text
+BD_PNAP_APP149
+execution_status = EXECUTION_SUCCESS
+baseline_status = UNCHANGED
+decision = NO_CHANGE
+action = NONE
+candidate_downloaded = false
+return_code = 0
+
+BD_PNAP_APP145
+execution_status = EXECUTION_SUCCESS
+baseline_status = UNCHANGED
+decision = NO_CHANGE
+action = NONE
+candidate_downloaded = false
+return_code = 0
+```
+
+Production safety:
+
+```text
+production_access = false
+production_write = false
+```
+
+Reference integrity remained unchanged:
+
+```text
+APP145 =
+26638377376ba8b8f4b1256de583f894e641e386e5f44a4053bc02c978599ecd
+
+APP149 =
+4514531e59caf76782120cf83377bcea6ad8a23f076e6b03b2247b193ae8682c
+```
+
+Current scheduler state:
+
+```text
+M8 timer = disabled + inactive
+M9 timer = enabled + active
+double scheduling = false
+```
+
+The timer remained healthy after the first autonomous proof and continued scheduling subsequent daily runs.
+
+## M9 completion status
+
+```text
+M9D FIRST AUTONOMOUS MULTI-SOURCE RUN: PASS
+
+M8 scheduler retired = true
+M9 scheduler autonomous = true
+APP149 autonomous monitoring = PASS
+APP145 autonomous monitoring = PASS
+double scheduling = false
+references modified = false
+Production DB accessed = false
+Production DB modified = false
+```
+
+M9 is complete.
+
+Official Source Monitoring is operational and frozen at the validated M9 architecture.
+
+Any future modification to the M9 scheduler, schedule allowlist, batch dispatcher, runner, cutover tooling, or frozen M8 compatibility boundary requires regression testing before deployment.
