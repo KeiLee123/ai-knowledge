@@ -1,6 +1,6 @@
 # M10B-0 — Isolated Candidate Contract & Side-effect Audit v0.1
 
-Status: GitHub feature branch / Staging PR validation required. This is **an audit**, not M10B candidate processing code or permission to write anywhere.
+Status: Contract audit v0.1; GitHub staging review tracked in PR #45. This is **an audit**, not M10B candidate processing code or permission to write anywhere.
 
 Design Source of Truth: https://docs.google.com/document/d/1aZBVFRR0IperUB18xMNkrLWxTZUCEJU9jh9OG07XXFg/edit
 
