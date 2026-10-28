@@ -1,0 +1,33 @@
+name: M10A Candidate Intake (Read-only)
+
+on:
+  pull_request:
+    branches:
+      - staging
+    paths:
+      - 'm10_candidate_intake_v1.py'
+      - 'test_m10_candidate_intake_v1.py'
+      - '.github/workflows/m10a_candidate_intake.yml'
+  push:
+    branches:
+      - staging
+    paths:
+      - 'm10_candidate_intake_v1.py'
+      - 'test_m10_candidate_intake_v1.py'
+      - '.github/workflows/m10a_candidate_intake.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile M10A modules
+        run: python -m py_compile m10_candidate_intake_v1.py test_m10_candidate_intake_v1.py
+      - name: Run standalone synthetic M9 fixtures
+        run: python test_m10_candidate_intake_v1.py
