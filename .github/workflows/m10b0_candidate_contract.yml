@@ -1,0 +1,40 @@
+name: M10B-0 Candidate Contract Audit
+
+on:
+  pull_request:
+    branches:
+      - staging
+    paths:
+      - 'test_m10b0_candidate_contract_v1.py'
+      - 'm10_candidate_intake_v1.py'
+      - 'orchestrate_document_v2.py'
+      - 'augment_vision_v2.py'
+      - 'version_signal_extractor_v1.py'
+      - 'version_qualification_policy_v1.py'
+      - 'route_document_v2.py'
+      - 'ingest_manifest_v2.py'
+      - 'ingest_canonical_text_staging_v1.py'
+      - 'validate_staging_retrieval_v2.py'
+      - '.github/workflows/m10b0_candidate_contract.yml'
+  push:
+    branches:
+      - staging
+    paths:
+      - 'test_m10b0_candidate_contract_v1.py'
+      - '.github/workflows/m10b0_candidate_contract.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  offline-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile audit entrypoint
+        run: python -m py_compile test_m10b0_candidate_contract_v1.py
+      - name: Verify offline safety and route/policy contracts
+        run: python test_m10b0_candidate_contract_v1.py
