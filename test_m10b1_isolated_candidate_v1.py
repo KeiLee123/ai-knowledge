@@ -28,13 +28,15 @@ def save(path, payload):
 
 
 def fixture(base, *, revision="2026", old_host="www.bd.gov.hk",
-            old_authority="BD", old_code="APP-149"):
+            old_authority="BD", old_code="APP-149", include_code=True):
     root, summary, records = make(base)
     item = records[SOURCE]
     candidate = item["candidate"]
     document = pymupdf.open()
     page = document.new_page()
     text = PDF_TEXT.replace("October 2026", "October " + revision)
+    if not include_code:
+        text = text.replace("APP-149", "UNRELATED-900")
     page.insert_textbox(pymupdf.Rect(50, 45, 555, 680), text,
                         fontsize=11, fontname="helv")
     document.save(candidate)
@@ -96,6 +98,7 @@ def test_parse_verified_with_immutable_evidence():
         assert result["status"] == "PARSE_VERIFIED", result
         assert result["policy_decision"] == "CANDIDATE_NEW_VERSION", result
         assert result["route"] == "legacy-v1"
+        assert result["document_code_in_text"] is True
         assert result["retrieval_verified"] is False
         assert result["reference_sha256_before"] == result["reference_sha256_after"]
         assert result["write_authorized"] is False
@@ -184,6 +187,27 @@ def test_reference_drift_fails_closed():
         assert result["reasons"] == ["accepted_reference_drift"]
 
 
+def test_pdf_identity_must_appear_in_document_text():
+    with tempfile.TemporaryDirectory() as d:
+        root, summary, _, workspace = fixture(Path(d), include_code=False)
+        result = call(root, summary, workspace, validate=True)
+        assert result["status"] == "REVIEW_REQUIRED", result
+        assert result["document_code_in_text"] is False
+        assert result["reasons"] == ["document_code_not_found_in_pdf_text"]
+
+
+def test_reference_parent_symlink_rejected():
+    with tempfile.TemporaryDirectory() as d:
+        root, summary, _, workspace = fixture(Path(d))
+        current = root / "version-snapshots" / "current"
+        moved = current.with_name("moved")
+        current.rename(moved)
+        current.symlink_to(moved, target_is_directory=True)
+        result = call(root, summary, workspace, validate=True)
+        assert result["status"] == "BLOCKED", result
+        assert not workspace.exists()
+
+
 def test_workspace_symlink_rejected():
     with tempfile.TemporaryDirectory() as d:
         root, summary, _, workspace = fixture(Path(d))
@@ -218,6 +242,8 @@ def main_test():
         test_nonpdf_m9_fixture_rejected,
         test_multimodal_not_silently_downgraded,
         test_reference_drift_fails_closed,
+        test_pdf_identity_must_appear_in_document_text,
+        test_reference_parent_symlink_rejected,
         test_workspace_symlink_rejected,
         test_validate_requires_both_explicit_flags,
     ]
