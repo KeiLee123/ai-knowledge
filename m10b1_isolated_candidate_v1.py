@@ -253,7 +253,8 @@ def process(summary, source_id, *, state_root=STATE_ROOT,
             from version_signal_extractor_v1 import (
                 build_version_signal_snapshot, compare_version_snapshots,
             )
-            from version_qualification_policy_v1 import evaluate_version_candidate\n            from version_signal_extractor_v1 import manifest_text, normalize_content_text
+            from version_qualification_policy_v1 import evaluate_version_candidate
+            from version_signal_extractor_v1 import manifest_text, normalize_content_text
             manifest = build_manifest(stored)
             need(manifest.get("source", {}).get("sha256") == expected_sha,
                  "manifest_source_sha_mismatch")
