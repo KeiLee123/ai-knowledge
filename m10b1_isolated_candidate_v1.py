@@ -82,7 +82,11 @@ def trusted_source(source_id, *, registry_path=REGISTRY):
 
 def locked_reference(state_root, source_id, expected_sha, source, host):
     path = state_root / "version-snapshots" / "current" / (source_id + ".json")
-    need(path.is_file() and not path.is_symlink(), "missing_or_unsafe_reference")
+    need(path.is_file() and not path.is_symlink()
+         and not path.parent.is_symlink()
+         and not path.parent.parent.is_symlink()
+         and path.resolve(strict=True).is_relative_to(state_root),
+         "missing_or_unsafe_reference")
     raw = path.read_bytes()
     need(digest(raw) == expected_sha, "reference_changed_since_intake")
     record = json.loads(raw)
@@ -242,13 +246,14 @@ def process(summary, source_id, *, state_root=STATE_ROOT,
                      "cached_evidence_reference_mismatch")
                 return existing
 
-            need(stored.open("rb").read(5) == b"%PDF-", "not_pdf_header")
+            with stored.open("rb") as stream:
+                need(stream.read(5) == b"%PDF-", "not_pdf_header")
             from extract_document_v2 import build_manifest
             from route_document_v2 import assess_manifest
             from version_signal_extractor_v1 import (
                 build_version_signal_snapshot, compare_version_snapshots,
             )
-            from version_qualification_policy_v1 import evaluate_version_candidate
+            from version_qualification_policy_v1 import evaluate_version_candidate\n            from version_signal_extractor_v1 import manifest_text, normalize_content_text
             manifest = build_manifest(stored)
             need(manifest.get("source", {}).get("sha256") == expected_sha,
                  "manifest_source_sha_mismatch")
@@ -282,6 +287,14 @@ def process(summary, source_id, *, state_root=STATE_ROOT,
                 separators=(",", ":")).encode("utf-8"))
             report["page_count"] = manifest["document"]["page_count"]
             report["normalized_content_chars"] = current["normalized_content_chars"]
+            # The source identity in snapshots derives from trusted registry
+            # fields. Separately require document-code evidence in PDF text,
+            # so unrelated content cannot be reported PARSE_VERIFIED.
+            normalized_pdf = normalize_content_text(manifest_text(manifest)).upper()
+            compact_pdf = "".join(ch for ch in normalized_pdf if ch.isalnum())
+            compact_code = "".join(ch for ch in source["document_code"].upper()
+                                   if ch.isalnum())
+            report["document_code_in_text"] = compact_code in compact_pdf
             report["normalized_content_fingerprint"] = current["normalized_content_fingerprint"]
             report["policy_decision"] = policy["decision"]
             report["policy_reasons"] = policy["reasons"]
@@ -296,6 +309,9 @@ def process(summary, source_id, *, state_root=STATE_ROOT,
             elif policy["decision"] != "CANDIDATE_NEW_VERSION":
                 report["status"] = "REVIEW_REQUIRED"
                 report["reasons"] = ["candidate_policy_not_qualified"]
+            elif not report["document_code_in_text"]:
+                report["status"] = "REVIEW_REQUIRED"
+                report["reasons"] = ["document_code_not_found_in_pdf_text"]
             elif report["route"] != "legacy-v1":
                 report["status"] = "REVIEW_REQUIRED"
                 report["reasons"] = ["multimodal_requires_ocr_vision_provenance"]
