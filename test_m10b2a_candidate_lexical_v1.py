@@ -206,6 +206,23 @@ def test_ranker_ties_stable_and_no_false_gold():
     assert words("What's an authorized signatory?") >= {"authorized", "signatory"}
 
 
+def test_cli_exit_codes_reflect_lexical_failure():
+    import contextlib
+    import io
+    import m10b2a_candidate_lexical_v1 as module
+    arguments = ["--source", SOURCE, "--candidate-sha", "a" * 64]
+    with contextlib.redirect_stdout(io.StringIO()):
+        with patch.object(module, "run",
+                          return_value={"status": "LEXICAL_CANARY_PASSED"}):
+            assert module.main(arguments) == 0
+        with patch.object(module, "run",
+                          return_value={"status": "LEXICAL_CANARY_FAILED"}):
+            assert module.main(arguments) == 3
+        with patch.object(module, "run",
+                          return_value={"status": "BLOCKED"}):
+            assert module.main(arguments) == 2
+
+
 def main_test():
     cases = [
         test_candidate_only_smoke_and_no_writes,
@@ -218,6 +235,7 @@ def main_test():
         test_wrong_page_and_provenance_blocked,
         test_symlink_and_no_candidate,
         test_ranker_ties_stable_and_no_false_gold,
+        test_cli_exit_codes_reflect_lexical_failure,
     ]
     for case in cases:
         case()
