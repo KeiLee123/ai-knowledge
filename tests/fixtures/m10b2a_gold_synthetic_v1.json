@@ -1,0 +1,61 @@
+{
+  "schema_version": "m10b2a-gold-suite-v1",
+  "suite_id": "synthetic-two-page-regulatory-fixture-v1",
+  "scope": "synthetic",
+  "review_status": "synthetic_only",
+  "gold_provenance": "synthetic_authored_independently",
+  "fixture_id": "m10b2a-two-page-test-pdf-v1",
+  "source_id": "BD_PNAP_APP149",
+  "notes": "Entire document and page labels are fabricated for automated testing. These are not official APP149 document facts or reviewed official Gold Pages.",
+  "cases": [
+    {
+      "case_id": "SYN_GOLD_P1_APPOINTMENT",
+      "source_id": "BD_PNAP_APP149",
+      "fixture_id": "m10b2a-two-page-test-pdf-v1",
+      "review_status": "synthetic_only",
+      "gold_provenance": "synthetic_authored_independently",
+      "query": "authorized signatory minor works",
+      "should_find": true,
+      "expected_page_numbers": [
+        1
+      ],
+      "expected_terms": [
+        "authorized",
+        "signatory",
+        "minor",
+        "works"
+      ],
+      "expected_excerpt": "authorized signatory for minor works"
+    },
+    {
+      "case_id": "SYN_GOLD_P2_EVACUATION",
+      "source_id": "BD_PNAP_APP149",
+      "fixture_id": "m10b2a-two-page-test-pdf-v1",
+      "review_status": "synthetic_only",
+      "gold_provenance": "synthetic_authored_independently",
+      "query": "evacuation muster point emergency",
+      "should_find": true,
+      "expected_page_numbers": [
+        2
+      ],
+      "expected_terms": [
+        "evacuation",
+        "muster",
+        "point"
+      ],
+      "expected_excerpt": "muster point for evacuation"
+    },
+    {
+      "case_id": "SYN_GOLD_NEGATIVE_ABSENT",
+      "source_id": "BD_PNAP_APP149",
+      "fixture_id": "m10b2a-two-page-test-pdf-v1",
+      "review_status": "synthetic_only",
+      "gold_provenance": "synthetic_authored_independently",
+      "query": "snowplow glacier submarine",
+      "should_find": false,
+      "expected_page_numbers": [],
+      "expected_terms": [],
+      "expected_excerpt": null
+    }
+  ]
+}
