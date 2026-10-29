@@ -297,7 +297,8 @@ def main(argv=None):
     result = run(args.source, args.candidate_sha, state_root=args.state_root,
                  workspace_root=args.workspace_root, top_k=args.top_k)
     print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
-    return (0 if result["status"] == "LEXICAL_CANARY_PASSED" else\n            3 if result["status"] == "LEXICAL_CANARY_FAILED" else 2)
+    return (0 if result["status"] == "LEXICAL_CANARY_PASSED" else
+            3 if result["status"] == "LEXICAL_CANARY_FAILED" else 2)
 
 
 if __name__ == "__main__":
