@@ -102,7 +102,10 @@ def evaluate_synthetic_suite(manifest, chunks, suite, *, source_id,
     require(manifest.get("document", {}).get("kind") == "pdf",
             "gold_requires_pdf_manifest")
     # Provenance check against each original page, not just self-reported IDs.
-    verify_chunks(manifest, chunks, candidate_sha)
+    try:
+        verify_chunks(manifest, chunks, candidate_sha)
+    except ValueError as exc:
+        raise GoldContractError(f"untrusted_chunk_provenance:{exc}") from exc
     page_count = manifest["document"]["page_count"]
     rows = []
     for case in cases:
