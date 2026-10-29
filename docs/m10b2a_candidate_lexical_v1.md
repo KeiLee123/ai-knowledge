@@ -34,8 +34,8 @@ For **synthetic regression only**, `--state-root` and `--workspace-root` may tar
 ## Status semantics
 
 - `LEXICAL_CANARY_PASSED`: indexed candidate native text contains registry terms in relevant top-k chunks and candidate page citations are structurally traceable; **not independently gold-page verified**.
-- `LEXICAL_CANARY_FAILED`: test is missing expected terms or returned no ranked hits. This is **not** a pass (even though CLI returns a data report).
-- `BLOCKED`: unsafe/mismatched evidence, SHA, source, accepted reference, manifest drift, unsupported route/language, altered page metadata, untrusted symlinks or no candidate.
+- `LEXICAL_CANARY_FAILED`: test is missing expected terms or returned no ranked hits. This is **not** a pass; CLI exit code 3 (with JSON report).
+- `BLOCKED`: unsafe/mismatched evidence, SHA, source, accepted reference, manifest drift, unsupported route/language, altered page metadata, untrusted symlinks or no candidate. CLI exit code 2. Success exit code 0 is reserved for LEXICAL_CANARY_PASSED.
 
 Any semantic search, Gold Page accuracy and AI-generated answers remain unverified by design. Do not mark a FULL STAGING VERIFIED state based on a lexical canary result.
 
