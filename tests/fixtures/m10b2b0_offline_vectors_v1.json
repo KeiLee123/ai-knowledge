@@ -1,0 +1,39 @@
+{
+  "schema_version": "m10b2b0-offline-synthetic-vector-fixture-v1",
+  "scope": "synthetic_only",
+  "warning": "These are fabricated orthogonal test vectors, NOT multilingual-e5-small embeddings. They do not establish real semantic understanding.",
+  "dimension": 384,
+  "model_contract": {
+    "mode": "offline-synthetic",
+    "model_id": "synthetic-orthogonal-vectors-v1",
+    "model_revision": "fixed-test-fixture-v1",
+    "dimension": 384,
+    "adapter_version": "offline-fixture-only-v1"
+  },
+  "page_axes": {
+    "1": 0,
+    "2": 1
+  },
+  "predictions": {
+    "SYN_GOLD_P1_APPOINTMENT": {
+      "axis": 0,
+      "abstain": false
+    },
+    "SYN_GOLD_P2_EVACUATION": {
+      "axis": 1,
+      "abstain": false
+    },
+    "SYN_GOLD_NEGATIVE_ABSENT": {
+      "axis": 2,
+      "abstain": true
+    },
+    "SYN_GOLD_P1_PARAPHRASE": {
+      "axis": 0,
+      "abstain": false
+    },
+    "SYN_GOLD_NEGATIVE_NEAR_MISS": {
+      "axis": 0,
+      "abstain": true
+    }
+  }
+}
