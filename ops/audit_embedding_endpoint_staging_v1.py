@@ -92,7 +92,7 @@ def parse_systemd(text):
 
 
 def parse_docker(text):
-    """Docker ps exposes safe metadata, never inspect Config.Env."""
+    """Docker ps exposes filtered metadata; do not inspect sensitive fields."""
     results = []
     for line in text.splitlines():
         fields = line.split("\t")
