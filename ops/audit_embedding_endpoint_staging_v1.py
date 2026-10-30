@@ -133,7 +133,9 @@ def parse_docker_inspect(text):
     }
 
 
-def audit(*, runner=command_result):
+def audit(*, runner=None):
+    if runner is None:
+        runner = command_result
     report = {
         "version": AUDIT_VERSION,
         "environment": "staging-host-observation",
@@ -203,7 +205,7 @@ def audit(*, runner=command_result):
     containers = parse_docker(docker_text) if docker_code == 0 else []
     for entry in containers:
         # All Docker inspect data are selected from a fixed SAFE metadata
-        # template. In particular, NEVER return Config.Env or command args.
+        # template. In particular, never return secret variables or args.
         c, raw = runner(DOCKER_LOCAL + (
             "inspect", "--type", "container", "--format",
             "{{.HostConfig.NetworkMode}}|{{.HostConfig.LogConfig.Type}}|"
