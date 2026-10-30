@@ -11,7 +11,7 @@ import json
 import math
 
 from m10_candidate_intake_v1 import valid_sha
-from m10b2a_candidate_lexical_v1 import verify_chunks
+from m10b2a_candidate_lexical_v1 import verify_chunks, compact_text
 from m10b2a_gold_cases_v1 import validate_suite
 
 CONTRACT_VERSION = "m10b2b0-offline-semantic-v1"
@@ -122,6 +122,7 @@ def evaluate_offline_synthetic(manifest, chunks, suite, *, source_id,
     corpus = normalize_corpus(manifest, chunks, vectors,
                               candidate_sha=candidate_sha)
     page_count = manifest["document"]["page_count"]
+    chunks_by_id = {c["chunk_index"]: c for c in chunks}
     rows = []
     positive_reciprocal_ranks = []
     positive_hit1 = 0
@@ -146,6 +147,11 @@ def evaluate_offline_synthetic(manifest, chunks, suite, *, source_id,
             correct_positions = [
                 n for n, hit in enumerate(presented, start=1)
                 if hit["page_number"] in case["expected_page_numbers"]
+                and compact_text(case["expected_excerpt"]) in compact_text(
+                    chunks_by_id[hit["chunk_id"]]["content"])
+                and all(compact_text(term) in compact_text(
+                    chunks_by_id[hit["chunk_id"]]["content"])
+                    for term in case["expected_terms"])
             ]
             rank = min(correct_positions) if correct_positions else None
             passed = rank is not None
