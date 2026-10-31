@@ -167,6 +167,12 @@ jobs:
           set -euo pipefail
           python test_beta_ask_staging_v1.py
 
+      - name: Private Beta loopback UI token, source and feedback security contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_beta_private_ui_staging_v1.py
+
       - name: Hermes Staging evidence JSON contract and refusal test
         shell: bash
         run: |
