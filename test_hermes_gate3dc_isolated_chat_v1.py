@@ -28,7 +28,7 @@ def test_scripts_syntax():
 def test_single_tool_and_no_persistent_config_changes():
     m = module()
     data = m.isolated_config()
-    assert data["toolsets"] == ["mcp-jason_os_pnap_canary"]
+    assert data["toolsets"] == ["jason_os_pnap_canary"]
     assert list(data["mcp_servers"]) == ["jason_os_pnap_canary"]
     svr = data["mcp_servers"]["jason_os_pnap_canary"]
     assert svr["tools"]["include"] == ["read_approved_pnap_source"]
@@ -50,9 +50,16 @@ def test_single_tool_and_no_persistent_config_changes():
     for needed in (
         '"HERMES_HOME": str(profile)', "os.chown(profile, USER_ID, USER_ID)",
         '"/usr/bin/setpriv"', '"--reuid=65534"',
-        '"--toolsets", "mcp-jason_os_pnap_canary"',
+        '"--toolsets", "jason_os_pnap_canary"',
         '"--provider", "deepseek"', '"--max-turns", "4"',
         "DEEPSEEK_API_KEY", "shutil.rmtree(profile)",
+        'set_mcp_server_filter(server)',
+        'discover_mcp_tools(allowed_mcp_names=selected)',
+        'get_tool_names_for_toolset("mcp-" + server)',
+        'get_toolset_alias_target(server)',
+        'validate_toolset(server)',
+        'Non-root Hermes MCP Registry: PASS',
+        'if MODE == "--preflight":',
         "hashlib.sha256(CONFIG.read_bytes()).hexdigest() == baseline",
     ):
         assert needed in src, needed
@@ -62,6 +69,7 @@ def test_single_tool_and_no_persistent_config_changes():
         "mcp_servers.jason_os_pnap_staging",
         "write_text(DOTENV", "write_text(CONFIG",
         "shutil.copyfile(DOTENV", "subprocess.Popen(shell=True",
+        '"--toolsets", "mcp-jason_os_pnap_canary"',
     ):
         assert forbidden not in sh + src, forbidden
 
