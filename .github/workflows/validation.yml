@@ -194,6 +194,12 @@ jobs:
           python test_beta_hermes_mcp_stdio_v1.py
           python test_beta_hermes_snapshot_v1.py
 
+      - name: Hermes Gate 3D-B canary install guarded script contract (offline)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_hermes_gate3d_canary_script_v1.py
+
       - name: Generic Production Promotion v2 contract test
         shell: bash
         run: |
