@@ -120,6 +120,16 @@ def check_answer(text):
     pages = obj.get("pdf_pages")
     if not isinstance(pages, list) or not pages or not all(type(p) is int and p > 0 for p in pages):
         return False, "page_citations_invalid"
+    document = json.loads(
+        (CANARY / "snapshots" / "BD_PNAP_APP149.json").read_text(encoding="utf-8")
+    )
+    valid_pages = {
+        page
+        for chunk in document["chunks"]
+        for page in range(chunk["pdf_page_start"], chunk["pdf_page_end"] + 1)
+    }
+    if not set(pages) <= valid_pages:
+        return False, "page_citation_not_in_approved_source"
     return True, "official_evidence_fingerprint_matched"
 
 
