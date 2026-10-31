@@ -186,6 +186,14 @@ jobs:
           set -euo pipefail
           python test_beta_hermes_snapshot_v1.py
 
+      - name: Hermes live SDK v2.0.0 compatibility (isolated CI environment)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check 'mcp==2.0.0'
+          python test_beta_hermes_mcp_stdio_v1.py
+          python test_beta_hermes_snapshot_v1.py
+
       - name: Generic Production Promotion v2 contract test
         shell: bash
         run: |
