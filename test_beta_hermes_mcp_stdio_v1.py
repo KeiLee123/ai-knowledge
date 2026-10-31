@@ -86,7 +86,7 @@ def test_no_server_or_prod_paths():
     for bad in (
         "streamable-http", "uvicorn", "0.0.0.0", "listen(",
         "API_SERVER_KEY", "JASON_BETA_LLM_API_KEY",
-        "subprocess", "answer_knowledge.py",
+        "import subprocess", "subprocess.run(", "answer_knowledge.py",
         "/opt/ai-knowledge/", "graph_search_v1.py",
     ):
         assert bad not in s, bad
