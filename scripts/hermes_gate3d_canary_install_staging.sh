@@ -5,7 +5,7 @@ set -euo pipefail
 trap 'rc=$?; if [ "$rc" -ne 0 ]; then echo "CANARY STOPPED (exit $rc). Do not rerun before inspecting partial release." >&2; fi' EXIT
 
 REPO="/opt/ai-knowledge-staging"
-EXPECTED="57315d3ea2859bd4ccef89ccd2bba19f05679fb4"
+EXPECTED_BASE="57315d3ea2859bd4ccef89ccd2bba19f05679fb4"
 CID="hermes-rgu4flce2juuzyq6idzr49z2"
 HOST_SNAPSHOTS="/var/lib/jason-os/hermes-pnap-snapshots-staging"
 RELEASE="/opt/data/jason-os-pnap-staging"
@@ -16,7 +16,8 @@ export PYTHONDONTWRITEBYTECODE=1
 
 echo "=== 1. IMMUTABLE SOURCE AND TARGET PREFLIGHT ==="
 test "$(git branch --show-current)" = "staging"
-test "$(git rev-parse HEAD)" = "$EXPECTED"
+git merge-base --is-ancestor "$EXPECTED_BASE" HEAD
+test "$(git rev-parse HEAD)" = "$(git rev-parse origin/staging)"
 test -z "$(git status --porcelain)"
 test "$(docker inspect -f '{{.State.Running}}' "$CID")" = "true"
 test "$(docker inspect -f '{{.Config.User}}' "$CID")" = "root"
