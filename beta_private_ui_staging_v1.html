@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Knowledge Brain · Private Beta</title>
+  <style nonce="__NONCE__">
+    :root { --bg:#f4f6f8; --paper:#fff; --ink:#152336; --mute:#617086;
+      --line:#dce3e9; --blue:#17629b; --deep:#102e4b; --teal:#14665f;
+      --warn:#825625; --warnbg:#fff5e4; --shadow:0 18px 52px rgba(20,41,59,.07);
+      font-family: ui-sans-serif,system-ui,-apple-system,"Noto Sans TC",sans-serif; color:var(--ink) }
+    * { box-sizing:border-box }
+    body { margin:0; background:var(--bg); min-height:100vh }
+    .topbar { padding:17px max(22px,calc((100vw - 1180px)/2)); background:var(--deep);
+      color:#fff; display:flex; justify-content:space-between; align-items:center; gap:16px }
+    .brand { font-weight:750; letter-spacing:.045em; font-size:17px }
+    .brand small { font-size:12px; opacity:.7; font-weight:500; margin-left:12px }
+    .env { padding:6px 11px; border:1px solid #58738b; border-radius:99px;
+      font-size:11px; letter-spacing:.08em; color:#d3e9e9; white-space:nowrap }
+    .container { max-width:1224px; margin:auto; padding:35px 22px 55px }
+    h1 { font-size:clamp(25px,3.3vw,38px); letter-spacing:-.04em; margin:0 0 12px }
+    h2 { font-size:17px; letter-spacing:-.01em; margin:0 0 16px }
+    h3 { font-size:15px; margin:0 0 7px }
+    p { line-height:1.7 }
+    .lead { color:var(--mute); max-width:820px; margin:0 0 25px }
+    .layout { display:grid; grid-template-columns:minmax(0,1.65fr) minmax(280px,.85fr); gap:18px; align-items:start }
+    .panel { background:var(--paper); border:1px solid var(--line);
+      border-radius:16px; padding:23px; box-shadow:var(--shadow) }
+    .panel + .panel { margin-top:17px }
+    .sectionlabel { font-size:11px; text-transform:uppercase; letter-spacing:.13em;
+      color:var(--teal); font-weight:750; margin-bottom:12px }
+    label { display:block; font-weight:650; font-size:13px; margin-bottom:8px }
+    textarea,input,select { width:100%; background:#fff; font:inherit; color:var(--ink);
+      border:1px solid #c8d2da; border-radius:9px; padding:11px 12px; outline-offset:2px }
+    textarea { min-height:120px; resize:vertical; line-height:1.6 }
+    textarea:focus,input:focus,select:focus { outline:2px solid #8cbedb; border-color:#3c91c2 }
+    .field { margin-bottom:18px }
+    .hint { color:var(--mute); font-size:12px; line-height:1.6; margin:6px 0 0 }
+    .btn { background:var(--blue); color:#fff; border:0; border-radius:10px;
+      font:inherit; font-weight:700; padding:12px 17px; cursor:pointer }
+    .btn:hover { background:#0e4a7a }
+    .btn:disabled { opacity:.55; cursor:wait }
+    .btn.secondary { background:#e9f1f5; color:#1b4665 }
+    .disclaimer { background:#f3f7f9; border-left:3px solid var(--teal);
+      color:#36536a; font-size:13px; padding:11px 14px; border-radius:7px; line-height:1.7 }
+    .status { border:1px solid #b9d5ce; background:#edf6f3; border-radius:10px;
+      padding:15px 17px; margin-bottom:18px; line-height:1.65 }
+    .status.refused { background:var(--warnbg); border-color:#efce9c }
+    .status strong { display:block; margin-bottom:3px; font-size:14px }
+    .status p { margin:0; font-size:13px }
+    .docbox { padding:15px; border:1px solid var(--line); border-radius:11px;
+      background:#f9fbfc; margin-bottom:17px }
+    .docbox .name { font-weight:750; font-size:15px; margin-bottom:6px }
+    .small { color:var(--mute); font-size:12px; line-height:1.65 }
+    .mono { font:12px ui-monospace,Consolas,monospace; overflow-wrap:anywhere }
+    a { color:var(--blue); font-weight:600; text-decoration:underline; text-underline-offset:3px }
+    .evidence { border-top:1px solid var(--line); padding:14px 0 9px }
+    .evidence-head { display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap }
+    .evidence p { white-space:pre-wrap; line-height:1.7; font-size:13px; margin:7px 0 }
+    details { margin-top:7px; }
+    summary { cursor:pointer; color:var(--teal); font-size:12px; font-weight:700 }
+    pre { overflow:auto; max-height:370px; white-space:pre-wrap; overflow-wrap:anywhere;
+      font:12px/1.75 ui-monospace,Consolas,monospace; background:#f4f7f8;
+      border:1px solid var(--line); padding:13px; border-radius:8px }
+    .rule { border-top:1px solid var(--line); padding-top:16px; margin-top:19px }
+    .note { margin:0 0 13px; font-size:13px; line-height:1.75; color:var(--mute) }
+    .feedback { display:none }
+    .feedback.show { display:block }
+    .outcome { color:var(--teal); font-size:13px; margin-top:10px; white-space:pre-wrap }
+    .busy { font-size:13px; color:var(--blue); min-height:22px; margin-top:10px }
+    footer { margin-top:25px; font-size:12px; color:var(--mute); line-height:1.7 }
+    @media (max-width:820px) { .layout{grid-template-columns:1fr} .container{padding:24px 15px 40px}
+      .panel{padding:18px} .topbar{padding:15px} .brand small{display:none} }
+    @media (prefers-reduced-motion:reduce) { *{scroll-behavior:auto!important} }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">JASON OS <small>Knowledge Brain / Private Beta</small></div>
+    <div class="env">STAGING · LOCAL ONLY</div>
+  </header>
+  <div class="container">
+    <h1>Ask the evidence.</h1>
+    <p class="lead">香港建築專業知識庫 · 私人測試版。先核對官方文件，再決定下一步。這個版本只顯示原文證據，尚不產生 AI 解釋或法律意見。</p>
+    <div class="layout">
+      <main>
+        <section class="panel">
+          <div class="sectionlabel">01 / 問題查詢</div>
+          <form id="askForm">
+            <div class="field">
+              <label for="token">私人 Session Token</label>
+              <input id="token" type="password" autocomplete="off" required placeholder="從 VPS 啟動畫面複製">
+              <p class="hint">只保存在本頁記憶體；不寫入網址、瀏覽器儲存或查詢紀錄。</p>
+            </div>
+            <div class="field">
+              <label for="source">官方文件範圍</label>
+              <select id="source">
+                <option value="BD_PNAP_APP149">BD APP149 — Temporary Authorized Signatory</option>
+                <option value="BD_PNAP_APP145">BD APP145 — Fire Safety (Buildings) Ordinance</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="question">你的專業問題</label>
+              <textarea id="question" required minlength="5" maxlength="1200" placeholder="例如：臨時認可簽署人可以簽署監督計劃及指定表格嗎？"></textarea>
+            </div>
+            <button class="btn" id="askButton" type="submit">檢索官方證據</button>
+            <div class="busy" id="askState" role="status" aria-live="polite"></div>
+          </form>
+        </section>
+        <section class="panel" aria-live="polite" id="results">
+          <div class="sectionlabel">02 / 查詢結果</div>
+          <p class="note">輸入問題後，這裡會顯示來源文件、可點擊的官方頁碼及完整證據片段。</p>
+        </section>
+      </main>
+      <aside>
+        <section class="panel">
+          <div class="sectionlabel">安全範圍</div>
+          <h2>Evidence first</h2>
+          <p class="note">僅查詢已核准的 APP145／APP149；資料來自隔離的 Staging 索引。</p>
+          <div class="disclaimer">原文齊全 ≠ 法例現行有效。涉及「最新／現行／法定期限」而版本未驗證時，系統會明確拒答。</div>
+          <div class="rule">
+            <h3>此版會做</h3>
+            <p class="note">檢索原文、顯示頁碼與來源連結、識別部分版本風險、收集回饋。</p>
+            <h3>此版不做</h3>
+            <p class="note">不向 DeepSeek 傳送問題、不提供已審核法律意見、不修改正式知識庫或 Anki。</p>
+          </div>
+        </section>
+        <section class="panel feedback" id="feedbackPanel">
+          <div class="sectionlabel">03 / 使用者回饋</div>
+          <h2>這次結果有幫助嗎？</h2>
+          <form id="feedbackForm">
+            <div class="field">
+              <label for="feedbackType">回饋類型</label>
+              <select id="feedbackType">
+                <option value="answer_wrong">原文／答案不足</option>
+                <option value="source_outdated">文件可能過時</option>
+                <option value="card_idea">Anki 學習卡建議</option>
+                <option value="other">其他建議</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="feedbackText">描述問題或建議</label>
+              <textarea id="feedbackText" minlength="5" maxlength="1000" required placeholder="哪個段落不清楚？你希望如何改善？"></textarea>
+              <p class="hint">僅保存你在此欄輸入的內容到 VPS 私人 Staging Feedback；請勿包含個人資料或未公開文件。</p>
+            </div>
+            <button class="btn secondary" type="submit" id="feedbackButton">提交回饋</button>
+            <div class="outcome" id="feedbackStatus" role="status" aria-live="polite"></div>
+          </form>
+        </section>
+      </aside>
+    </div>
+    <footer>Jason OS · Private Beta v0.1 · SSH Tunnel + localhost only · No auto-deployment · Source validity and legal applicability require independent review.</footer>
+  </div>
+  <script nonce="__NONCE__">
+    "use strict";
+    var askForm = document.getElementById("askForm");
+    var feedbackForm = document.getElementById("feedbackForm");
+    var results = document.getElementById("results");
+    var askState = document.getElementById("askState");
+    var lastRequest = null;
+
+    function element(tag, cls, value) {
+      var node = document.createElement(tag);
+      if (cls) node.className = cls;
+      if (value !== undefined) node.textContent = String(value);
+      return node;
+    }
+
+    async function postJSON(path, data) {
+      var token = document.getElementById("token").value.trim();
+      if (!token) throw new Error("請先輸入 Session Token。");
+      var response = await fetch(path, {
+        method: "POST",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json", "X-Jason-OS-Beta-Token": token },
+        body: JSON.stringify(data)
+      });
+      var payload = await response.json();
+      if (!response.ok) {
+        if (response.status === 401) throw new Error("Token 不正確；請重新輸入。");
+        throw new Error("操作未完成：" + (payload.error || "請檢查 Staging 服務。"));
+      }
+      return payload;
+    }
+
+    function showResult(data) {
+      results.replaceChildren(element("div", "sectionlabel", "02 / 查詢結果"));
+      var refused = data.status === "CURRENTNESS_UNVERIFIED_ABSTAIN";
+      var status = element("div", "status" + (refused ? " refused" : ""));
+      status.appendChild(element("strong", "", refused ? "來源現行適用性未確認 — 已拒答" : "已找到原始證據 — 待人工覆核"));
+      status.appendChild(element("p", "", data.message));
+      results.appendChild(status);
+
+      var doc = element("div", "docbox");
+      doc.appendChild(element("div", "name", data.source.title));
+      doc.appendChild(element("p", "small", "來源：" + data.source.source_id + " · 版本適用性：" + data.source.revision_date));
+      var link = element("a", "", "開啟官方 PDF");
+      link.href = data.source.official_url;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      doc.appendChild(link);
+      var coverage = data.coverage;
+      doc.appendChild(element("p", "small", "已取回 " + coverage.retrieved_unique_chunks + " / " + coverage.indexed_chunks + " 個已索引證據片段；完整性不代表法律效力或語義正確。"));
+      results.appendChild(doc);
+      results.appendChild(element("h2", "", "Evidence / 原文片段"));
+
+      data.evidence.forEach(function (item) {
+        var card = element("article", "evidence");
+        var head = element("div", "evidence-head");
+        head.appendChild(element("h3", "", "[" + item.id + "] · PDF 第 " + item.page + " 頁"));
+        var sourceLink = element("a", "", "核對原始頁面");
+        sourceLink.href = item.source_url;
+        sourceLink.target = "_blank";
+        sourceLink.rel = "noopener noreferrer";
+        head.appendChild(sourceLink);
+        card.appendChild(head);
+        card.appendChild(element("p", "small", "Chunk #" + item.chunk_id + " · 原文資料"));
+        var preview = item.content.length > 360 ? item.content.slice(0, 360) + "…" : item.content;
+        card.appendChild(element("p", "", preview));
+        if (item.content.length > 360) {
+          var details = element("details", "");
+          details.appendChild(element("summary", "", "查看完整原文"));
+          details.appendChild(element("pre", "", item.content));
+          card.appendChild(details);
+        }
+        results.appendChild(card);
+      });
+      lastRequest = { request_id: data.request_id, source: data.source.source_id };
+      document.getElementById("feedbackPanel").classList.add("show");
+      document.getElementById("feedbackStatus").textContent = "";
+    }
+
+    askForm.addEventListener("submit", async function(event) {
+      event.preventDefault();
+      var button = document.getElementById("askButton");
+      button.disabled = true;
+      askState.textContent = "正在核對 Staging 來源…";
+      lastRequest = null;
+      document.getElementById("feedbackPanel").classList.remove("show");
+      try {
+        var result = await postJSON("/api/ask", {
+          source: document.getElementById("source").value,
+          question: document.getElementById("question").value.trim()
+        });
+        showResult(result);
+        askState.textContent = "查詢完成。所有答案仍須人手核對。";
+      } catch (err) {
+        askState.textContent = err.message;
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    feedbackForm.addEventListener("submit", async function(event) {
+      event.preventDefault();
+      if (!lastRequest) return;
+      var button = document.getElementById("feedbackButton");
+      var state = document.getElementById("feedbackStatus");
+      button.disabled = true;
+      state.textContent = "正在保存回饋…";
+      try {
+        await postJSON("/api/feedback", {
+          request_id: lastRequest.request_id,
+          source: lastRequest.source,
+          type: document.getElementById("feedbackType").value,
+          comment: document.getElementById("feedbackText").value.trim()
+        });
+        state.textContent = "已保存至私人 Staging Feedback Queue。";
+        document.getElementById("feedbackText").value = "";
+      } catch(err) {
+        state.textContent = err.message;
+      } finally {
+        button.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
