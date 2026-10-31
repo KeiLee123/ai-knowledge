@@ -161,6 +161,12 @@ jobs:
           set -euo pipefail
           python test_beta_stage_monitor_candidate_v1.py
 
+      - name: Private Beta Staging Q&A source and citation safety contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_beta_ask_staging_v1.py
+
       - name: Generic Production Promotion v2 contract test
         shell: bash
         run: |
