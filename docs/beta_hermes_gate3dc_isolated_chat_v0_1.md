@@ -240,3 +240,13 @@ Do not invoke DeepSeek again until PR CI and merge CI PASS, the clean Staging
 checkout is synced to the exact merge commit, and no-provider preflight PASS.
 Previous run's temporary session was deleted so its historical tool
 dispatch is not independently recoverable from that private profile.
+
+## Further live tool-trace mismatch — precise diagnostic only (2026-10-31)
+
+The next actual isolated Hermes Chat trial at Staging 836559769ffc64ea616cb2afe169bec78561f30c showed no-model Registry PASS, CLI exit 0, a valid and strictly parsed APP149 JSON response with approved SHA256, 8 chunks, review-required status and PDF pages [1,2,3,5], but the independent session DB tool check failed: Actual MCP dispatch: unexpected_tool_invoked. The ephemeral profile was removed and existing Hermes config remained unchanged.
+
+This failure only establishes that at least one assistant function name in the trace did not exactly match the expected native MCP tool name. It does NOT establish which tool was actually requested or whether the transcript uses another naming convention. Gate 3D-C remains NOT ACCEPTED, and the deleted trace cannot be recovered.
+
+Next change: no-provider Registry probe must verify the exact function name mcp__jason_os_pnap_canary__read_approved_pnap_source, not a substring. If a later controlled model run fails its independent SessionDB verification, show only bounded validated tool names, assistant tool-call counts and tool-result counts. No arguments, response content, prompts, conversation transcript or key should be displayed. Unexpected tools remain prohibited, and the temp profile remains disposable.
+
+Operator should run only --preflight once GitHub PR and merge CI succeed. No further paid model call until this no-provider check passes and the run is explicitly approved. Any future --run still needs BOTH model fingerprint and independent recorded tool-call/result checks.
