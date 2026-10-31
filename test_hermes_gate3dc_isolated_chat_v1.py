@@ -3,6 +3,7 @@
 import ast
 import importlib.util
 import json
+import sqlite3
 import subprocess
 import tempfile
 from pathlib import Path
@@ -108,11 +109,108 @@ def test_fingerprint_and_page_proof():
         assert not m.check_answer("Unverified answer")[0]
 
 
+
+def test_known_hermes_notices_and_failclosed_json():
+    m = module()
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        (root / "snapshots").mkdir()
+        (root / "snapshots" / "BD_PNAP_APP149.json").write_text(
+            json.dumps({"chunks": [
+                {"pdf_page_start": 1, "pdf_page_end": 5},
+            ]})
+        )
+        m.CANARY = root
+        answer = {
+            "source_id": "BD_PNAP_APP149",
+            "approved_pdf_sha256": m.APPROVED["BD_PNAP_APP149"],
+            "chunk_count": 8,
+            "answer_status": "EVIDENCE_ONLY_REVIEW_REQUIRED",
+            "summary": "根據來源摘要；目前法律適用性未經核實。",
+            "pdf_pages": [1, 2, 3, 4, 5],
+        }
+        raw = json.dumps(answer, ensure_ascii=False, indent=2)
+        notices = (
+            "⚠️  Normalized model 'deepseek-chat' to 'deepseek-flash' for deepseek.\n"
+            "  ⚠ tirith security scanner enabled but not available — command scanning will use pattern matching only\n"
+        )
+        assert m.extract_model_json(notices + raw) == answer
+        assert m.check_answer(notices + raw)[0] is True
+        for bad in (
+            "Warning: Unknown toolsets: mcp-jason_os_pnap_canary\n" + raw,
+            "I'll call the tool\n" + raw,
+            raw + "\n" + raw,
+            notices + notices + raw,
+            "⚠ unexpected security warning\n" + raw,
+            "garbage {" + raw,
+        ):
+            assert not m.check_answer(bad)[0], bad[:40]
+
+
+def test_real_session_db_mcp_tool_dispatch():
+    m = module()
+    exact_name = "mcp__jason_os_pnap_canary__read_approved_pnap_source"
+    with tempfile.TemporaryDirectory() as td:
+        profile = Path(td)
+        db = profile / "state.db"
+        con = sqlite3.connect(db)
+        con.execute(
+            "CREATE TABLE messages (id INTEGER PRIMARY KEY, role TEXT, "
+            "tool_calls TEXT, tool_call_id TEXT, tool_name TEXT, content TEXT, active INTEGER)"
+        )
+
+        def record(name=exact_name, source="BD_PNAP_APP149", tool_result=True,
+                   source_sha=None):
+            con.execute("DELETE FROM messages")
+            call = [{
+                "id": "call-approved-001",
+                "type": "function",
+                "function": {
+                    "name": name,
+                    "arguments": json.dumps({"source_id": source}),
+                }
+            }]
+            con.execute(
+                "INSERT INTO messages VALUES (1, 'assistant', ?, NULL, NULL, NULL, 1)",
+                (json.dumps(call),),
+            )
+            if tool_result:
+                packet = {
+                    "source_id": "BD_PNAP_APP149",
+                    "approved_pdf_sha256": source_sha or m.APPROVED["BD_PNAP_APP149"],
+                    "chunk_count": 8, "answer": None,
+                    "answer_status": "EVIDENCE_ONLY_REVIEW_REQUIRED",
+                    "chunks": [{"id": "P" + str(i)} for i in range(1, 9)],
+                }
+                con.execute(
+                    "INSERT INTO messages VALUES "
+                    "(2, 'tool', NULL, 'call-approved-001', ?, ?, 1)",
+                    (name, json.dumps(packet)),
+                )
+            con.commit()
+
+        assert m.verify_actual_mcp_dispatch(profile) == (False, "no_unique_approved_mcp_call")
+        record()
+        assert m.verify_actual_mcp_dispatch(profile) == (
+            True, "mcp_tool_call_and_result_proven",
+        )
+        record(tool_result=False)
+        assert not m.verify_actual_mcp_dispatch(profile)[0]
+        record(name="terminal_execute")
+        assert not m.verify_actual_mcp_dispatch(profile)[0]
+        record(source="BD_PNAP_APP145")
+        assert not m.verify_actual_mcp_dispatch(profile)[0]
+        record(source_sha="0" * 64)
+        assert not m.verify_actual_mcp_dispatch(profile)[0]
+        con.close()
+
 def main():
     for t in (
         test_scripts_syntax,
         test_single_tool_and_no_persistent_config_changes,
         test_fingerprint_and_page_proof,
+        test_known_hermes_notices_and_failclosed_json,
+        test_real_session_db_mcp_tool_dispatch,
     ):
         t()
         print(t.__name__ + ": PASS")

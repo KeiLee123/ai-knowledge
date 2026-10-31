@@ -191,3 +191,52 @@ Pinned upstream references:
 - https://github.com/NousResearch/hermes-agent/blob/f97608f1/hermes_cli/mcp_startup.py
 - https://github.com/NousResearch/hermes-agent/blob/f97608f1/tools/mcp_tool_discovery.py
 - https://github.com/NousResearch/hermes-agent/blob/f97608f1/tools/mcp_tool_registration.py
+
+
+## Live E2E answer observed — strict parser failed (2026-10-31)
+
+After Registry PASS, the operator's real model trial ran against
+Staging d87b1d61dc7c2298daef9ca4811d34dbb7537cd0:
+- Hermes CLI exit 0; DeepSeek produced a JSON-shaped answer with APP149
+  approved SHA256, 8 chunks, EVIDENCE_ONLY_REVIEW_REQUIRED, pages 1–5,
+  and a substantial Traditional Chinese summary.
+- Two Hermes CLI notices preceded the JSON: model deepseek-chat was normalized
+  to deepseek-flash; tirith scanner unavailable with pattern-matching fallback.
+- Existing parser attempted json.loads on the entire mixed stdout, returned
+  invalid_model_json, and fail-closed RuntimeError. Isolated profile cleaned,
+  existing Hermes configuration remained unchanged.
+- No independently captured MCP tool execution trace was retained.
+  Therefore **real E2E remains NOT ACCEPTED**, notwithstanding plausible
+  output and accurate-looking metadata.
+
+## Fix: bounded JSON parsing plus independent dispatch proof
+
+The new extract_model_json accepts only the two known *exact* Hermes notice
+lines as a leading prefix, followed by precisely one JSON object. Any
+unexpected warning, arbitrary preamble, DSML pseudo-tool-call, malformed
+JSON, multiple answers or trailing content fails closed. The model's SHA,
+chunk count, review status and PDF pages are separately checked as before.
+
+Model output alone is insufficient to prove a real tool call. The updated
+one-shot script now inspects its own temporary HERMES_HOME/state.db in
+**read-only SQLite mode**, before deleting that temporary profile. The
+upstream Hermes v0.21.5 messages table stores assistant tool_calls,
+tool_call_id, tool_name and role=tool results.
+
+Acceptance requires one assistant tool call with the exact native function
+name mcp__jason_os_pnap_canary__read_approved_pnap_source and argument
+source_id=BD_PNAP_APP149, a matching unique tool_call_id, and exactly one
+corresponding tool result containing APP149 approved checksum, all 8 chunks,
+null answer and EVIDENCE_ONLY_REVIEW_REQUIRED. Missing session database,
+other tools, wrong arguments/source, missing result or malformed data fail
+closed. The script only prints a bounded success/reason code and cleans up
+its temporary profile; it does NOT upload the full transcript.
+
+New acceptance line: GATE 3D-C MCP CHAT: SOURCE FINGERPRINT AND TOOL DISPATCH PASS.
+This is **still** an integration acceptance, not a guarantee of the legal
+accuracy/current validity of the generated answer.
+
+Do not invoke DeepSeek again until PR CI and merge CI PASS, the clean Staging
+checkout is synced to the exact merge commit, and no-provider preflight PASS.
+Previous run's temporary session was deleted so its historical tool
+dispatch is not independently recoverable from that private profile.
