@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - staging
   push:
     branches:
       - staging
@@ -153,6 +154,12 @@ jobs:
         run: |
           set -euo pipefail
           python test_source_monitor_cutover_v1.py
+
+      - name: Beta Gate 1 M9 to versioned Drive Staging integration contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_beta_stage_monitor_candidate_v1.py
 
       - name: Generic Production Promotion v2 contract test
         shell: bash
