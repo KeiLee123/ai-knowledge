@@ -143,7 +143,7 @@ def test_build_packet_reuses_staging_only_read_primitives():
          patch.object(b, "parse_integrity_payload",
                       return_value={"document_count": 1}), \
          patch.object(b, "validate_integrity",
-                      return_value={"integrity_ok": True}), \
+                      return_value={"integrity_ok": True, "chunk_count": 8}), \
          patch.object(b, "embed_query", return_value=[0.0] * 384), \
          patch.object(b, "build_retrieval_sql", return_value="SELECT evidence"), \
          patch.object(b, "parse_rows",
@@ -154,8 +154,49 @@ def test_build_packet_reuses_staging_only_read_primitives():
         assert result["production_write"] is False
         assert result["evidence"][0]["chunk_id"] == 115
         assert result["answer_status"] == "EVIDENCE_ONLY_REVIEW_REQUIRED"
+        assert result["retrieval_coverage"] == {"indexed_chunks": 8,
+                                                "retrieved_unique_chunks": 1,
+                                                "complete_index_coverage": False}
     rejects(lambda: b.build_packet("BD_PNAP_APP145", "short", 99),
             "top_k_out_of_range")
+
+
+
+def test_approved_eight_chunk_beta_default_and_coverage_guard():
+    # The observed APP149 question ranked crucial 6(a)/6(b) at sixth place.
+    # For the present two eight-chunk sources, default to all indexed chunks.
+    assert b.DEFAULT_TOP_K == 8
+    rows = [sample_row(119 + i, "PUBLIC APP149 chunk " + str(i))
+            for i in range(8)]
+    evidence = b.validated_evidence(rows)
+    complete = b.retrieval_coverage({"chunk_count": 8}, evidence)
+    assert complete == {
+        "indexed_chunks": 8,
+        "retrieved_unique_chunks": 8,
+        "complete_index_coverage": True,
+    }
+    partial = b.retrieval_coverage({"chunk_count": 8}, evidence[:5])
+    assert partial["complete_index_coverage"] is False
+    assert partial["retrieved_unique_chunks"] == 5
+    rejects(lambda: b.retrieval_coverage({"chunk_count": 8}, evidence[:7] + evidence[:1]),
+            "duplicate_or_invalid_evidence_chunks")
+    rejects(lambda: b.retrieval_coverage({"chunk_count": 0}, evidence),
+            "indexed_chunk_count_unavailable")
+
+    with patch.object(b, "check_checkout", return_value={"guard_ok": True}), \
+         patch.object(b, "approved_source", return_value=source()), \
+         patch.object(b, "build_integrity_sql", return_value="SELECT integrity"), \
+         patch.object(b, "run_staging_query", side_effect=['{"ok":true}', "rows"]), \
+         patch.object(b, "parse_integrity_payload", return_value={"document_count": 1}), \
+         patch.object(b, "validate_integrity",
+                      return_value={"integrity_ok": True, "chunk_count": 8}), \
+         patch.object(b, "embed_query", return_value=[0.0] * 384), \
+         patch.object(b, "build_retrieval_sql", return_value="SELECT evidence") as sql, \
+         patch.object(b, "parse_rows", return_value=rows):
+        packet = b.build_packet("BD_PNAP_APP145", "Who is the enforcement authority?")
+        assert packet["retrieval_coverage"]["complete_index_coverage"] is True
+        assert [item["chunk_id"] for item in packet["evidence"]] == list(range(119, 127))
+        sql.assert_called_once_with("a" * 64, [0.0] * 384, 8)
 
 
 def test_external_generation_requires_opt_in_before_any_query():
@@ -177,6 +218,8 @@ def test_model_key_and_model_guard_before_network():
                 "explicit_beta_api_key_required")
         rejects(lambda: b.generate_draft(packet, api_key="fake", model="unknown"),
                 "model_not_allowlisted")
+        rejects(lambda: b.generate_draft(packet, api_key="fake", model="deepseek-flash"),
+                "incomplete_index_coverage_for_ai_draft")
 
 
 def test_frozen_and_production_non_mutation_contract():
