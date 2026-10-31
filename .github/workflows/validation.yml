@@ -206,6 +206,12 @@ jobs:
           set -euo pipefail
           python test_hermes_gate3dc_isolated_chat_v1.py
 
+      - name: Hermes Gate 3D-C MCP discovery diagnostics, no provider calls
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_hermes_gate3dc_mcp_discovery_v1.py
+
       - name: Generic Production Promotion v2 contract test
         shell: bash
         run: |
