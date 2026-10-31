@@ -50,10 +50,10 @@ def diagnostic_config():
 
 def clean_display(raw):
     # Isolated env has no provider secrets; still cap and scrub key-shaped text.
-    raw = re.sub(r"(?i)(api[_-]?key|token|authorization)(\\s*[:=]\\s*)[^\\s,]+",
-                 r"\\1\\2[REDACTED]", raw or "")
+    raw = re.sub(r"(?i)(api[_-]?key|token|authorization)(\s*[:=]\s*)[^\s,]+",
+                 r"\1\2[REDACTED]", raw or "")
     raw = re.sub(r"sk-[A-Za-z0-9_-]{8,}", "[REDACTED_KEY]", raw)
-    return raw.replace("\\x1b", "")[-1600:]
+    return raw.replace("\x1b", "")[-1600:]
 
 
 def run_cli(args, env, folder, seconds=35):
@@ -105,7 +105,7 @@ def main():
         if test_supported and visible:
             mcp = run_cli(["mcp", "test", SERVER], env, folder, 65)
             print("Hermes mcp test exit:", mcp.returncode, flush=True)
-            print("Hermes mcp test result:", clean_display(mcp.stdout + "\\n" + mcp.stderr),
+            print("Hermes mcp test result:", clean_display(mcp.stdout + "\n" + mcp.stderr),
                   flush=True)
         else:
             print("Hermes mcp test: SKIPPED (config or CLI prerequisite failed)", flush=True)
