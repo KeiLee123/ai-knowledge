@@ -54,7 +54,7 @@ def http_request(port, method, path, body=None, token=TOKEN, origin=True,
     if host_override:
         headers["Host"] = host_override
     conn.request(method, path,
-                 body=json.dumps(body, ensure_ascii=False) if body is not None else None,
+                 body=json.dumps(body, ensure_ascii=False).encode("utf-8") if body is not None else None,
                  headers=headers)
     resp = conn.getresponse()
     status, headers = resp.status, dict(resp.getheaders())
