@@ -120,7 +120,7 @@ def test_auth_origin_and_allowed_query_fields():
             {"source": "BD_PNAP_APP999", "question": "valid question"},
             {"source": "BD_PNAP_APP145", "question": "valid question",
              "generate_answer": True},
-            {"source": "BD_PNAP_APP145", "question": "short"},
+            {"source": "BD_PNAP_APP145", "question": "no"},
         ):
             status, _, body = http_request(port, "POST", "/api/ask", invalid)
             assert status == 400, body
