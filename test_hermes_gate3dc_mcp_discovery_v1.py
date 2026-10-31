@@ -40,14 +40,15 @@ def test_no_llm_and_no_live_changes():
     s = SCRIPT.read_text(encoding="utf-8")
     sh = SHELL.read_text(encoding="utf-8")
     for needle in (
-        "mcp\", \"test", "config\", \"get", "HERMES_HOME",
+        '["mcp", "test"', '["config", "get"', "HERMES_HOME",
         "setpriv", "--reuid=65534", "shutil.rmtree(folder)",
         "hashlib.sha256(LIVE_CONFIG.read_bytes()).hexdigest() == before",
         "CANARY", "DISCOVERY AUDIT COMPLETE",
+        'require("DEEPSEEK_API_KEY" not in env',
     ):
         assert needle in s, needle
     for forbidden in (
-        "DEEPSEEK_API_KEY", "chat\", \"-q", "agent_question",
+        '"DEEPSEEK_API_KEY":', '["chat", "-q"', '"--provider"',
         "docker restart", "docker cp", "docker stop",
         "chmod 755 /opt/data", "chmod 711 /opt/data",
         "write_text(LIVE_CONFIG", "mcp add",
