@@ -30,6 +30,7 @@ def test_single_tool_and_no_persistent_config_changes():
     m = module()
     data = m.isolated_config()
     assert data["toolsets"] == ["jason_os_pnap_canary"]
+    assert data["tools"] == {"tool_search": {"enabled": "off"}}
     assert list(data["mcp_servers"]) == ["jason_os_pnap_canary"]
     svr = data["mcp_servers"]["jason_os_pnap_canary"]
     assert svr["tools"]["include"] == ["read_approved_pnap_source"]
@@ -63,6 +64,11 @@ def test_single_tool_and_no_persistent_config_changes():
         "diagnose_mcp_tool_names(profile)",
         'validate_toolset(server)',
         'Non-root Hermes MCP Registry: PASS',
+        'tool_search_config.enabled == "off"',
+        'assert not assembled.activated',
+        'bridge_modified_scope',
+        'HERMES MCP REGISTRY: ONE DIRECT APPROVED TOOL (BRIDGE OFF)',
+        '"tools": {"tool_search": {"enabled": "off"}}',
         'if MODE == "--preflight":',
         "hashlib.sha256(CONFIG.read_bytes()).hexdigest() == baseline",
     ):
@@ -74,6 +80,8 @@ def test_single_tool_and_no_persistent_config_changes():
         "write_text(DOTENV", "write_text(CONFIG",
         "shutil.copyfile(DOTENV", "subprocess.Popen(shell=True",
         '"--toolsets", "mcp-jason_os_pnap_canary"',
+        '"tool_search": {"enabled": "auto"}',
+        '"tool_search": {"enabled": "on"}',
     ):
         assert forbidden not in sh + src, forbidden
 

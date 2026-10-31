@@ -75,6 +75,11 @@ def preflight():
 def isolated_config():
     return {
         "toolsets": ["jason_os_pnap_canary"],
+        # Single-tool MVP: Hermes v0.21.5 otherwise defers every MCP tool
+        # behind tool_describe/tool_call, whose bridge names are not the
+        # native MCP function recorded in the strict session verifier.
+        # Disable the bridge ONLY in this disposable isolated profile.
+        "tools": {"tool_search": {"enabled": "off"}},
         "mcp_servers": {
             "jason_os_pnap_canary": {
                 "command": "/usr/bin/env",
@@ -329,7 +334,19 @@ assert registry.get_toolset_alias_target(server) == "mcp-" + server
 from toolsets import validate_toolset, resolve_toolset
 assert validate_toolset(server)
 assert resolve_toolset(server) == names
-print("HERMES MCP REGISTRY: ONE APPROVED TOOL", flush=True)
+# Check the *actual installed Hermes* tool-search assembler before
+# any provider call. Disabled bridge must expose the one native tool.
+from tools.tool_search import load_config as load_tool_search_config, assemble_tool_defs
+tool_search_config = load_tool_search_config()
+assert tool_search_config.enabled == "off", ("bridge_still_enabled", tool_search_config.enabled)
+tool_defs = [{"type": "function", "function": {
+    "name": names[0], "description": "Approved source only",
+    "parameters": {"type": "object", "properties": {
+        "source_id": {"type": "string"}}, "required": ["source_id"]}}}]
+assembled = assemble_tool_defs(tool_defs, config=tool_search_config)
+assert not assembled.activated, "unexpected_bridge_activated"
+assert [t["function"]["name"] for t in assembled.tool_defs] == names, "bridge_modified_scope"
+print("HERMES MCP REGISTRY: ONE DIRECT APPROVED TOOL (BRIDGE OFF)", flush=True)
 '''
 
 
@@ -388,9 +405,9 @@ def main():
             print("MCP registry diagnostic:",
                   diagnostic.replace(key, "[REDACTED]")[-1400:], flush=True)
         require(registry_result.returncode == 0, "mcp_runtime_registration_failed")
-        require("HERMES MCP REGISTRY: ONE APPROVED TOOL" in registry_result.stdout,
-                "mcp_registry_proof_missing")
-        print("Non-root Hermes MCP Registry: PASS (1 tool, no provider)", flush=True)
+        require("HERMES MCP REGISTRY: ONE DIRECT APPROVED TOOL (BRIDGE OFF)" in registry_result.stdout,
+                "direct_mcp_registry_proof_missing")
+        print("Non-root Hermes MCP Registry: PASS (1 direct tool, bridge off, no provider)", flush=True)
 
         if MODE == "--preflight":
             print("GATE 3D-C PRE-FLIGHT PASS (NO MODEL CALL)", flush=True)
