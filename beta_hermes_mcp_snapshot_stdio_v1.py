@@ -2,8 +2,9 @@
 """Hermes-side read-only MCP tool backed only by offline approved PNAP JSON.
 
 Does NOT connect to Docker, PostgreSQL, Knowledge Brain runtime, or any LLM.
-No network socket, no API key, no filesystem writes. A separate Hermes runtime
-deployment and read-only volume mount are REQUIRED before this can be used.
+No network socket, no API key, no filesystem writes. A separate, guarded
+release with root-owned files and a non-root subprocess is REQUIRED. The
+existing Hermes root process is NOT sandboxed by MCP read-only annotations.
 """
 
 import json
@@ -16,7 +17,7 @@ from mcp.types import ToolAnnotations
 
 NAME = "jason-os-pnap-snapshot"
 TOOL = "read_approved_pnap_source"
-ROOT = Path("/mnt/jason-os-pnap-readonly")
+ROOT = Path("/opt/data/jason-os-pnap-staging/snapshots")
 VERSION = "hermes-approved-snapshot-v0.1"
 MAX_BYTES = 300000
 MAX_CHUNKS = 32
