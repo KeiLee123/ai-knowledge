@@ -16,6 +16,7 @@ from pathlib import Path
 import detect_source_changes_v1 as detector
 import write_pnap_staging_v1 as writer
 from run_source_monitor_batch_v1 import extract_monitor_result
+from version_qualification_policy_v1 import UNCHANGED as MONITOR_NO_CHANGE
 
 VERSION = "beta-source-drive-handoff-v1"
 STATE_ROOT = Path("/var/lib/jason-os/source-monitor-staging")
@@ -105,9 +106,12 @@ def plan_candidate(*, state_root, run_dir, source_id, source):
             monitor.get("source_id") == source_id, "monitor_identity_mismatch")
     require(monitor.get("production_access") is False and
             monitor.get("production_write") is False, "production_flag_refused")
-    if (monitor.get("decision") == "UNCHANGED" and
+    if (monitor.get("decision") == MONITOR_NO_CHANGE and
+            monitor.get("baseline_status") in ("UNCHANGED", "INDEX_CHANGED") and
             monitor.get("action") == "NONE" and
-            monitor.get("candidate_downloaded") is False):
+            monitor.get("candidate_downloaded") is False and
+            "candidate_path" not in monitor and
+            "candidate_sha256" not in monitor):
         return {"version": VERSION, "source_id": source_id,
                 "status": "NO_CHANGE", "write_authorized": False,
                 "production_write": False}
