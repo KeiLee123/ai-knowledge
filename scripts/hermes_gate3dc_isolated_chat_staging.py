@@ -11,6 +11,7 @@ import json
 import os
 import re
 import shutil
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -93,17 +94,135 @@ def isolated_config():
     }
 
 
-def check_answer(text):
-    if not isinstance(text, str):
-        return False, "no_model_text"
-    t = text.strip()
+# Only these two *known Hermes CLI notices* may precede the model JSON.
+# Do not use a generic first-{ to last-} substring extractor: that could
+# turn errors or fake tool output into a superficially successful JSON.
+ALLOWED_CLI_NOTICES = {
+    "⚠️  Normalized model 'deepseek-chat' to 'deepseek-flash' for deepseek.",
+    "⚠ tirith security scanner enabled but not available — command scanning will use pattern matching only",
+}
+EXPECTED_TOOL_NAME = "mcp__jason_os_pnap_canary__read_approved_pnap_source"
+
+
+def extract_model_json(text):
+    if not isinstance(text, str) or not text.strip() or len(text) > 30000:
+        raise ValueError("empty_or_oversize_output")
+    lines = text.strip().splitlines()
+    notices = set()
+    while lines and lines[0].strip() in ALLOWED_CLI_NOTICES:
+        notice = lines.pop(0).strip()
+        if notice in notices:
+            raise ValueError("duplicate_cli_notice")
+        notices.add(notice)
+    payload = "\n".join(lines).strip()
     fence = chr(96) * 3
-    if t.startswith(fence):
-        t = re.sub("^" + fence + r"(?:json)?\s*", "", t)
-        t = re.sub(r"\s*" + fence + "$", "", t)
+    if payload.startswith(fence + "json\n"):
+        if not payload.endswith("\n" + fence):
+            raise ValueError("unfinished_json_fence")
+        payload = payload[len(fence + "json\n"):-len(fence)].strip()
+    obj = json.loads(payload)
+    if not isinstance(obj, dict):
+        raise ValueError("non_object_reply")
+    return obj
+
+
+def _tool_reply_contains_approved_snapshot(value, depth=0):
+    if depth > 5:
+        return False
+    if isinstance(value, str):
+        if len(value) > 300000:
+            return False
+        try:
+            return _tool_reply_contains_approved_snapshot(json.loads(value), depth + 1)
+        except (ValueError, TypeError):
+            return False
+    if isinstance(value, list):
+        return any(_tool_reply_contains_approved_snapshot(item, depth + 1) for item in value)
+    if not isinstance(value, dict):
+        return False
+    if (value.get("source_id") == "BD_PNAP_APP149"
+            and value.get("approved_pdf_sha256") == APPROVED["BD_PNAP_APP149"]
+            and value.get("chunk_count") == 8
+            and value.get("answer") is None
+            and value.get("answer_status") == "EVIDENCE_ONLY_REVIEW_REQUIRED"
+            and isinstance(value.get("chunks"), list)
+            and len(value["chunks"]) == 8):
+        return True
+    if value.get("isError") is True or value.get("is_error") is True:
+        return False
+    return any(
+        _tool_reply_contains_approved_snapshot(value.get(k), depth + 1)
+        for k in ("content", "structuredContent", "structured_content", "result", "data", "text")
+        if k in value
+    )
+
+
+def verify_actual_mcp_dispatch(profile):
+    """Verify *session DB* assistant tool call AND matched real tool result.
+
+    Hermes v0.21.5 stores these in the isolated HERMES_HOME/state.db.
+    Model self-reported SHA/chunks do not count as proof of tool execution.
+    """
+    db = profile / "state.db"
+    if not db.is_file() or db.is_symlink():
+        return False, "hermes_session_db_missing"
     try:
-        obj = json.loads(t)
-    except ValueError:
+        with sqlite3.connect(db.as_uri() + "?mode=ro", uri=True) as con:
+            rows = con.execute(
+                "SELECT role, tool_calls, tool_call_id, tool_name, content "
+                "FROM messages WHERE active = 1 ORDER BY id"
+            ).fetchall()
+    except sqlite3.Error:
+        return False, "hermes_session_trace_unavailable"
+
+    actual_calls = {}
+    tool_results = {}
+    for role, raw_calls, tool_id, tool_name, content in rows:
+        if role == "assistant" and raw_calls:
+            try:
+                calls = json.loads(raw_calls)
+            except (ValueError, TypeError):
+                return False, "tool_calls_malformed"
+            if not isinstance(calls, list):
+                return False, "tool_calls_malformed"
+            for call in calls:
+                if not isinstance(call, dict):
+                    return False, "tool_calls_malformed"
+                fn = call.get("function") or {}
+                if not isinstance(fn, dict) or fn.get("name") != EXPECTED_TOOL_NAME:
+                    return False, "unexpected_tool_invoked"
+                arguments = fn.get("arguments")
+                try:
+                    args = json.loads(arguments) if isinstance(arguments, str) else arguments
+                except (ValueError, TypeError):
+                    return False, "tool_arguments_invalid"
+                if not isinstance(args, dict) or args != {"source_id": "BD_PNAP_APP149"}:
+                    return False, "unexpected_tool_arguments"
+                cid = call.get("id")
+                if not isinstance(cid, str) or not cid or cid in actual_calls:
+                    return False, "tool_call_id_invalid"
+                actual_calls[cid] = True
+        elif role == "tool" and tool_id:
+            tool_results.setdefault(tool_id, []).append((tool_name, content))
+
+    if len(actual_calls) != 1:
+        return False, "no_unique_approved_mcp_call"
+    cid = next(iter(actual_calls))
+    matched = tool_results.get(cid, [])
+    if len(matched) != 1:
+        return False, "mcp_tool_result_missing_or_duplicate"
+    tool_name, tool_output = matched[0]
+    if tool_name and tool_name != EXPECTED_TOOL_NAME:
+        return False, "tool_result_name_mismatch"
+    if not _tool_reply_contains_approved_snapshot(tool_output):
+        return False, "mcp_tool_result_not_approved_snapshot"
+    return True, "mcp_tool_call_and_result_proven"
+
+
+def check_answer(text):
+    try:
+        obj = extract_model_json(text)
+    except (ValueError, TypeError):
         return False, "invalid_model_json"
     if not isinstance(obj, dict):
         return False, "model_not_object"
@@ -250,7 +369,10 @@ def main():
         passed, reason = check_answer(response)
         print("Evidence fingerprint:", reason, flush=True)
         require(passed, "model_evidence_contract_failed")
-        print("GATE 3D-C MCP CHAT: SOURCE FINGERPRINT PASS", flush=True)
+        dispatched, trace_reason = verify_actual_mcp_dispatch(profile)
+        print("Actual MCP dispatch:", trace_reason, flush=True)
+        require(dispatched, "real_mcp_tool_dispatch_not_proven")
+        print("GATE 3D-C MCP CHAT: SOURCE FINGERPRINT AND TOOL DISPATCH PASS", flush=True)
         print("Legal accuracy and source currentness: HUMAN REVIEW REQUIRED", flush=True)
     finally:
         require(profile.parent == Path("/tmp") and profile.name.startswith(PREFIX), "temp_dir_guard")
