@@ -40,6 +40,15 @@ ALLOWED = ("BD_PNAP_APP145", "BD_PNAP_APP149")
 DEFAULT_TOP_K = 8
 MODEL_ENDPOINT = "https://api.deepseek.com/chat/completions"
 MODELS = ("deepseek-flash", "deepseek-v4-pro")
+# Explicit requests to assert current law/date/deadlines must not be answered
+# from these historical, unverified Beta baselines. Conservative MVP cues.
+CURRENTNESS_CUES = re.compile(
+    r"截至|現行|現時|目前|最新|仍然有效|是否有效|仍然生效|"
+    r"法定[^。？！?\n]{0,30}(?:期限|限期|日數)|"
+    r"\b(?:as\s+of|currently|current|latest|in\s+force|"
+    r"still\s+(?:valid|in\s+effect)|statutory\s+deadline)\b",
+    re.IGNORECASE,
+)
 
 
 class BetaRefused(RuntimeError):
@@ -99,6 +108,7 @@ def approved_source(source_id):
         "checksum": baseline["sha256"],
         "approved_baseline": True,
         "revision_date": "NOT_VERIFIED",
+        "currentness_verified": False,
     }
 
 
@@ -185,6 +195,35 @@ def build_packet(source_id, question, limit=DEFAULT_TOP_K):
     }
 
 
+def currentness_abstention(packet):
+    """Product safety refusal, before any external AI request.
+
+    The Beta source snapshots have not been checked for present applicability.
+    A complete chunk set verifies retrieval, not current statutory validity.
+    """
+    question = packet.get("question")
+    require(isinstance(question, str), "invalid_currentness_question")
+    source = packet.get("source")
+    require(isinstance(source, dict), "invalid_currentness_source")
+    asks_current_law = CURRENTNESS_CUES.search(question) is not None
+    independently_verified = (
+        source.get("currentness_verified") is True
+        and isinstance(source.get("revision_date"), str)
+        and source["revision_date"] != "NOT_VERIFIED"
+    )
+    if asks_current_law and not independently_verified:
+        return {
+            "status": "CURRENTNESS_UNVERIFIED_ABSTAIN",
+            "answer": (
+                "目前這份核准文件的現行適用性、最新修訂及法定期限"
+                "未經獨立核實，因此不能確認所問日期的現行法律要求。"
+                "請先核對官方最新法例及文件版本。"
+            ),
+            "citations": [],
+        }
+    return None
+
+
 def validate_model_result(text, evidence):
     try:
         payload = json.loads(text)
@@ -222,6 +261,8 @@ def generate_draft(packet, *, api_key, model):
     require(model in MODELS, "model_not_allowlisted")
     require(packet.get("retrieval_coverage", {}).get("complete_index_coverage") is True,
             "incomplete_index_coverage_for_ai_draft")
+    require(currentness_abstention(packet) is None,
+            "currentness_unverified_requires_abstention")
     evidence = [
         {
             "id": item["id"],
@@ -292,7 +333,10 @@ def render(packet, draft=None, full_evidence=False):
         coverage["retrieved_unique_chunks"], coverage["indexed_chunks"],
         "COMPLETE" if coverage["complete_index_coverage"] else "PARTIAL — NO AI DRAFT"))
     if draft is not None:
-        print("\nANSWER (HUMAN REVIEW REQUIRED)")
+        if draft["status"] == "CURRENTNESS_UNVERIFIED_ABSTAIN":
+            print("\nSOURCE SAFETY ABSTENTION — NO AI ANSWER GENERATED")
+        else:
+            print("\nANSWER (HUMAN REVIEW REQUIRED)")
         print(draft["answer"])
         print("Answer status:", draft["status"])
     else:
@@ -327,6 +371,12 @@ def main():
     require(not args.generate_answer or args.confirm_external_api,
             "external_api_requires_explicit_confirmation")
     packet = build_packet(args.source, args.question, args.top_k)
+    # Local deterministic refusal, including when a paid API draft was requested.
+    # A model must never override the unverified-source currentness decision.
+    abstention = currentness_abstention(packet)
+    if abstention is not None:
+        render(packet, abstention, args.full_evidence)
+        return
     draft = None
     if args.generate_answer:
         draft = generate_draft(

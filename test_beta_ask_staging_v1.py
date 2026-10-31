@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Offline quality/security contracts for the Private Beta Staging Q&A entrypoint."""
+import io
 import json
 import sys
+from contextlib import redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
@@ -220,6 +222,90 @@ def test_model_key_and_model_guard_before_network():
                 "model_not_allowlisted")
         rejects(lambda: b.generate_draft(packet, api_key="fake", model="deepseek-flash"),
                 "incomplete_index_coverage_for_ai_draft")
+
+
+
+def test_unverified_currentness_question_abstains_before_model():
+    # The fifth real VPS query reported this metadata, but its operator-side
+    # if-statement did NOT prove the product itself would refuse the answer.
+    question = (
+        "截至2026年10月31日，第572章消防安全（建築物）條例"
+        "的現行規定是否與 APP145 完全相同？"
+        "最新修訂日期及法定改善期限是甚麼？"
+    )
+    packet = {
+        "question": question,
+        "source": source(),
+        "integrity": {"integrity_ok": True},
+        "retrieval_coverage": {
+            "indexed_chunks": 8, "retrieved_unique_chunks": 8,
+            "complete_index_coverage": True,
+        },
+        "evidence": b.validated_evidence([sample_row()]),
+    }
+    decision = b.currentness_abstention(packet)
+    assert decision["status"] == "CURRENTNESS_UNVERIFIED_ABSTAIN"
+    assert decision["citations"] == []
+    assert "未經獨立核實" in decision["answer"]
+    assert b.currentness_abstention({
+        **packet, "question": "根據 APP145 第 9 段，哪兩個執法機關分別負責甚麼？"
+    }) is None
+
+    for unsafe in (
+        question,
+        "As of October 2026 what is the current legal requirement?",
+        "Is APP145 still valid and in force today?",
+        "法定改善限期是幾多天？",
+    ):
+        assert b.currentness_abstention({**packet, "question": unsafe}) is not None
+    # A revision_date value alone cannot mark the document verified.
+    not_verified = {**source(), "revision_date": "2026-10-31"}
+    assert b.currentness_abstention({
+        **packet, "source": not_verified
+    }) is not None
+
+    with patch.object(b.urllib.request, "urlopen",
+                      side_effect=AssertionError("NO_EXTERNAL_API")):
+        rejects(lambda: b.generate_draft(
+            packet, api_key="fake", model="deepseek-flash"
+        ), "currentness_unverified_requires_abstention")
+    print("Source currentness draft guard: PASS")
+
+
+def test_real_fifth_question_cli_abstains_without_external_model():
+    question = (
+        "截至2026年10月31日，第572章消防安全（建築物）條例"
+        "的現行規定是否與 APP145 完全相同？"
+        "最新修訂日期及法定改善期限是甚麼？"
+    )
+    packet = {
+        "question": question,
+        "source": source(),
+        "integrity": {"integrity_ok": True},
+        "retrieval_coverage": {
+            "indexed_chunks": 8, "retrieved_unique_chunks": 8,
+            "complete_index_coverage": True,
+        },
+        "evidence": b.validated_evidence([sample_row()]),
+    }
+    # Both no-provider path and explicitly requested paid path must abstain.
+    for extra in ([], ["--generate-answer", "--confirm-external-api"]):
+        stdout = io.StringIO()
+        argv = ["beta_ask_staging_v1.py", "--source", "BD_PNAP_APP145",
+                *extra, question]
+        with patch.object(sys, "argv", argv), \
+             patch.object(b, "build_packet", return_value=packet), \
+             patch.object(b, "generate_draft",
+                          side_effect=AssertionError("NO_EXTERNAL_AI")), \
+             redirect_stdout(stdout):
+            b.main()
+        output = stdout.getvalue()
+        assert "SOURCE SAFETY ABSTENTION — NO AI ANSWER GENERATED" in output
+        assert "STATUS: CURRENTNESS_UNVERIFIED_ABSTAIN" in output
+        assert "ANSWER (HUMAN REVIEW REQUIRED)" not in output
+        assert "Document revision/current applicability: NOT VERIFIED" in output
+        assert "production_write=false" in output
+    print("Real fifth-question product refusal: PASS")
 
 
 def test_frozen_and_production_non_mutation_contract():
