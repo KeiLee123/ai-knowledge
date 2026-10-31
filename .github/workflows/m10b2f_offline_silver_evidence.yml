@@ -1,0 +1,73 @@
+name: M10B-2F Offline Silver Evidence Verifier
+
+on:
+  pull_request:
+    branches:
+      - staging
+    paths:
+      - 'm10b2f_offline_silver_evidence_v1.py'
+      - 'test_m10b2f_offline_silver_evidence_v1.py'
+      - 'docs/m10b2f_offline_silver_evidence_v1.md'
+      - '.github/workflows/m10b2f_offline_silver_evidence.yml'
+  push:
+    branches:
+      - staging
+    paths:
+      - 'm10b2f_offline_silver_evidence_v1.py'
+      - 'test_m10b2f_offline_silver_evidence_v1.py'
+      - '.github/workflows/m10b2f_offline_silver_evidence.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  silver-evidence-offline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install synthetic PDF fixture dependencies
+        run: python -m pip install PyMuPDF==1.26.6 PyYAML==6.0.3
+      - name: Syntax and pure-module guard
+        run: |
+          python -m py_compile m10b2f_offline_silver_evidence_v1.py test_m10b2f_offline_silver_evidence_v1.py
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          root = ast.parse(Path("m10b2f_offline_silver_evidence_v1.py").read_text(encoding="utf-8"))
+          imported = set()
+          for node in ast.walk(root):
+              if isinstance(node, ast.Import):
+                  imported.update(a.name for a in node.names)
+              elif isinstance(node, ast.ImportFrom):
+                  imported.add(node.module)
+          assert imported == {"hashlib", "json", "re", "pymupdf"}, imported
+          for node in ast.walk(root):
+              if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+                  assert node.func.id not in {"open", "eval", "exec", "__import__"}
+          print("M10B-2F safe offline imports: PASS")
+          PY
+      - name: M10A
+        run: python test_m10_candidate_intake_v1.py
+      - name: M10B-0
+        run: python test_m10b0_candidate_contract_v1.py
+      - name: M10B-1
+        run: python test_m10b1_isolated_candidate_v1.py
+      - name: M10B-2A lexical
+        run: python test_m10b2a_candidate_lexical_v1.py
+      - name: M10B-2A synthetic Gold
+        run: python test_m10b2a_gold_cases_v1.py
+      - name: M10B-2B-0
+        run: python test_m10b2b0_offline_semantic_v1.py
+      - name: M10B-2B-1 offline audit
+        run: python test_m10b2b1_readonly_endpoint_audit_v1.py
+      - name: M10B-2C
+        run: python test_m10b2c_offline_comparison_v1.py
+      - name: M10B-2D
+        run: python test_m10b2d_offline_report_v1.py
+      - name: M10B-2E
+        run: python test_m10b2e_offline_ranking_diagnostics_v1.py
+      - name: M10B-2F silver verifier
+        run: python test_m10b2f_offline_silver_evidence_v1.py
