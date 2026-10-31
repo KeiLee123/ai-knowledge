@@ -1,0 +1,40 @@
+name: Hermes Gate 3D-D1 One-Shot Observation (Offline Tests)
+
+on:
+  pull_request:
+    branches: [staging]
+    paths:
+      - "scripts/hermes_gate3dd1_observe_staging.py"
+      - "test_hermes_gate3dd1_observation_v1.py"
+      - "scripts/hermes_gate3dc_isolated_chat_staging.py"
+      - ".github/workflows/hermes_gate3dd1_observation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  d1-offline-observer-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install isolated parser dependency
+        run: python -m pip install --disable-pip-version-check "PyYAML>=6,<7"
+      - name: Frozen Gate 3D-C offline regression
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: python test_hermes_gate3dc_isolated_chat_v1.py
+      - name: Gate 3D-D0 offline fault matrix regression
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: python test_hermes_gate3dd_offline_fault_matrix_v1.py
+      - name: Gate 3D-D1 observer offline contract
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: python test_hermes_gate3dd1_observation_v1.py
