@@ -148,3 +148,46 @@ The diagnostic distinguishes:
 A successful MCP manager test alone is not E2E success. A future model
 retry must use structured tool-use/tool-result telemetry when available,
 not accept free-form text that merely resembles a tool invocation.
+
+## Hermes v0.21.5 MCP dynamic Toolset name compatibility (2026-10-31)
+
+**Live diagnostic passed, but Chat failed**:
+- `hermes config get mcp_servers --json` recognized the isolated profile.
+- `hermes mcp test jason_os_pnap_canary` connected successfully and
+  discovered exactly `read_approved_pnap_source`.
+- Existing E2E nevertheless logged `Unknown toolsets: mcp-jason_os_pnap_canary`
+  and printed text resembling a DSML tool call without executing it.
+
+Inspecting the **actual deployed Hermes upstream source** at commit
+`f97608f178d1ffeca59860195ab7da295f7c8e5f` identified a
+specific compatibility risk: `hermes_cli/mcp_startup.py` passes the
+literal `--toolsets` choice to its MCP server discovery filter, while
+`tools/mcp_tool_discovery.py` matches the filter to the **bare
+mcp_servers key**, not the generated `mcp-<server>` toolset name. Thus
+`--toolsets mcp-jason_os_pnap_canary` can filter out the configured
+server `jason_os_pnap_canary` itself before registration. After a real
+MCP registration, `tools/mcp_tool_registration.py` adds an alias from
+`jason_os_pnap_canary` to `mcp-jason_os_pnap_canary`.
+
+**Staging-only fix**: use the **bare server alias**
+`--toolsets jason_os_pnap_canary` and `toolsets: [jason_os_pnap_canary]`
+in the disposable profile. Do not change the existing Hermes main
+`/opt/data/config.yaml` or its default `hermes-cli` tools.
+
+**New hard gate**: Both `--preflight` and `--run` now create the same
+short-lived nonroot test Profile and execute an *independent, provider-free*
+Registry probe under UID65534 with no `DEEPSEEK_API_KEY`. The probe sets
+the same bare server allowlist, runs actual Hermes MCP discovery, and
+requires **exactly one registered tool**, that its server alias resolves
+to that toolset, and that no built-in toolset was added to the resolution.
+If the probe fails, **no DeepSeek request takes place**. On either path,
+clean up the profile and verify original Hermes config SHA unchanged.
+
+This is a narrowed diagnosis supported by upstream source. A passed
+Registry probe still does not prove the model performed the tool call;
+real E2E must separately prove actual dispatch, not textual DSML alone.
+
+Pinned upstream references:
+- https://github.com/NousResearch/hermes-agent/blob/f97608f1/hermes_cli/mcp_startup.py
+- https://github.com/NousResearch/hermes-agent/blob/f97608f1/tools/mcp_tool_discovery.py
+- https://github.com/NousResearch/hermes-agent/blob/f97608f1/tools/mcp_tool_registration.py
