@@ -8,6 +8,7 @@ existing Hermes root process is NOT sandboxed by MCP read-only annotations.
 """
 
 import json
+import os
 from pathlib import Path
 from typing import Literal
 
@@ -17,7 +18,11 @@ from mcp.types import ToolAnnotations
 
 NAME = "jason-os-pnap-snapshot"
 TOOL = "read_approved_pnap_source"
-ROOT = Path("/opt/data/jason-os-pnap-staging/snapshots")
+# Only the explicit CANARY flag selects the disposable test directory.
+# It never expands source access beyond the fixed approved PNAP documents.
+PERSISTENT_ROOT = Path("/opt/data/jason-os-pnap-staging/snapshots")
+CANARY_ROOT = Path("/tmp/jason-os-pnap-canary/snapshots")
+ROOT = CANARY_ROOT if os.environ.get("JASON_OS_PNAP_CANARY") == "1" else PERSISTENT_ROOT
 VERSION = "hermes-approved-snapshot-v0.1"
 MAX_BYTES = 300000
 MAX_CHUNKS = 32

@@ -2,6 +2,9 @@
 """Offline exporter + consumer and real in-memory MCP protocol contracts."""
 import asyncio
 import json
+import os
+import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
@@ -181,6 +184,20 @@ def test_hermes_persistent_release_root_fixed():
     assert ".." not in rd.ROOT.parts
 
 
+def test_explicit_canary_mode_changes_only_fixed_source_root():
+    code = (
+        "import beta_hermes_mcp_snapshot_stdio_v1 as m; "
+        "assert str(m.ROOT) == '/tmp/jason-os-pnap-canary/snapshots'; "
+        "assert str(m.PERSISTENT_ROOT) == '/opt/data/jason-os-pnap-staging/snapshots'"
+    )
+    env = {**os.environ, "JASON_OS_PNAP_CANARY": "1"}
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        env=env, capture_output=True, text=True,
+    )
+    assert result.returncode == 0, result.stderr
+
+
 def test_consumer_no_privileged_dependency():
     text = Path(rd.__file__).read_text(encoding="utf-8")
     for bad in (
@@ -199,6 +216,7 @@ def main():
         ("test_export_end_to_end_without_db", test_export_end_to_end_without_db),
         ("test_snapshot_reader_and_tamper_refusals", test_snapshot_reader_and_tamper_refusals),
         ("test_hermes_persistent_release_root_fixed", test_hermes_persistent_release_root_fixed),
+        ("test_explicit_canary_mode_changes_only_fixed_source_root", test_explicit_canary_mode_changes_only_fixed_source_root),
         ("test_consumer_no_privileged_dependency", test_consumer_no_privileged_dependency),
     ):
         fn()
