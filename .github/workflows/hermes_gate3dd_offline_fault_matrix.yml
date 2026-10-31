@@ -1,0 +1,35 @@
+name: Hermes Gate 3D-D0 Offline Fault Matrix
+
+on:
+  pull_request:
+    branches: [staging]
+    paths:
+      - "test_hermes_gate3dd_offline_fault_matrix_v1.py"
+      - "scripts/hermes_gate3dc_isolated_chat_staging.py"
+      - ".github/workflows/hermes_gate3dd_offline_fault_matrix.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-fault-matrix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install only parser dependency
+        run: python -m pip install --disable-pip-version-check "PyYAML>=6,<7"
+      - name: Verify frozen Gate 3D-C regressions
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: python test_hermes_gate3dc_isolated_chat_v1.py
+      - name: Run deterministic Gate 3D-D0 fault matrix
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: python test_hermes_gate3dd_offline_fault_matrix_v1.py
