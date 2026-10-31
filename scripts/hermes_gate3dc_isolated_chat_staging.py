@@ -319,6 +319,92 @@ def diagnose_mcp_tool_names(profile):
     }
 
 
+
+def summarize_mcp_tool_result_shape(raw):
+    """Metadata-only diagnostics; NEVER return payload text, paths or field values.
+
+    This is deliberately not an approval mechanism. The strict full-snapshot
+    equality check in verify_actual_mcp_dispatch remains authoritative.
+    """
+    if not isinstance(raw, str):
+        return {"state": "non_text"}
+    shape = {
+        "state": "available",
+        "content_chars": len(raw),
+        "persisted_output_marker": "<persisted-output>" in raw,
+        "untrusted_wrapper": "none",
+        "json_decodes": 0,
+        "structured_content_present": False,
+        "approved_snapshot_shape_reached": False,
+    }
+    if len(raw) > 500000:
+        shape["state"] = "oversize"
+        return shape
+    data = raw
+    if data.startswith(UNTRUSTED_PREFIX) and data.endswith(UNTRUSTED_SUFFIX):
+        shape["untrusted_wrapper"] = "exact"
+        data = data[len(UNTRUSTED_PREFIX):-len(UNTRUSTED_SUFFIX)]
+    elif "untrusted_tool_result" in data:
+        shape["untrusted_wrapper"] = "unexpected"
+        return shape
+
+    # Observe only predefined keys/types, never arbitrary document content.
+    for _ in range(7):
+        if isinstance(data, str):
+            try:
+                data = json.loads(data)
+            except (TypeError, ValueError):
+                shape["terminal_type"] = "non_json_text"
+                break
+            shape["json_decodes"] += 1
+        elif isinstance(data, dict):
+            if "source_id" in data and "chunks" in data:
+                shape["approved_snapshot_shape_reached"] = True
+                shape["terminal_type"] = "snapshot_candidate"
+                break
+            if "structuredContent" in data or "structured_content" in data:
+                shape["structured_content_present"] = True
+            key = next(
+                (k for k in ("structuredContent", "structured_content", "result",
+                             "content", "data", "text") if k in data),
+                None,
+            )
+            if key is None:
+                shape["terminal_type"] = "other_object"
+                break
+            data = data[key]
+        elif isinstance(data, list):
+            shape["list_item_count"] = min(len(data), 10000)
+            if len(data) != 1:
+                shape["terminal_type"] = "multi_item_list"
+                break
+            data = data[0]
+        else:
+            shape["terminal_type"] = "other_value"
+            break
+    else:
+        shape["terminal_type"] = "depth_limit"
+    return shape
+
+
+def diagnose_mcp_payload_shape(profile):
+    """Read bounded session DB metadata only; do not open spillover archives."""
+    db = profile / "state.db"
+    if not db.is_file() or db.is_symlink():
+        return {"state": "session_db_missing"}
+    try:
+        with sqlite3.connect(db.as_uri() + "?mode=ro", uri=True) as con:
+            rows = con.execute(
+                "SELECT content FROM messages WHERE role = 'tool' "
+                "AND active = 1 ORDER BY id LIMIT 3"
+            ).fetchall()
+    except sqlite3.Error:
+        return {"state": "session_trace_unavailable"}
+    if len(rows) != 1:
+        return {"state": "unexpected_tool_result_count", "count": len(rows)}
+    return summarize_mcp_tool_result_shape(rows[0][0])
+
+
 def check_answer(text):
     try:
         obj = extract_model_json(text)
@@ -507,6 +593,9 @@ def main():
             metadata = diagnose_mcp_tool_names(profile)
             safe_metadata = json.dumps(metadata, ensure_ascii=True).replace(key, "[REDACTED]")
             print("MCP trace metadata (names only):", safe_metadata[:1800], flush=True)
+            payload_shape = diagnose_mcp_payload_shape(profile)
+            print("MCP payload structure (metadata only):",
+                  json.dumps(payload_shape, sort_keys=True)[:1200], flush=True)
         require(dispatched, "real_mcp_tool_dispatch_not_proven")
         print("GATE 3D-C MCP CHAT: SOURCE FINGERPRINT AND TOOL DISPATCH PASS", flush=True)
         print("Legal accuracy and source currentness: HUMAN REVIEW REQUIRED", flush=True)
