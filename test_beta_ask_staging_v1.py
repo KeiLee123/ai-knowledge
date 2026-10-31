@@ -1,0 +1,207 @@
+#!/usr/bin/env python3
+"""Offline quality/security contracts for the Private Beta Staging Q&A entrypoint."""
+import json
+import sys
+from pathlib import Path
+from unittest.mock import patch
+
+import beta_ask_staging_v1 as b
+
+
+def rejects(action, message=None):
+    try:
+        action()
+    except b.BetaRefused as exc:
+        if message:
+            assert message in str(exc), str(exc)
+        return
+    raise AssertionError("unsafe result accepted")
+
+
+def sample_row(chunk=115, content="Enforcement Authority paragraph 9"):
+    return {
+        "chunk_id": chunk, "page_start": 3, "page_end": 3,
+        "evidence_origin": "native_text", "evidence_tier": "primary",
+        "retrieval_role": "text-primary", "cosine_distance": 0.16,
+        "content": content,
+    }
+
+
+def source():
+    return {
+        "source_id": "BD_PNAP_APP145",
+        "title": "Fire Safety (Buildings) Ordinance Cap. 572",
+        "official_url": "https://www.bd.gov.hk/doc/en/resources/codes-and-references/practice-notes-and-circular-letters/pnap/APP/APP145.pdf",
+        "canonical_source": "Current/APP/APP145.pdf",
+        "checksum": "a" * 64,
+        "revision_date": "NOT_VERIFIED",
+    }
+
+
+def test_allowlist_and_official_source_contract():
+    rejects(lambda: b.approved_source("BD_PNAP_APP999"),
+            "private_beta_source_not_allowed")
+    config = {
+        "enabled": True,
+        "title": "APP145",
+        "canonical_url": source()["official_url"],
+        "canonical_text_ingestion": {
+            "enabled": True,
+            "controller_environment": "staging",
+            "source": "Current/APP/APP145.pdf",
+            "db_container": b.STAGING_DB_CONTAINER,
+            "remote": "gdrive-bd-write:",
+            "allow_production_write": False,
+        },
+    }
+    with patch.object(b, "load_registry", return_value={
+        "sources": {"BD_PNAP_APP145": config},
+    }), patch.object(b, "load_expected_baseline",
+                    return_value={"sha256": "a" * 64}):
+        actual = b.approved_source("BD_PNAP_APP145")
+        assert actual["checksum"] == "a" * 64
+        assert actual["official_url"] == source()["official_url"]
+        config["canonical_url"] = "https://www.bd.gov.hk.evil.test/APP/APP145.pdf"
+        rejects(lambda: b.approved_source("BD_PNAP_APP145"),
+                "official_source_url_refused")
+        config["canonical_url"] = source()["official_url"]
+        config["canonical_text_ingestion"]["source"] = "Current/APP/APP999.pdf"
+        rejects(lambda: b.approved_source("BD_PNAP_APP145"),
+                "canonical_staging_config_refused")
+
+
+def test_missing_and_untrusted_evidence_fail_closed():
+    rejects(lambda: b.validated_evidence([]), "no_evidence")
+    row = sample_row()
+    for altered in (
+        {"evidence_tier": "supplementary"},
+        {"retrieval_role": "multimodal-supplementary"},
+        {"evidence_origin": "vision"},
+        {"page_start": None},
+        {"page_start": 0},
+        {"content": ""},
+    ):
+        rejects(lambda: b.validated_evidence([{**row, **altered}]))
+    good = b.validated_evidence([row])
+    assert good[0]["id"] == "S1"
+    assert good[0]["page"] == 3
+
+
+def test_top_five_rescues_known_realistic_rank_three_passage():
+    rows = [
+        sample_row(117, "Submission of Plans for Approval and fees"),
+        sample_row(111, "Introduction and application"),
+        sample_row(115, "Paragraph 9: Director of Buildings and Director of Fire Services"),
+    ]
+    evidence = b.validated_evidence(rows)
+    assert evidence[2]["id"] == "S3"
+    assert evidence[2]["chunk_id"] == 115
+    assert "Director of Buildings" not in evidence[0]["content"]
+
+
+def test_model_answer_requires_exact_existing_citations():
+    evidence = b.validated_evidence([sample_row()])
+    result = b.validate_model_result(json.dumps({
+        "status": "ANSWER",
+        "answer": "Director of Buildings is responsible for construction. [S1]",
+        "citations": ["S1"],
+    }), evidence)
+    assert result["status"] == "DRAFT_REVIEW_REQUIRED"
+    for payload in (
+        {"status": "ANSWER", "answer": "Unsupported answer", "citations": ["S1"]},
+        {"status": "ANSWER", "answer": "Fake [S2]", "citations": ["S2"]},
+        {"status": "ANSWER", "answer": "Fake [S2]", "citations": ["S1"]},
+        {"status": "ANSWER", "answer": "Fake [S1]", "citations": []},
+        {"status": "ANSWER", "answer": "Fake [S1]", "citations": ["S1", "S1"]},
+        {"status": "FAILED", "answer": "Fake [S1]", "citations": ["S1"]},
+    ):
+        rejects(lambda p=payload: b.validate_model_result(json.dumps(p), evidence))
+    rejects(lambda: b.validate_model_result("not-json", evidence))
+
+
+def test_insufficient_evidence_refuses_model_claims():
+    response = b.validate_model_result(json.dumps({
+        "status": "INSUFFICIENT_EVIDENCE",
+        "answer": "An unsupported claim",
+        "citations": ["S99"],
+    }), b.validated_evidence([sample_row()]))
+    assert response["status"] == "INSUFFICIENT_EVIDENCE"
+    assert "不足" in response["answer"]
+    assert response["citations"] == []
+
+
+def test_staging_runtime_guard_refuses_wrong_checkout():
+    rejects(lambda: b.check_checkout(Path("/opt/ai-knowledge")),
+            "staging_checkout_only")
+
+
+def test_build_packet_reuses_staging_only_read_primitives():
+    with patch.object(b, "check_checkout", return_value={"guard_ok": True}), \
+         patch.object(b, "approved_source", return_value=source()), \
+         patch.object(b, "build_integrity_sql", return_value="SELECT integrity"), \
+         patch.object(b, "run_staging_query", side_effect=['{"ok":true}', "rows"]), \
+         patch.object(b, "parse_integrity_payload",
+                      return_value={"document_count": 1}), \
+         patch.object(b, "validate_integrity",
+                      return_value={"integrity_ok": True}), \
+         patch.object(b, "embed_query", return_value=[0.0] * 384), \
+         patch.object(b, "build_retrieval_sql", return_value="SELECT evidence"), \
+         patch.object(b, "parse_rows",
+                      return_value=[sample_row()]):
+        result = b.build_packet(
+            "BD_PNAP_APP145", "Who is the enforcement authority?", 5)
+        assert result["read_only"] is True
+        assert result["production_write"] is False
+        assert result["evidence"][0]["chunk_id"] == 115
+        assert result["answer_status"] == "EVIDENCE_ONLY_REVIEW_REQUIRED"
+    rejects(lambda: b.build_packet("BD_PNAP_APP145", "short", 99),
+            "top_k_out_of_range")
+
+
+def test_external_generation_requires_opt_in_before_any_query():
+    with patch.object(sys, "argv", [
+        "beta_ask_staging_v1.py", "--source", "BD_PNAP_APP145",
+        "--generate-answer", "Who is the enforcement authority?",
+    ]), patch.object(b, "build_packet",
+                    side_effect=AssertionError("must not query DB")):
+        rejects(b.main, "external_api_requires_explicit_confirmation")
+
+
+def test_model_key_and_model_guard_before_network():
+    packet = {"evidence": b.validated_evidence([sample_row()]),
+              "question": "Who is the enforcement authority?",
+              "source": source()}
+    with patch.object(b.urllib.request, "urlopen",
+                      side_effect=AssertionError("no network")):
+        rejects(lambda: b.generate_draft(packet, api_key="", model="deepseek-flash"),
+                "explicit_beta_api_key_required")
+        rejects(lambda: b.generate_draft(packet, api_key="fake", model="unknown"),
+                "model_not_allowlisted")
+
+
+def test_frozen_and_production_non_mutation_contract():
+    text = Path(b.__file__).read_text(encoding="utf-8")
+    assert "/opt/ai-knowledge-staging" in text
+    assert "/opt/ai-knowledge/" not in text
+    assert "ai-knowledge-db-jiyckdrlappwgimwebnzxwmr" not in text
+    assert "answer_knowledge" not in text
+    assert "graph_search_v1.py" not in text
+    assert "docker run" not in text
+    assert "systemctl " not in text
+    assert "UPDATE documents" not in text
+    assert "DELETE FROM" not in text
+    assert "INSERT INTO" not in text
+    assert "0.0.0.0" not in text
+    assert "source_monitor_schedule_v1.yaml" not in text
+
+
+def main():
+    for key, fn in sorted(globals().items()):
+        if key.startswith("test_") and callable(fn):
+            fn()
+            print(key + ": PASS")
+    print("PRIVATE BETA STAGING QA CONTRACT: PASS")
+
+
+if __name__ == "__main__":
+    main()
