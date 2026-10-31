@@ -138,7 +138,7 @@ def test_known_hermes_notices_and_failclosed_json():
         assert m.check_answer(notices + raw)[0] is True
         for bad in (
             "Warning: Unknown toolsets: mcp-jason_os_pnap_canary\n" + raw,
-            'I'll call the tool\n' + raw,
+            "I'll call the tool\n" + raw,
             raw + "\n" + raw,
             notices + notices + raw,
             "⚠ unexpected security warning\n" + raw,
