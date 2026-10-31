@@ -173,6 +173,13 @@ jobs:
           set -euo pipefail
           python test_beta_hermes_evidence_v1.py
 
+      - name: Hermes optional MCP SDK stdio protocol contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check -r requirements-hermes-mcp.txt
+          python test_beta_hermes_mcp_stdio_v1.py
+
       - name: Generic Production Promotion v2 contract test
         shell: bash
         run: |
