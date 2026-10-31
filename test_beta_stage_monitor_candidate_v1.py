@@ -21,7 +21,7 @@ def fixture(tmp, *, status="CANDIDATE_NEW_VERSION", body=BLOB):
     run.mkdir(parents=True)
     sha = hashlib.sha256(body).hexdigest()
     candidate = run / "APP-149-candidate.pdf"
-    if status != "UNCHANGED":
+    if status != "NO_CHANGE":
         candidate.write_bytes(body)
     outcome = {"version": "official-source-monitor-v1", "source_id": SOURCE,
                "production_access": False, "production_write": False,
@@ -29,7 +29,7 @@ def fixture(tmp, *, status="CANDIDATE_NEW_VERSION", body=BLOB):
                "action": "STAGING_VALIDATION_REQUIRED",
                "candidate_downloaded": True, "candidate_path": str(candidate),
                "candidate_sha256": sha}
-    if status == "UNCHANGED":
+    if status == "NO_CHANGE":
         outcome.update(baseline_status="UNCHANGED", action="NONE",
                        candidate_downloaded=False)
         outcome.pop("candidate_path")
@@ -78,7 +78,7 @@ def test_real_m9_log_shape_produces_content_addressed_staging_plan():
 
 def test_no_change_is_noop_without_candidate_or_remote_calls():
     with tempfile.TemporaryDirectory() as tmp:
-        root, run, _ = fixture(tmp, status="UNCHANGED")
+        root, run, _ = fixture(tmp, status="NO_CHANGE")
         with patch.object(m.writer, "run_rclone", side_effect=AssertionError("no rclone")), \
              patch.object(m.writer, "remote_file_exists", side_effect=AssertionError("no remote")):
             output = plan(root, run)
@@ -86,9 +86,42 @@ def test_no_change_is_noop_without_candidate_or_remote_calls():
         assert not output["write_authorized"]
 
 
+
+def test_index_only_change_is_no_pdf_change():
+    """Real M9 reports NO_CHANGE for an index-only change."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root, run, result = fixture(tmp, status="NO_CHANGE")
+        result["baseline_status"] = "INDEX_CHANGED"
+        update_monitor(run, result)
+        output = plan(root, run)
+        assert output["status"] == "NO_CHANGE"
+        assert output["write_authorized"] is False
+
+
+def test_no_change_rejects_inconsistent_monitor_metadata():
+    """A forged/malformed no-change result must not bypass validation."""
+    edits = (
+        {"baseline_status": "DOCUMENT_CHANGED"},
+        {"baseline_status": "UNKNOWN"},
+        {"action": "STAGING_VALIDATION_REQUIRED"},
+        {"candidate_downloaded": True},
+        {"candidate_path": "/tmp/fake-candidate.pdf"},
+        {"candidate_sha256": "a" * 64},
+        {"decision": "UNCHANGED"},
+    )
+    for changes in edits:
+        with tempfile.TemporaryDirectory() as tmp:
+            root, run, result = fixture(tmp, status="NO_CHANGE")
+            result.update(changes)
+            update_monitor(run, result)
+            rejects(lambda: plan(root, run))
+
+
+
 def test_changed_candidate_with_other_decision_never_uploads():
     for status, action in (("EXCEPTION_REVIEW", "EXCEPTION_REVIEW"),
                            ("POLICY_BLOCKED", "STOP"),
+                           ("NO_CHANGE", "NONE"),
                            ("UNCHANGED", "NONE")):
         with tempfile.TemporaryDirectory() as tmp:
             root, run, result = fixture(tmp)
