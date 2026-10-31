@@ -51,7 +51,7 @@ async def test_real_mcp_protocol():
                 "question": "What are the requirements for a temporary AS?",
             })
             assert result.is_error is False, result
-            as_text = json.dumps(result.structured_content, ensure_ascii=False)
+            as_text = json.dumps(result.structured_content, ensure_ascii=False) + " " + " ".join(getattr(part, "text", "") for part in result.content)
             assert "BD_PNAP_APP149" in as_text
             assert "APP149.pdf#page=2" in as_text
             assert "EVIDENCE_ONLY_REVIEW_REQUIRED" in as_text
@@ -73,7 +73,7 @@ async def test_refusal_is_safe():
                 "question": "What are the requirements for a temporary AS?",
             })
             assert result.is_error is False
-            text = json.dumps(result.structured_content)
+            text = json.dumps(result.structured_content) + " " + " ".join(getattr(part, "text", "") for part in result.content)
             assert "REFUSED" in text
             assert "private path" not in text
             assert "credentials" not in text
