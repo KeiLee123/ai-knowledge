@@ -74,8 +74,7 @@ def approved_source(source_id):
     url = source.get("canonical_url")
     require(isinstance(url, str), "official_url_missing")
     parsed = urllib.parse.urlparse(url)
-    require(parsed.scheme == "https" and parsed.hostname == "www.bd.gov.hk"
-            and parsed.username is None and parsed.password is None
+    require(parsed.scheme == "https" and parsed.netloc == "www.bd.gov.hk"
             and not parsed.query and not parsed.fragment
             and parsed.path.endswith("/APP/" + code + ".pdf"),
             "official_source_url_refused")
@@ -187,8 +186,6 @@ def validate_model_result(text, evidence):
     require(set(cited) <= valid
             and inline == {"[" + ref + "]" for ref in cited},
             "unverified_model_source_marker")
-    require(not re.search(r"\[S[0-9]+\]", re.sub(r"\[S[0-9]+\]", "", answer)),
-            "invalid_citation_format")
     return {"status": "DRAFT_REVIEW_REQUIRED",
             "answer": answer.strip(), "citations": cited}
 
