@@ -173,6 +173,14 @@ async def test_mcp_refuses_without_exposing_error():
             assert "secret pathname" not in result_text
 
 
+def test_hermes_persistent_release_root_fixed():
+    # This exact path is a narrow root-owned release within the existing
+    # /opt/data mount. It must NOT be called a Docker read-only mount.
+    assert str(rd.ROOT) == "/opt/data/jason-os-pnap-staging/snapshots"
+    assert rd.ROOT.is_absolute()
+    assert ".." not in rd.ROOT.parts
+
+
 def test_consumer_no_privileged_dependency():
     text = Path(rd.__file__).read_text(encoding="utf-8")
     for bad in (
@@ -190,6 +198,7 @@ def main():
         ("test_sql_checksum_only_and_select", test_sql_checksum_only_and_select),
         ("test_export_end_to_end_without_db", test_export_end_to_end_without_db),
         ("test_snapshot_reader_and_tamper_refusals", test_snapshot_reader_and_tamper_refusals),
+        ("test_hermes_persistent_release_root_fixed", test_hermes_persistent_release_root_fixed),
         ("test_consumer_no_privileged_dependency", test_consumer_no_privileged_dependency),
     ):
         fn()
