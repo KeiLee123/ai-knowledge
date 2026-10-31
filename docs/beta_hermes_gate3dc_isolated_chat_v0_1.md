@@ -104,3 +104,47 @@ Sources:
 - https://hermes-agent.nousresearch.com/docs/reference/toolsets-reference
 - https://hermes-agent.nousresearch.com/docs/user-guide/features/mcp/
 - https://github.com/KeiLee123/ai-knowledge/issues/60
+
+## Live result: E2E not accepted (2026-10-31)
+
+Operator's real Staging E2E test returned:
+
+    Warning: Unknown toolsets: mcp-jason_os_pnap_canary
+    Chat exit code: 0
+    Evidence fingerprint: invalid_model_json
+    GATE 3D-C STOPPED: RuntimeError
+
+DeepSeek printed literal DSML tool-call-shaped content instead of actually
+running MCP and returning a tool result. Hermes also normalized
+`deepseek-chat` to `deepseek-flash`. Therefore model availability is
+established, but MCP registration and real tool dispatch are **NOT**.
+The temporary profile was cleaned; existing Hermes config unchanged.
+The `--run` command MUST NOT be repeated until registration is proven
+independently without calling DeepSeek.
+
+### Next diagnostic gate: no provider, no persistent config change
+
+After GitHub Staging CI PASS and a clean VPS fast-forward to approved merge
+SHA, execute exactly:
+
+    cd /opt/ai-knowledge-staging
+    bash scripts/hermes_gate3dc_mcp_discovery_staging.sh
+
+This runs the installed Hermes CLI under UID 65534 with a disposable
+`HERMES_HOME` created under /tmp, checks whether
+`hermes config get mcp_servers --json` sees the isolated server,
+and (if supported) runs `hermes mcp test jason_os_pnap_canary` to
+discover its tools. It prints bounded diagnostic information only,
+never loads a provider key or sends any prompt to DeepSeek. It checks
+that the live `/opt/data/config.yaml` checksum was not changed and
+cleans up the diagnostic profile.
+
+The diagnostic distinguishes:
+- Hermes not reading isolated profile config;
+- MCP server configured but failed to spawn/connect/list tools;
+- MCP manager discovers the server, but Chat's dynamic toolset
+  resolution remains separate/broken.
+
+A successful MCP manager test alone is not E2E success. A future model
+retry must use structured tool-use/tool-result telemetry when available,
+not accept free-form text that merely resembles a tool invocation.
