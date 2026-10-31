@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Hermes Gate 3D-B: create isolated, inert MCP canary files in existing /opt/data.
+# Hermes Gate 3D-B: create inert MCP canary under container-local /tmp.
 # No MCP config activation; no service restart; no new mounts, ports, DB or LLM.
 set -euo pipefail
 trap 'rc=$?; if [ "$rc" -ne 0 ]; then echo "CANARY STOPPED (exit $rc). Do not rerun before inspecting partial release." >&2; fi' EXIT
@@ -8,7 +8,7 @@ REPO="/opt/ai-knowledge-staging"
 EXPECTED_BASE="57315d3ea2859bd4ccef89ccd2bba19f05679fb4"
 CID="hermes-rgu4flce2juuzyq6idzr49z2"
 HOST_SNAPSHOTS="/var/lib/jason-os/hermes-pnap-snapshots-staging"
-RELEASE="/opt/data/jason-os-pnap-staging"
+RELEASE="/tmp/jason-os-pnap-canary"
 PYTHON="/opt/hermes/.venv/bin/python"
 
 cd "$REPO"
@@ -22,12 +22,12 @@ test -z "$(git status --porcelain)"
 test "$(docker inspect -f '{{.State.Running}}' "$CID")" = "true"
 test "$(docker inspect -f '{{.Config.User}}' "$CID")" = "root"
 test "$(docker inspect -f '{{.HostConfig.Privileged}}' "$CID")" = "false"
-test "$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/opt/data"}}{{.RW}}{{end}}{{end}}' "$CID")" = "true"
+test "$(docker inspect -f '{{.HostConfig.ReadonlyRootfs}}' "$CID")" = "false"
 
-docker exec "$CID" sh -c 'test ! -e /opt/data/jason-os-pnap-staging && test ! -L /opt/data/jason-os-pnap-staging'
+docker exec "$CID" sh -c 'test -d /tmp && test -w /tmp && test ! -e /tmp/jason-os-pnap-canary && test ! -L /tmp/jason-os-pnap-canary'
 docker exec "$CID" setpriv --reuid=65534 --regid=65534 --clear-groups \
   /usr/bin/env -i PYTHONDONTWRITEBYTECODE=1 "$PYTHON" -c \
-  'import os; assert os.geteuid() == 65534; assert os.access("/opt/data", os.X_OK), "UID 65534 cannot traverse /opt/data; do NOT chmod it"; assert not os.access("/opt/data/.env", os.R_OK), "Secrets readable by UID 65534"'
+  'import os; assert os.geteuid() == 65534; assert os.access("/tmp", os.X_OK), "UID 65534 cannot traverse /tmp; do NOT chmod /opt/data"; assert not os.access("/opt/data/.env", os.R_OK), "Secrets readable by UID 65534"'
 
 python3 - "$HOST_SNAPSHOTS" <<'PY'
 import json
@@ -98,10 +98,11 @@ for NAME in server.py snapshots/BD_PNAP_APP145.json snapshots/BD_PNAP_APP149.jso
   echo "$NAME byte-for-byte: PASS"
 done
 
+echo "Canary is container-local /tmp; not persistent across container recreation."
 echo "=== 3. REAL UID 65534 MCP CANARY (NO MODEL) ==="
 docker exec -i "$CID" \
   setpriv --reuid=65534 --regid=65534 --clear-groups \
-  /usr/bin/env -i PYTHONDONTWRITEBYTECODE=1 "$PYTHON" - <<'PY'
+  /usr/bin/env -i PYTHONDONTWRITEBYTECODE=1 JASON_OS_PNAP_CANARY=1 "$PYTHON" - <<'PY'
 import asyncio
 import json
 import os
@@ -109,13 +110,15 @@ import runpy
 from pathlib import Path
 from mcp import Client
 
-root = Path("/opt/data/jason-os-pnap-staging")
+root = Path("/tmp/jason-os-pnap-canary")
 assert os.geteuid() == 65534
 assert not os.access("/opt/data/.env", os.R_OK)
 assert not os.access(root / "server.py", os.W_OK)
 assert not os.access(root / "snapshots", os.W_OK)
 
+assert os.environ.get("JASON_OS_PNAP_CANARY") == "1"
 namespace = runpy.run_path(str(root / "server.py"), run_name="hermes_canary")
+assert namespace["ROOT"] == root / "snapshots"
 
 for source in ("BD_PNAP_APP145", "BD_PNAP_APP149"):
     packet = namespace["validated_snapshot"](source)
@@ -147,3 +150,4 @@ test "$CONFIG_BEFORE" = "$CONFIG_AFTER"
 test -z "$(git status --porcelain)"
 echo "HERMES GATE 3D-B CANARY FILES AND MCP PROTOCOL: PASS"
 echo "MCP NOT REGISTERED; HERMES CHAT NOT ACTIVATED"
+echo "CANARY EPHEMERAL: disappears when Hermes container is recreated"
