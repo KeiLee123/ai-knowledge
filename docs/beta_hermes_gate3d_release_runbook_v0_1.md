@@ -142,3 +142,41 @@ References:
 - https://hermes-agent.nousresearch.com/docs/user-guide/features/mcp/
 - https://hermes-agent.nousresearch.com/docs/reference/toolsets-reference
 - https://github.com/KeiLee123/ai-knowledge/issues/60
+
+## Gate 3D-B guarded operator installer (added 2026-10-31)
+
+After PR canary code merges into GitHub Staging **and** its merge-commit CI
+passes, first sync a clean VPS Staging checkout to the exact approved merge
+commit. Then run this one checked-in script, *not manually pasted Docker cp
+commands*:
+
+    cd /opt/ai-knowledge-staging
+    bash scripts/hermes_gate3d_canary_install_staging.sh
+
+The script validates the current clean `staging` checkout is exactly at
+`origin/staging` and contains the accepted Gate 3D baseline, Docker is
+running unprivileged (not privileged mode), the single existing /opt/data
+volume is RW, the target directory does not exist (including no dangling
+symlink), and UID65534 can **traverse /opt/data** while still unable to read
+the tested Hermes .env file. It also checks the two root-private source
+snapshots, their approved source/checksum, schema, and 8 verified chunks.
+
+The script then creates the dedicated release directory, copies **only**
+`server.py` and APP145/149 JSON snapshots, assigns root ownership,
+sets 0555 directories / 0444 files, checks byte hashes against the trusted
+host, and exercises actual MCP list_tools/call_tool for both sources under
+UID65534 with `env -i`. It verifies `/opt/data/config.yaml` has an
+unchanged SHA256 before and after; no model call, no network listener and no
+MCP registration occurs.
+
+If the parent /opt/data is not traversable by UID65534, the script **fails
+before making any changes**. Never fix this with chmod on all of /opt/data;
+that would risk exposing Hermes secrets. If any step fails **after**
+creating the release directory, the script intentionally leaves its partial
+files intact for forensic review. **Do not rerun or run rm -rf blindly.**
+Review exact path, type, ownership and content with a separate rollback step.
+
+Do not confuse 0555/0444 permissions with an actual Docker read-only mount:
+Hermes' root process can still change the files. Gate 3D-C (config/agent
+registration and restricted model session) remains an independent gated
+change, not part of the installer.
