@@ -21,8 +21,10 @@ def test_staging_and_target_guards():
     source = SCRIPT.read_text()
     for expected in (
         'REPO="/opt/ai-knowledge-staging"',
-        'EXPECTED="57315d3ea2859bd4ccef89ccd2bba19f05679fb4"',
+        'EXPECTED_BASE="57315d3ea2859bd4ccef89ccd2bba19f05679fb4"',
         "git branch --show-current",
+        "git merge-base --is-ancestor",
+        "git rev-parse origin/staging",
         "git status --porcelain",
         "State.Running",
         "HostConfig.Privileged",
