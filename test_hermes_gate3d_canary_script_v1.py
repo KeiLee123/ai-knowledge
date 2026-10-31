@@ -28,8 +28,8 @@ def test_staging_and_target_guards():
         "git status --porcelain",
         "State.Running",
         "HostConfig.Privileged",
-        "test ! -L /opt/data/jason-os-pnap-staging",
-        "test ! -e /opt/data/jason-os-pnap-staging",
+        "test ! -L /tmp/jason-os-pnap-canary",
+        "test ! -e /tmp/jason-os-pnap-canary",
         'HOST_SNAPSHOTS="/var/lib/jason-os/hermes-pnap-snapshots-staging"',
         "APP145",
         "APP149",
@@ -48,6 +48,8 @@ def test_staging_and_target_guards():
         "docker compose",
         "chmod 777",
         "chmod 755 /opt/data",
+        "chmod 711 /opt/data",
+        "chmod 751 /opt/data",
         "docker exec $CID sh -c",
         "docker cp /opt/ai-knowledge-staging",
         "curl ",
@@ -64,9 +66,11 @@ def test_low_privilege_and_payload_integrity():
     for expected in (
         "setpriv --reuid=65534 --regid=65534 --clear-groups",
         "/usr/bin/env -i",
-        'os.access("/opt/data", os.X_OK)',
+        'os.access("/tmp", os.X_OK)',
         'not os.access("/opt/data/.env", os.R_OK)',
         "docker cp",
+        "JASON_OS_PNAP_CANARY=1",
+        "RELEASE=\"/tmp/jason-os-pnap-canary\"",
         "sha256sum",
         "chmod 0555",
         "chmod 0444",
@@ -75,7 +79,7 @@ def test_low_privilege_and_payload_integrity():
         'list_tools()',
         'call_tool(',
         'result.is_error is False',
-        'HERMES CHAT NOT ACTIVATED',
+        'CANARY EPHEMERAL',
     ):
         assert expected in source, expected
 
