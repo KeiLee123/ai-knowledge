@@ -1,5 +1,14 @@
 # Hermes Gate 3D — Non-disruptive Staging release and rollback plan
 
+> **Gate 3D-B update (2026-10-31):** Live preflight stopped **before copying**
+> because UID 65534 cannot traverse /opt/data, although it cannot read
+> /opt/data/.env and MCP SDK 2.0.0 protocol calls work. **Do not chmod or ACL
+> the protected /opt/data directory** as a quick fix. All references below
+> to a persistent /opt/data release are **blocked future deployment plans**,
+> not the currently approved Canary. The reviewed Canary now uses only
+> container-local /tmp/jason-os-pnap-canary and is deliberately ephemeral.
+> It cannot be registered as a persistent Hermes MCP service.
+
 Date: 2026-10-31. **Not deployed to Hermes.** GitHub Staging source only.
 Requires operator review for any changes to the existing Hermes container.
 
@@ -180,3 +189,41 @@ Do not confuse 0555/0444 permissions with an actual Docker read-only mount:
 Hermes' root process can still change the files. Gate 3D-C (config/agent
 registration and restricted model session) remains an independent gated
 change, not part of the installer.
+
+## Revised Gate 3D-B ephemeral canary (post-preflight refusal)
+
+Operator observed:
+
+    AssertionError: UID 65534 cannot traverse /opt/data
+    CANARY STOPPED (exit 1)
+
+The script stopped on its **first, pre-write** check, so it did not create
+any Canary artifacts. The revised version of
+`scripts/hermes_gate3d_canary_install_staging.sh` instead requires that
+UID 65534 can traverse `/tmp` and that root can create a previously
+nonexistent `/tmp/jason-os-pnap-canary` directory. It does not change the
+`/opt/data` parent, its ACLs, its permissions or Hermes config.yaml.
+
+Revised consumer source has a narrowly scoped selection:
+- normal `ROOT` stays `/opt/data/jason-os-pnap-staging/snapshots`, but
+  this is **not currently usable** by UID65534;
+- **only** when the isolated `JASON_OS_PNAP_CANARY=1` environment variable
+  is set before launching the MCP Python program, `ROOT` instead selects
+  `/tmp/jason-os-pnap-canary/snapshots`.
+
+The script installs exactly three root-owned, child-nonwritable files under
+that `/tmp` directory, checks hashes, and runs the actual MCP client
+`list_tools` and `call_tool` against the two eight-chunk JSON snapshots
+under the UID 65534 process, with `env -i`, then verifies unchanged config.
+
+The copied snapshots are **public BD excerpts**, not secrets. This is not a
+persistent deployment: Docker/Coolify recreation may erase the entire /tmp
+Canary. Do **not** modify mcp_servers to point here or use this as the
+live DeepSeek integration. Later review must choose a genuinely restricted
+persistent mount that UID65534 can traverse, or a carefully scoped ACL
+change following separate security acceptance. Avoid granting shell,
+Docker socket, staging DB superuser or access to the entire /opt/data.
+
+On failure after directory creation, inspect only
+`/tmp/jason-os-pnap-canary` before any cleanup. Do not rerun blindly,
+remove unrelated temp files or broaden /opt/data permissions.
