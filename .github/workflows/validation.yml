@@ -180,6 +180,12 @@ jobs:
           python -m pip install --disable-pip-version-check -r requirements-hermes-mcp.txt
           python test_beta_hermes_mcp_stdio_v1.py
 
+      - name: Hermes trusted snapshot exporter and unprivileged MCP reader
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_beta_hermes_snapshot_v1.py
+
       - name: Generic Production Promotion v2 contract test
         shell: bash
         run: |
