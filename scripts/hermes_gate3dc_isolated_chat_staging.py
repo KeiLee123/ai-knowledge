@@ -73,7 +73,7 @@ def preflight():
 
 def isolated_config():
     return {
-        "toolsets": ["mcp-jason_os_pnap_canary"],
+        "toolsets": ["jason_os_pnap_canary"],
         "mcp_servers": {
             "jason_os_pnap_canary": {
                 "command": "/usr/bin/env",
@@ -133,6 +133,28 @@ def check_answer(text):
     return True, "official_evidence_fingerprint_matched"
 
 
+REGISTRY_PROBE = r'''
+# Run only as UID 65534 with the new isolated HERMES_HOME and NO API key.
+import os
+assert os.geteuid() == 65534
+assert not os.environ.get("DEEPSEEK_API_KEY")
+from hermes_cli.mcp_startup import set_mcp_server_filter
+server = "jason_os_pnap_canary"
+selected = set_mcp_server_filter(server)
+assert selected == [server], ("mcp_cli_filter_incompatible", selected)
+from tools.mcp_tool_discovery import discover_mcp_tools
+discover_mcp_tools(allowed_mcp_names=selected)
+from tools.registry import registry
+names = registry.get_tool_names_for_toolset("mcp-" + server)
+assert len(names) == 1 and "read_approved_pnap_source" in names[0], ("mcp_tools_missing", names)
+assert registry.get_toolset_alias_target(server) == "mcp-" + server
+from toolsets import validate_toolset, resolve_toolset
+assert validate_toolset(server)
+assert resolve_toolset(server) == names
+print("HERMES MCP REGISTRY: ONE APPROVED TOOL", flush=True)
+'''
+
+
 def test_question():
     return (
         "Staging test of PUBLIC Hong Kong Buildings Department PNAP evidence. "
@@ -154,10 +176,6 @@ def main():
     print("APP145/APP149 eight-chunk public canary: VERIFIED", flush=True)
     print("DeepSeek credential present: " + ("YES" if key else "NO"), flush=True)
     require(bool(key), "deepseek_key_not_available")
-    if MODE == "--preflight":
-        print("GATE 3D-C PRE-FLIGHT PASS (NO MODEL CALL)", flush=True)
-        return
-
     profile = Path(tempfile.mkdtemp(prefix=PREFIX, dir="/tmp"))
     try:
         os.chown(profile, USER_ID, USER_ID)
@@ -178,9 +196,31 @@ def main():
         }
         drop = ["/usr/bin/setpriv", "--reuid=65534", "--regid=65534", "--clear-groups"]
 
+        # Critical for Hermes v0.21.5: --toolsets filtering compares bare
+        # mcp_servers names, not the generated mcp-<server> toolset name.
+        # Discover and validate the *same* bare alias before any LLM call.
+        probe_env = {k: v for k, v in env.items() if k != "DEEPSEEK_API_KEY"}
+        registry_result = subprocess.run(
+            drop + ["/opt/hermes/.venv/bin/python", "-c", REGISTRY_PROBE],
+            env=probe_env, cwd=profile, capture_output=True, text=True,
+            timeout=75,
+        )
+        if registry_result.returncode != 0:
+            diagnostic = (registry_result.stderr or registry_result.stdout)
+            print("MCP registry diagnostic:",
+                  diagnostic.replace(key, "[REDACTED]")[-1400:], flush=True)
+        require(registry_result.returncode == 0, "mcp_runtime_registration_failed")
+        require("HERMES MCP REGISTRY: ONE APPROVED TOOL" in registry_result.stdout,
+                "mcp_registry_proof_missing")
+        print("Non-root Hermes MCP Registry: PASS (1 tool, no provider)", flush=True)
+
+        if MODE == "--preflight":
+            print("GATE 3D-C PRE-FLIGHT PASS (NO MODEL CALL)", flush=True)
+            return
+
         cli_help = subprocess.run(
             drop + [str(CLI), "chat", "--help"],
-            env=env, cwd=profile, capture_output=True, text=True, timeout=25,
+            env=probe_env, cwd=profile, capture_output=True, text=True, timeout=25,
         )
         require(cli_help.returncode == 0, "nonroot_hermes_cli_help_failed")
         for flag in ("--toolsets", "--provider", "--model", "--quiet", "--max-turns"):
@@ -191,7 +231,7 @@ def main():
             str(CLI), "chat",
             "--provider", "deepseek",
             "--model", "deepseek-chat",
-            "--toolsets", "mcp-jason_os_pnap_canary",
+            "--toolsets", "jason_os_pnap_canary",
             "--quiet", "--max-turns", "4",
             "-q", test_question(),
         ]
