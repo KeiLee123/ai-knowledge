@@ -58,6 +58,9 @@ def test_single_tool_and_no_persistent_config_changes():
         'discover_mcp_tools(allowed_mcp_names=selected)',
         'get_tool_names_for_toolset("mcp-" + server)',
         'get_toolset_alias_target(server)',
+        'assert names == ["mcp__jason_os_pnap_canary__read_approved_pnap_source"]',
+        "MCP trace metadata (names only):",
+        "diagnose_mcp_tool_names(profile)",
         'validate_toolset(server)',
         'Non-root Hermes MCP Registry: PASS',
         'if MODE == "--preflight":',
@@ -204,6 +207,51 @@ def test_real_session_db_mcp_tool_dispatch():
         assert not m.verify_actual_mcp_dispatch(profile)[0]
         con.close()
 
+
+def test_sanitized_tool_trace_metadata_diagnostic_only():
+    m = module()
+    with tempfile.TemporaryDirectory() as td:
+        profile = Path(td)
+        con = sqlite3.connect(profile / "state.db")
+        con.execute(
+            "CREATE TABLE messages (id INTEGER PRIMARY KEY, role TEXT, "
+            "tool_calls TEXT, tool_call_id TEXT, tool_name TEXT, content TEXT, active INTEGER)"
+        )
+        tool_name = "mcp__jason_os_pnap_canary__read_approved_pnap_source"
+        calls = [
+            {
+                "id": "tool-call-1",
+                "function": {
+                    "name": tool_name,
+                    "arguments": '{"source_id":"BD_PNAP_APP149"}',
+                },
+            },
+            {
+                "id": "tool-call-2",
+                "function": {
+                    "name": "other_tool",
+                    "arguments": "sensitive private data must not be printed",
+                },
+            },
+        ]
+        con.execute(
+            "INSERT INTO messages VALUES (1, 'assistant', ?, NULL, NULL, NULL, 1)",
+            (json.dumps(calls),),
+        )
+        con.execute(
+            "INSERT INTO messages VALUES (2, 'tool', NULL, 'tool-call-1', ?, ?, 1)",
+            (tool_name, "sensitive tool contents must not be printed"),
+        )
+        con.commit()
+        result = m.diagnose_mcp_tool_names(profile)
+        assert result["assistant_tool_calls"] == 2
+        assert result["assistant_names"] == [tool_name, "other_tool"]
+        assert result["result_names"] == [tool_name]
+        assert "sensitive" not in json.dumps(result)
+        assert m.verify_actual_mcp_dispatch(profile)[0] is False
+        con.close()
+
+
 def main():
     for t in (
         test_scripts_syntax,
@@ -211,6 +259,7 @@ def main():
         test_fingerprint_and_page_proof,
         test_known_hermes_notices_and_failclosed_json,
         test_real_session_db_mcp_tool_dispatch,
+        test_sanitized_tool_trace_metadata_diagnostic_only,
     ):
         t()
         print(t.__name__ + ": PASS")

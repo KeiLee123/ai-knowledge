@@ -219,6 +219,65 @@ def verify_actual_mcp_dispatch(profile):
     return True, "mcp_tool_call_and_result_proven"
 
 
+
+def diagnose_mcp_tool_names(profile):
+    """Bounded tool *names and counts only*, never arguments or source text.
+
+    Diagnostic-only: cannot approve a tool, change allowlist or replace
+    verify_actual_mcp_dispatch's strict matching rules.
+    """
+    db = profile / "state.db"
+    if not db.is_file() or db.is_symlink():
+        return {"state": "missing"}
+    try:
+        with sqlite3.connect(db.as_uri() + "?mode=ro", uri=True) as con:
+            rows = con.execute(
+                "SELECT role, tool_calls, tool_name FROM messages "
+                "WHERE active = 1 ORDER BY id LIMIT 257"
+            ).fetchall()
+    except sqlite3.Error:
+        return {"state": "unavailable"}
+    if len(rows) > 256:
+        return {"state": "too_many_messages"}
+
+    def safe_name(raw):
+        if not isinstance(raw, str):
+            return "<non_string>"
+        if not re.fullmatch(r"[a-zA-Z_][a-zA-Z0-9_-]{0,63}", raw):
+            return "<invalid_or_oversized_name>"
+        return raw
+
+    call_names = []
+    result_names = []
+    invalid_calls = 0
+    for role, calls, tool_name in rows:
+        if role == "assistant" and calls:
+            try:
+                entries = json.loads(calls)
+            except (TypeError, ValueError):
+                invalid_calls += 1
+                continue
+            if not isinstance(entries, list):
+                invalid_calls += 1
+                continue
+            for entry in entries:
+                if not isinstance(entry, dict):
+                    invalid_calls += 1
+                else:
+                    fn = entry.get("function")
+                    call_names.append(safe_name(fn.get("name") if isinstance(fn, dict) else None))
+        elif role == "tool":
+            result_names.append(safe_name(tool_name))
+    return {
+        "state": "available",
+        "assistant_tool_calls": len(call_names),
+        "assistant_names": call_names[:8],
+        "tool_result_rows": len(result_names),
+        "result_names": result_names[:8],
+        "invalid_call_structures": invalid_calls,
+    }
+
+
 def check_answer(text):
     try:
         obj = extract_model_json(text)
@@ -265,7 +324,7 @@ from tools.mcp_tool_discovery import discover_mcp_tools
 discover_mcp_tools(allowed_mcp_names=selected)
 from tools.registry import registry
 names = registry.get_tool_names_for_toolset("mcp-" + server)
-assert len(names) == 1 and "read_approved_pnap_source" in names[0], ("mcp_tools_missing", names)
+assert names == ["mcp__jason_os_pnap_canary__read_approved_pnap_source"], ("mcp_registry_name_mismatch", names)
 assert registry.get_toolset_alias_target(server) == "mcp-" + server
 from toolsets import validate_toolset, resolve_toolset
 assert validate_toolset(server)
@@ -371,6 +430,12 @@ def main():
         require(passed, "model_evidence_contract_failed")
         dispatched, trace_reason = verify_actual_mcp_dispatch(profile)
         print("Actual MCP dispatch:", trace_reason, flush=True)
+        if not dispatched:
+            # Print only safe function names and counts. Never print tool
+            # arguments, tool result payload or session transcript.
+            metadata = diagnose_mcp_tool_names(profile)
+            safe_metadata = json.dumps(metadata, ensure_ascii=True).replace(key, "[REDACTED]")
+            print("MCP trace metadata (names only):", safe_metadata[:1800], flush=True)
         require(dispatched, "real_mcp_tool_dispatch_not_proven")
         print("GATE 3D-C MCP CHAT: SOURCE FINGERPRINT AND TOOL DISPATCH PASS", flush=True)
         print("Legal accuracy and source currentness: HUMAN REVIEW REQUIRED", flush=True)
