@@ -35,6 +35,9 @@ ROOT = Path("/opt/ai-knowledge-staging")
 STATE_ROOT = Path("/var/lib/jason-os/source-monitor-staging")
 REGISTRY = ROOT / "source_registry_v1.yaml"
 ALLOWED = ("BD_PNAP_APP145", "BD_PNAP_APP149")
+# Both approved Beta baselines currently contain eight native-text chunks.
+# Default to all eight so a lower-ranked critical clause is not omitted.
+DEFAULT_TOP_K = 8
 MODEL_ENDPOINT = "https://api.deepseek.com/chat/completions"
 MODELS = ("deepseek-flash", "deepseek-v4-pro")
 
@@ -124,7 +127,29 @@ def validated_evidence(rows):
     return evidence
 
 
-def build_packet(source_id, question, limit=5):
+def retrieval_coverage(integrity, evidence):
+    """Mechanical indexed-chunk coverage only, NOT semantic answer correctness.
+
+    The current private Beta scope contains two 8-chunk official documents.
+    Full retrieval is cheap, and it avoids losing a crucial later-ranked clause.
+    This check deliberately never marks legal applicability as verified.
+    """
+    total = integrity.get("chunk_count")
+    require(type(total) is int and total > 0,
+            "indexed_chunk_count_unavailable")
+    chunk_ids = [item.get("chunk_id") for item in evidence]
+    require(all(type(cid) is int and cid > 0 for cid in chunk_ids)
+            and len(chunk_ids) == len(set(chunk_ids)),
+            "duplicate_or_invalid_evidence_chunks")
+    require(len(chunk_ids) <= total, "retrieval_exceeds_indexed_chunks")
+    return {
+        "indexed_chunks": total,
+        "retrieved_unique_chunks": len(chunk_ids),
+        "complete_index_coverage": len(chunk_ids) == total,
+    }
+
+
+def build_packet(source_id, question, limit=DEFAULT_TOP_K):
     require(isinstance(question, str) and 5 <= len(question.strip()) <= 1200,
             "question_length_refused")
     require(type(limit) is int and 3 <= limit <= 8, "top_k_out_of_range")
@@ -143,6 +168,7 @@ def build_packet(source_id, question, limit=5):
         )
     )
     evidence = validated_evidence(rows)
+    coverage = retrieval_coverage(integrity, evidence)
     return {
         "version": VERSION,
         "environment": "staging",
@@ -154,6 +180,7 @@ def build_packet(source_id, question, limit=5):
         "source": source,
         "integrity": integrity,
         "evidence": evidence,
+        "retrieval_coverage": coverage,
         "answer_status": "EVIDENCE_ONLY_REVIEW_REQUIRED",
     }
 
@@ -193,6 +220,8 @@ def validate_model_result(text, evidence):
 def generate_draft(packet, *, api_key, model):
     require(bool(api_key), "explicit_beta_api_key_required")
     require(model in MODELS, "model_not_allowlisted")
+    require(packet.get("retrieval_coverage", {}).get("complete_index_coverage") is True,
+            "incomplete_index_coverage_for_ai_draft")
     evidence = [
         {
             "id": item["id"],
@@ -258,6 +287,10 @@ def render(packet, draft=None, full_evidence=False):
     print("Approved PDF SHA256:", source["checksum"])
     print("Document revision/current applicability: NOT VERIFIED")
     print("Staging index verified:", packet["integrity"]["integrity_ok"])
+    coverage = packet["retrieval_coverage"]
+    print("Indexed chunk coverage: {}/{} ({})".format(
+        coverage["retrieved_unique_chunks"], coverage["indexed_chunks"],
+        "COMPLETE" if coverage["complete_index_coverage"] else "PARTIAL — NO AI DRAFT"))
     if draft is not None:
         print("\nANSWER (HUMAN REVIEW REQUIRED)")
         print(draft["answer"])
@@ -284,7 +317,7 @@ def main():
         description="Read-only private Staging Q&A over APP145 or APP149")
     parser.add_argument("question")
     parser.add_argument("--source", choices=ALLOWED, required=True)
-    parser.add_argument("--top-k", type=int, default=5)
+    parser.add_argument("--top-k", type=int, default=DEFAULT_TOP_K)
     parser.add_argument("--full-evidence", action="store_true")
     parser.add_argument("--generate-answer", action="store_true")
     parser.add_argument("--confirm-external-api", action="store_true")
