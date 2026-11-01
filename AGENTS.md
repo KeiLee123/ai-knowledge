@@ -2,7 +2,7 @@
 
 This is a **task router**, not a request to read the whole repository.
 
-1. First read `docs/CURRENT_STATE.md` (short dated index); confirm the current GitHub branch SHA, open target Issue/PR and the date of that snapshot. If stale, reconcile before action.
+1. First retrieve the [Jason OS Development Memory Index](https://docs.google.com/document/d/1QDcl287N5zFqeYEpukN10cd-2qv7lJEdNcT4rJ0lpTI/edit) and [Knowledge Brain Current State](https://docs.google.com/document/d/1ETsFRfbE2HsRG2yb78EKDfRm2VzveyLNkLS-cr1g6Nk/edit) from Google Drive; follow the linked M2 Preflight/Handoff SOP. Then read `docs/CURRENT_STATE.md` as a dated GitHub snapshot and verify live refs. If Drive is unavailable, mark this preflight unverified.
 2. Read `docs/DEVELOPMENT_GOVERNANCE.md` for delivery, evidence, handover and safety. For a task, read only relevant modules, tests and linked decisions. Do NOT bulk-load docs, historical chats or all repo files.
 3. Product scope and priorities: the approved Google Drive Beta-First Product Contract (linked from README). GitHub owns code; Drive owns canonical documents and decisions. Do not silently redefine a decision in a code file.
 4. At most **one active feature delivery** plus one independent urgent safety fix per repository, unless the owner explicitly approves an exception. Before adding a module/test/workflow, explain which user failure it addresses and which existing function can be reused.
