@@ -266,6 +266,12 @@ jobs:
           set -euo pipefail
           python test_write_canonical_text_production_v1.py
 
+      - name: Document Ingestion Quality audit offline test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_audit_document_ingest_quality_v1.py
+
       - name: Multimodal ingestion contract test
         shell: bash
         run: |
