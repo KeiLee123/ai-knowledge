@@ -11,6 +11,7 @@ import argparse
 import datetime
 import hmac
 import json
+import math
 import os
 import secrets
 import stat
@@ -32,45 +33,99 @@ class UIRefused(ValueError):
     pass
 
 
+AUTO_SCOPE = "AUTO_APPROVED"
+
+
 def ask_evidence(data):
-    if not isinstance(data, dict) or set(data) != {"question", "source"}:
+    """Question-first auto search across only the two approved Beta sources.
+
+    Keep the existing one-source path for backward-compatible manual filters.
+    The frozen retrieval primitives and their per-source integrity checks stay
+    unchanged. Global ranking is by comparable cosine distance, not a verdict
+    on semantic correctness or current legal applicability.
+    """
+    if not isinstance(data, dict) or set(data) not in (
+            {"question"}, {"question", "source"}):
         raise UIRefused("invalid_query_fields")
-    source_id, question = data["source"], data["question"]
-    if not isinstance(source_id, str) or source_id not in qa.ALLOWED:
+    question = data["question"]
+    source_id = data.get("source", AUTO_SCOPE)
+    if not isinstance(source_id, str) or (
+            source_id != AUTO_SCOPE and source_id not in qa.ALLOWED):
         raise UIRefused("source_not_allowed")
     if not isinstance(question, str) or not 5 <= len(question.strip()) <= 1200:
         raise UIRefused("invalid_question_length")
-    packet = qa.build_packet(source_id, question.strip())
-    decision = qa.currentness_abstention(packet)
-    ref = packet["source"]
-    response = {
-        "request_id": secrets.token_hex(8),
-        "environment": "staging",
-        "status": decision["status"] if decision else "EVIDENCE_ONLY_REVIEW_REQUIRED",
-        "message": decision["answer"] if decision else (
-            "已找到原始文件片段，但尚未生成 AI 答案。"
-            "請核對每項專業判斷、文件版本及適用性。"
-        ),
-        "source": {
+    question = question.strip()
+    scope = qa.ALLOWED if source_id == AUTO_SCOPE else (source_id,)
+    # Fail closed: no partial result if a required approved source cannot pass
+    # its existing checksum/index/Staging checks. Never silently omit it.
+    packets = [qa.build_packet(sid, question) for sid in scope]
+    descriptions = []
+    ranked = []
+    for packet in packets:
+        ref = packet["source"]
+        if ref["source_id"] not in scope:
+            raise UIRefused("unexpected_source")
+        coverage = packet["retrieval_coverage"]
+        descriptions.append({
             "source_id": ref["source_id"],
             "title": ref["title"],
             "official_url": ref["official_url"],
             "revision_date": ref["revision_date"],
             "sha256": ref["checksum"],
-        },
-        "coverage": packet["retrieval_coverage"],
-        "evidence": [
-            {
-                "id": e["id"], "chunk_id": e["chunk_id"],
-                "page": e["page"], "content": e["content"],
-                "source_url": ref["official_url"] + "#page=" + str(e["page"]),
-            }
-            for e in packet["evidence"]
-        ],
+            "coverage": coverage,
+        })
+        for item in packet["evidence"]:
+            distance = item.get("distance")
+            if source_id == AUTO_SCOPE:
+                if type(distance) not in (int, float) or not math.isfinite(distance):
+                    raise UIRefused("invalid_retrieval_distance")
+            ranked.append((distance if distance is not None else 0,
+                           ref["source_id"], item["chunk_id"], ref, item))
+    if source_id == AUTO_SCOPE:
+        ranked.sort(key=lambda row: (row[0], row[1], row[2]))
+    evidence = []
+    for rank, (_, sid, _, ref, item) in enumerate(ranked, 1):
+        evidence.append({
+            "id": "S" + str(rank),
+            "chunk_id": item["chunk_id"],
+            "page": item["page"],
+            "content": item["content"],
+            "source_id": sid,
+            "source_title": ref["title"],
+            "source_url": ref["official_url"] + "#page=" + str(item["page"]),
+        })
+    decision = next((result for p in packets
+                     if (result := qa.currentness_abstention(p)) is not None), None)
+    total = sum(d["coverage"]["indexed_chunks"] for d in descriptions)
+    retrieved = sum(d["coverage"]["retrieved_unique_chunks"] for d in descriptions)
+    combined_coverage = {
+        "indexed_chunks": total,
+        "retrieved_unique_chunks": retrieved,
+        "complete_index_coverage": all(
+            d["coverage"]["complete_index_coverage"] for d in descriptions),
+    }
+    selected = descriptions[0] if source_id != AUTO_SCOPE else {
+        "source_id": AUTO_SCOPE,
+        "title": "自動搜尋已核准的 APP145／APP149",
+        "official_url": "",
+        "revision_date": "NOT_VERIFIED",
+        "sha256": "",
+    }
+    return {
+        "request_id": secrets.token_hex(8),
+        "environment": "staging",
+        "status": decision["status"] if decision else "EVIDENCE_ONLY_REVIEW_REQUIRED",
+        "message": decision["answer"] if decision else (
+            "已找到已核准官方文件的原文證據，但尚未生成 AI 答案。"
+            "請逐項核對專業判斷、文件版本及適用性。"
+        ),
+        "source": selected,  # request/feedback scope, including AUTO_APPROVED
+        "sources": descriptions,  # actual approved documents, each with coverage
+        "coverage": combined_coverage,
+        "evidence": evidence,
         "ai_answer_generated": False,
         "production_write": False,
     }
-    return response
 
 
 def append_feedback(data, path=FEEDBACK_PATH):
