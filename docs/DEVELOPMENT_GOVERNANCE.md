@@ -10,6 +10,12 @@
 4. **Anki**: actual personal deck and scheduling state; do not infer from code or staging packages.
 5. **`CURRENT_STATE.md`**: short **dated derived index**, not a replacement for the above. Never copy large specs or secrets into it.
 
+## Shared M1 / M2 / M3 entrypoint
+
+Retrieve the [Google Drive Master Index](https://docs.google.com/document/d/1QDcl287N5zFqeYEpukN10cd-2qv7lJEdNcT4rJ0lpTI/edit) and [Knowledge Brain Current State](https://docs.google.com/document/d/1ETsFRfbE2HsRG2yb78EKDfRm2VzveyLNkLS-cr1g6Nk/edit) before coding. Use the [M2 Preflight/Handoff SOP](https://docs.google.com/document/d/1_WZ2rtpQOEsQFAWq1zjgoSxAgf6qyRrbhKlmqJlql5U/edit). The [M3 consistency audit](https://docs.google.com/document/d/1Kq28KgAtzR9zcn5iYA8VoznxyrW3PsfDN0LrlSUKqAg/edit) is a dated, on-demand example, not an automatic synchronization service. Reconcile this repository's dated state with live GitHub PR, exact CI SHA and runtime evidence before asserting acceptance.
+
+The Google Drive decision log remains authoritative for cross-system product and architecture decisions; GitHub remains authoritative for code and tests. If sources conflict, label the discrepancy for review rather than silently overwriting decisions. No present-day VPS checks are implied by these governance documents.
+
 ## Progressive context loading
 
 - **L0**: read root `AGENTS.md` + `CURRENT_STATE.md` once at task start.
