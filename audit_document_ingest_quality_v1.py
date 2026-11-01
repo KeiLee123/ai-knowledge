@@ -17,7 +17,9 @@ from route_document_v2 import assess_manifest
 
 VERSION = "document-ingest-quality-audit-v1"
 MAX_PDF_BYTES = 20_000_000
-MAX_PAGES = 150
+MAX_PAGES = 150  # Existing single-manifest ceiling remains unchanged.
+MAX_DOCUMENT_PAGES = 500  # Separate capped streaming/partial audit scope.
+DEFAULT_BATCH_SIZE = 25
 
 
 class IngestAuditRefused(RuntimeError):
@@ -75,17 +77,29 @@ def analyze_manifest(manifest, *, drive_file_id, expected_size,
         require(sha == expected_sha256, "source_sha_mismatch")
     count = doc.get("page_count")
     require(doc.get("kind") == "pdf" and type(count) is int
-            and 0 < count <= MAX_PAGES,
+            and 0 < count <= MAX_DOCUMENT_PAGES,
             "pdf_page_count_refused")
-    require(len(pages) == count and
-            [p.get("page_number") for p in pages] == list(range(1, count+1)),
+    selection = (manifest.get("selection") or {}).get("page_numbers")
+    if selection is None:
+        require(count <= MAX_PAGES and len(pages) == count,
+                "unbatched_page_limit_refused")
+        expected_pages = list(range(1, count + 1))
+    else:
+        require(isinstance(selection, list)
+                and 0 < len(selection) <= DEFAULT_BATCH_SIZE
+                and all(type(page) is int and 1 <= page <= count
+                        for page in selection)
+                and selection == sorted(set(selection)),
+                "invalid_batch_page_selection")
+        expected_pages = selection
+    require([p.get("page_number") for p in pages] == expected_pages,
             "physical_pages_not_contiguous")
     extraction = manifest.get("extraction") or {}
     require(extraction.get("database_write_performed") is False
             and extraction.get("ocr_performed") is False
             and extraction.get("vision_model_used") is False,
             "unexpected_side_effects_or_model")
-    router = assess_manifest(manifest, allow_partial=False)
+    router = assess_manifest(manifest, allow_partial=selection is not None)
     require(router.get("safety", {}).get("database_write_performed") is False,
             "router_side_effect_refused")
     chunks = build_chunks(manifest, target_chars=1800, overlap_chars=250)
@@ -168,7 +182,8 @@ def analyze_manifest(manifest, *, drive_file_id, expected_size,
             "drive_file_id": drive_file_id,
             "observed_sha256": sha,
             "size_bytes": source["size_bytes"],
-            "drive_sha_independently_verified": expected_sha256 is not None,
+            "expected_sha256_matched": expected_sha256 is not None,
+            "drive_sha_independently_verified": False,
             "official_legal_version_verified": False,
         },
         "document": {
@@ -214,6 +229,123 @@ def audit_pdf(path, *, drive_file_id, expected_size, expected_sha256=None):
     )
 
 
+def audit_pdf_batched(path, *, drive_file_id, expected_size,
+                      expected_sha256=None, batch_size=DEFAULT_BATCH_SIZE):
+    """Read-only bounded, COMPLETE page coverage; never promote partial data."""
+    import pymupdf
+
+    require(type(batch_size) is int and batch_size == DEFAULT_BATCH_SIZE,
+            "batch_size_refused")
+    path = Path(path)
+    require(path.is_file() and not path.is_symlink(), "source_path_refused")
+    require(type(expected_size) is int
+            and 100 <= expected_size <= MAX_PDF_BYTES
+            and path.stat().st_size == expected_size, "source_size_mismatch")
+    sha = hashlib.sha256(path.read_bytes()).hexdigest()
+    if expected_sha256 is not None:
+        require(sha == expected_sha256, "source_sha_mismatch")
+    with pymupdf.open(path) as pdf:
+        require(pdf.is_pdf, "not_a_pdf")
+        count = pdf.page_count
+    require(0 < count <= MAX_DOCUMENT_PAGES,
+            "document_page_limit_refused")
+
+    batches = []
+    reviewed_pages = set()
+    all_issues = set()
+    issue_pages_by_code = {}
+    total_tables = 0
+    total_rows = 0
+    total_chunks = 0
+    total_table_chunks = 0
+    routing_counts = {}
+    for start in range(1, count + 1, batch_size):
+        pages = list(range(start, min(start + batch_size, count + 1)))
+        manifest = build_manifest(path, selected_pages=pages)
+        result = analyze_manifest(
+            manifest, drive_file_id=drive_file_id,
+            expected_size=expected_size, expected_sha256=sha)
+        require(result["source"]["observed_sha256"] == sha and
+                result["document"]["physical_pages"] == count,
+                "batch_source_identity_invalid")
+        seen = [p["page"] for p in result["pages"]]
+        require(seen == pages and not (set(seen) & reviewed_pages),
+                "batch_coverage_overlap_or_missing")
+        reviewed_pages.update(seen)
+
+        total_tables += result["document"]["tables_detected"]
+        total_rows += result["document"]["table_rows_total"]
+        total_chunks += result["document"]["all_chunk_count"]
+        total_table_chunks += result["document"]["structured_table_chunk_count"]
+        route = result["document"]["router_recommendation"]
+        routing_counts[route] = routing_counts.get(route, 0) + 1
+
+        for p in result["pages"]:
+            for issue in p["issue_codes"]:
+                issue_pages_by_code.setdefault(issue, []).append(p["page"])
+        # Zero-table batches are expected in mixed documents; only zero
+        # tables across the WHOLE document is a blocker.
+        issues = sorted(set(result["issue_codes"]) -
+                        {"NO_STRUCTURED_TABLE_DETECTED"})
+        all_issues.update(issues)
+        batches.append({
+            "first_page": pages[0], "last_page": pages[-1],
+            "pages_processed": len(pages),
+            "tables_detected": result["document"]["tables_detected"],
+            "structured_table_chunks":
+                result["document"]["structured_table_chunk_count"],
+            "issue_codes": issues,
+        })
+    require(reviewed_pages == set(range(1, count + 1)),
+            "incomplete_document_page_coverage")
+    if total_tables == 0:
+        all_issues.add("NO_STRUCTURED_TABLE_DETECTED")
+
+    return {
+        "version": VERSION,
+        "audit_mode": "bounded_batches_full_document_coverage",
+        "status": ("AUTO_HOLD_UNVERIFIED" if all_issues
+                   else "MECHANICAL_CHECKS_PASS_LIMITED"),
+        "source": {
+            "drive_file_id": drive_file_id,
+            "observed_sha256": sha,
+            "size_bytes": expected_size,
+            "expected_sha256_matched": expected_sha256 is not None,
+            "drive_sha_independently_verified": False,
+            "official_legal_version_verified": False,
+        },
+        "document": {
+            "physical_pages": count,
+            "pages_covered": len(reviewed_pages),
+            "coverage_complete": True,
+            "batch_size": batch_size,
+            "batch_count": len(batches),
+            "tables_detected": total_tables,
+            "table_rows_total": total_rows,
+            "structured_table_chunk_count": total_table_chunks,
+            "all_chunk_count": total_chunks,
+            "router_batch_counts": routing_counts,
+        },
+        "batches": batches,
+        "issue_codes": sorted(all_issues),
+        "issue_pages_by_code": {
+            key: sorted(set(values))
+            for key, values in sorted(issue_pages_by_code.items())
+        },
+        "semantic_table_accuracy": "NOT_MEASURED",
+        "ocr_or_vision_performed": False,
+        "database_access": False,
+        "external_ai_called": False,
+        "production_write": False,
+        "drive_write": False,
+        "human_review_required": False,
+        "notice": ("Full page coverage proves only that every page was "
+                   "processed by the native extractor; table values, "
+                   "missing cells, OCR quality and legal meaning "
+                   "are not independently verified."),
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pdf", required=True)
@@ -222,7 +354,7 @@ def main():
     parser.add_argument("--expected-sha256")
     args = parser.parse_args()
     require(bool(args.drive_file_id.strip()), "drive_file_id_missing")
-    result = audit_pdf(
+    result = audit_pdf_batched(
         args.pdf, drive_file_id=args.drive_file_id,
         expected_size=args.expected_size,
         expected_sha256=args.expected_sha256,
