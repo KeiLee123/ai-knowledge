@@ -352,6 +352,11 @@ def main():
     parser.add_argument("--drive-file-id", required=True)
     parser.add_argument("--expected-size", required=True, type=int)
     parser.add_argument("--expected-sha256")
+    parser.add_argument(
+        "--report-json",
+        help="Write machine-readable JSON to this local file, separate from "
+             "PDF library stdout notices. Prefer a private temporary path.",
+    )
     args = parser.parse_args()
     require(bool(args.drive_file_id.strip()), "drive_file_id_missing")
     result = audit_pdf_batched(
@@ -359,8 +364,18 @@ def main():
         expected_size=args.expected_size,
         expected_sha256=args.expected_sha256,
     )
-    print(json.dumps(result, ensure_ascii=False, sort_keys=True,
-                     indent=2, allow_nan=False))
+    payload = json.dumps(result, ensure_ascii=False, sort_keys=True,
+                         indent=2, allow_nan=False) + "\n"
+    if args.report_json:
+        output = Path(args.report_json)
+        require(output.parent.is_dir() and
+                not output.is_symlink() and
+                (not output.exists() or output.is_file()),
+                "report_path_refused")
+        output.write_text(payload, encoding="utf-8")
+        print("REPORT_JSON_WRITTEN")
+    else:
+        print(payload, end="")
 
 
 if __name__ == "__main__":
