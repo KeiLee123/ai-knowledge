@@ -278,6 +278,12 @@ jobs:
           set -euo pipefail
           python test_verify_pdf_blank_pages_v1.py
 
+      - name: Document ingest evidence reconciliation offline test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_reconcile_document_ingest_evidence_v1.py
+
       - name: Multimodal ingestion contract test
         shell: bash
         run: |
