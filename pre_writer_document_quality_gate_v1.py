@@ -86,3 +86,18 @@ def registry_has_quality_gated_sources(registry):
             raise DocumentQualityHold("QUALITY_GATE_POLICY_INVALID")
         enabled = enabled or policy["enabled"]
     return enabled
+
+
+def enforce_unattributed_raw_v2_write(registry):
+    """Fail closed for generic v2 --write CLIs if any registry source opts in.
+
+    Local chunk manifests, file paths, --source-url and --synthetic are
+    caller-controlled and cannot establish a trusted registry source ID.
+    The caller must load the checked-in sibling source_registry_v1.yaml.
+    Non-write paths and an entirely ungated registry retain prior behavior.
+    """
+    if registry_has_quality_gated_sources(registry):
+        raise DocumentQualityHold(
+            "QUALITY_GATE_UNATTRIBUTABLE_RAW_V2_WRITE_AUTO_HOLD"
+        )
+    return "QUALITY_GATE_RAW_V2_UNGATED_REGISTRY"
