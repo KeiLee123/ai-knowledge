@@ -130,7 +130,7 @@ def test_retrieval_candidate_rank_never_called_accuracy():
 
 def test_retrieval_uses_existing_staging_and_has_guard():
     with patch.object(m11.qa, "build_packet",
-                      side_effect=lambda sid,q: fake_packet(q)) as mocked, \\
+                      side_effect=lambda sid,q: fake_packet(q)) as mocked, \
          patch.object(m11.qa, "generate_draft",
                       side_effect=AssertionError("no external model")):
         report = m11.run_retrieval_probe()
@@ -150,9 +150,9 @@ def test_pinned_file_guard_and_end_to_end_with_synthetic_mocks():
         path.write_bytes(raw)
         refused(lambda: m11.build_report(path))
         with patch.object(m11, "PINNED_PDF_SHA256",
-                          hashlib.sha256(raw).hexdigest()), \\
+                          hashlib.sha256(raw).hexdigest()), \
              patch.object(m11, "build_manifest",
-                          side_effect=lambda p: fake_manifest()), \\
+                          side_effect=lambda p: fake_manifest()), \
              patch.object(m11, "run_app149_readonly_pilot",
                           side_effect=lambda b: fake_silver()):
             report = m11.build_report(path)
