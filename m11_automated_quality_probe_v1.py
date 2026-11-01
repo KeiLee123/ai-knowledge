@@ -207,7 +207,8 @@ def build_report(pdf_path, *, include_retrieval=False):
     retrieval = run_retrieval_probe() if include_retrieval else None
     return {
         "version": VERSION,
-        "environment": "staging",
+        "environment": ("staging_retrieval_readonly" if include_retrieval
+                        else "local_offline_pdf"),
         "source_id": PINNED_SOURCE_ID,
         "document": document,
         "evidence_verifier": silver,
