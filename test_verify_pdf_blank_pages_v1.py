@@ -89,6 +89,68 @@ def test_blank_and_visible_pages():
         print("test_render_source_identity_and_page_bounds: PASS")
 
 
+def test_white_vector_and_visible_content():
+    """White paint is not semantic proof of a blank page.
+
+    Synthetic only: no source documents, models, credentials, or database.
+    A near-white vector must remain held by the existing strict probe.
+    """
+    with tempfile.TemporaryDirectory() as temp:
+        path = Path(temp) / "vector-boundary.pdf"
+        pdf = pymupdf.open()
+        pdf.new_page(width=400, height=400)  # Truly empty drawing list
+
+        white = pdf.new_page(width=400, height=400)
+        white.draw_rect(pymupdf.Rect(30, 30, 220, 220),
+                        fill=(1, 1, 1), color=None)
+
+        almost_white = pdf.new_page(width=400, height=400)
+        almost_white.draw_rect(
+            pymupdf.Rect(30, 30, 220, 220),
+            fill=(254 / 255,) * 3, color=None)
+
+        words = pdf.new_page(width=400, height=400)
+        words.insert_text((30, 100), "VISIBLE SYNTHETIC CONTENT", fontsize=12)
+
+        thin_line = pdf.new_page(width=400, height=400)
+        thin_line.draw_line(pymupdf.Point(30, 30),
+                            pymupdf.Point(200, 200),
+                            color=(0, 0, 0), width=0.5)
+        pdf.save(path)
+        pdf.close()
+
+        with pymupdf.open(path) as source:
+            assert source[0].get_drawings() == []
+            drawings = source[1].get_drawings()
+            assert len(drawings) == 1
+            assert drawings[0]["fill"] == (1.0, 1.0, 1.0)
+            assert source[1].get_text() == ""
+            assert "VISIBLE SYNTHETIC CONTENT" in source[3].get_text()
+
+        report = inspect_rendered_pages(
+            path,
+            expected_sha256=sha256_file(path),
+            expected_size=path.stat().st_size,
+            expected_total_pages=5,
+            first_page=1,
+            last_page=5,
+        )
+        assert report["status"] == "AUTO_HOLD_RENDERED_NONWHITE"
+        assert report["document"]["nonwhite_detected_pages"] == [3, 4, 5]
+        assert report["pages"][0]["nonwhite_pixels"] == 0
+        assert report["pages"][1]["nonwhite_pixels"] == 0
+        assert report["pages"][2]["nonwhite_pixels"] > 0
+        assert report["pages"][3]["nonwhite_pixels"] > 0
+        assert report["pages"][4]["nonwhite_pixels"] > 0
+        assert report["document"]["independent_pdf_content_semantics_verified"] is False
+        assert report["document"]["higher_resolution_render_verified"] is False
+        assert report["database_access"] is False
+        assert report["production_write"] is False
+        assert report["drive_write"] is False
+        print("test_white_vector_and_visible_content: PASS")
+
+
 if __name__ == "__main__":
     test_blank_and_visible_pages()
+    test_white_vector_and_visible_content()
     print("PDF RENDER BLANKNESS OFFLINE CONTRACT: PASS")
