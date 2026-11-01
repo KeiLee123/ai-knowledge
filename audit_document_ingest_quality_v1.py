@@ -143,6 +143,12 @@ def analyze_manifest(manifest, *, drive_file_id, expected_size,
     expected_table_keys = set()
     detected_tables = 0
     table_rows = 0
+    no_text_classes = {
+        "extractor_blank_candidate": 0,
+        "image_only": 0,
+        "vector_or_graphic": 0,
+        "unclassified": 0,
+    }
     for p in pages:
         pg = p["page_number"]
         require(type(p.get("width")) in (int, float)
@@ -160,6 +166,23 @@ def analyze_manifest(manifest, *, drive_file_id, expected_size,
         tables = p.get("tables") or []
         require(isinstance(tables, list), "table_list_invalid")
         local_issues = []
+
+        # Blank is only a signal from the existing extractor, not proof
+        # that the rendered PDF page is visually empty.
+        no_text_class = None
+        if chars == 0:
+            images = p.get("images")
+            require(isinstance(images, list), "images_signal_invalid")
+            if images:
+                no_text_class = "image_only"
+            elif p.get("visual_candidate") is True:
+                no_text_class = "vector_or_graphic"
+            elif p.get("blank") is True:
+                no_text_class = "extractor_blank_candidate"
+            else:
+                no_text_class = "unclassified"
+                local_issues.append("NO_NATIVE_TEXT_UNCLASSIFIED")
+            no_text_classes[no_text_class] += 1
         if p.get("table_extraction_errors"):
             local_issues.append("TABLE_EXTRACTOR_REPORTED_ERROR")
         if (p.get("layout_metrics") or {}).get("text_table_candidate") and not tables:
@@ -186,6 +209,7 @@ def analyze_manifest(manifest, *, drive_file_id, expected_size,
         page_reports.append({
             "page": pg,
             "native_text_chars": chars,
+            "no_native_text_class": no_text_class,
             "tables_detected": len(tables),
             "table_rows": [t.get("row_count") for t in tables],
             "table_columns": [t.get("column_count") for t in tables],
@@ -206,6 +230,8 @@ def analyze_manifest(manifest, *, drive_file_id, expected_size,
         p["native_text_chars"] == 0 for p in page_reports)
     require(native_text_pages + no_native_text_pages == len(pages),
             "native_text_coverage_incomplete")
+    require(sum(no_text_classes.values()) == no_native_text_pages,
+            "no_native_text_class_coverage_incomplete")
     return {
         "version": VERSION,
         "test_scope": "existing_pdf_extract_route_chunks_only",
@@ -232,6 +258,7 @@ def analyze_manifest(manifest, *, drive_file_id, expected_size,
                 legacy_table_writer_metadata_mismatches,
             "native_text_pages": native_text_pages,
             "no_native_text_pages": no_native_text_pages,
+            "no_native_text_class_counts": no_text_classes,
         },
         "pages": page_reports,
         "issue_codes": sorted(set(issues)),
@@ -300,6 +327,12 @@ def audit_pdf_batched(path, *, drive_file_id, expected_size,
     total_table_chunks = 0
     total_native_text_pages = 0
     total_no_native_text_pages = 0
+    total_no_native_text_classes = {
+        "extractor_blank_candidate": 0,
+        "image_only": 0,
+        "vector_or_graphic": 0,
+        "unclassified": 0,
+    }
     total_legacy_writer_checked = 0
     total_legacy_writer_mismatches = 0
     routing_counts = {}
@@ -323,6 +356,9 @@ def audit_pdf_batched(path, *, drive_file_id, expected_size,
         total_table_chunks += result["document"]["structured_table_chunk_count"]
         total_native_text_pages += result["document"]["native_text_pages"]
         total_no_native_text_pages += result["document"]["no_native_text_pages"]
+        for key in total_no_native_text_classes:
+            total_no_native_text_classes[key] += (
+                result["document"]["no_native_text_class_counts"][key])
         require(
             result["document"]["native_text_pages"] +
             result["document"]["no_native_text_pages"] == len(pages),
@@ -348,12 +384,17 @@ def audit_pdf_batched(path, *, drive_file_id, expected_size,
                 result["document"]["structured_table_chunk_count"],
             "native_text_pages": result["document"]["native_text_pages"],
             "no_native_text_pages": result["document"]["no_native_text_pages"],
+            "no_native_text_class_counts":
+                result["document"]["no_native_text_class_counts"],
             "issue_codes": issues,
         })
     require(reviewed_pages == set(range(1, count + 1)),
             "incomplete_document_page_coverage")
     require(total_native_text_pages + total_no_native_text_pages == count,
             "document_native_text_coverage_incomplete")
+    require(sum(total_no_native_text_classes.values()) ==
+            total_no_native_text_pages,
+            "document_no_native_text_class_coverage_incomplete")
     if total_tables == 0:
         all_issues.add("NO_STRUCTURED_TABLE_DETECTED")
 
@@ -382,6 +423,8 @@ def audit_pdf_batched(path, *, drive_file_id, expected_size,
             "all_chunk_count": total_chunks,
             "native_text_pages": total_native_text_pages,
             "no_native_text_pages": total_no_native_text_pages,
+            "no_native_text_class_counts": total_no_native_text_classes,
+            "rendered_blankness_verified": False,
             "legacy_table_writer_metadata_checked":
                 total_legacy_writer_checked,
             "legacy_table_writer_metadata_mismatches":
