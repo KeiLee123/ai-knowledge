@@ -20,3 +20,18 @@ No PDF excerpts or cell values are printed. No model or OCR calls, DB access, Dr
 - Synthetic offline tests and full CI precede real VPS Staging acceptance.
 - Staging acceptance of structural diagnostics is not acceptance of semantic answer, OCR, version/applicability, Anki, or Production ingest.
 - Keep PR #88 Draft and unmerged until results inspected. Production and frozen modules unchanged.
+
+
+## Real Concrete Repair Sheet1 PDF — observed VPS Staging audit
+
+At commit `1bf1dd3d435d4f57062d677b010e99ea94457f5e`, existing SHA-pinned source passed read-only audit: 298/298 physical pages processed, 12 batches, 150 native-text pages (1–150), 148 no-native-text pages (151–298). There were 148 detected tables, 148 structured table chunks, and 148/148 real Canonical Text Writer metadata previews matched (0 mismatches). The batch-level Router selected `legacy-v1` 12/12 times; this route *does not itself prove data loss*, because the canonical text Staging writer reuses the Structured Table chunk builder. Database round-trip, numeric cell semantics and OCR accuracy remain NOT MEASURED.
+
+All 148 no-native-text pages were `extractor_blank_candidate`; image-only, vector/graphic and unclassified counts were zero. These are **Extractor signals** and not a raster-rendered proof of white or semantically empty pages. Preserve their source physical page numbers.
+
+## Bounded, independent raster probe — separate evidence gate
+
+`verify_pdf_blank_pages_v1.py` renders only explicitly requested PDF pages in memory at 72 DPI grayscale with annotations enabled. For every pixel, it counts any byte darker than pure white. It never saves PNGs or extracted text, and writes only metadata JSON at the explicit local `--report-json` path. A non-white pixel triggers `AUTO_HOLD_RENDERED_NONWHITE`. If all sampled pixels are white, it returns `RENDER_NO_NONWHITE_DETECTED_LIMITED` — **not** a proof of absence of hidden/occluded PDF objects, very fine high-resolution details, invisible or white-on-white elements, nor a guarantee of semantic source completeness. To claim an entire page range was rendered, page count must match the required count, with no gaps; this does not claim the whole PDF was rendered if only a subrange was supplied.
+
+Safety guards: require exact observed input file SHA256/size, expected physical 298 page count, 1–150 requested render pages, total maximum 500, and per-page size ceiling of two million rendered pixels; no AI, OCR, DB/Drive writes or network access. Use a temporary local folder for both PDF and report. Avoid human review as a mandatory gate. This independent probe is additive and does not modify Frozen v1.3 or any existing Extractor, Router or Writer.
+
+Next real Staging gate: `--expected-total-pages 298 --first-page 151 --last-page 298 --expected-sha256 6a506fb13e4c8f294268cdcb64aa89e4133dc26c63769b4b95b1a6b281c3c7ac --expected-size 1016489`. Independently check all 148 blank-candidate pages. No real render outcome has been observed yet. If nonwhite pages occur, keep them on auto-hold and triage only those pages. Even if all are white at 72 DPI, do not treat that as a semantic correctness or indexing acceptance.
