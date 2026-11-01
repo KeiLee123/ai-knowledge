@@ -296,6 +296,12 @@ jobs:
           set -euo pipefail
           python test_pre_writer_document_quality_gate_v1.py
 
+      - name: Official source pre-writer controller synthetic test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_official_source_quality_gate_controller_v1.py
+
       - name: Multimodal ingestion contract test
         shell: bash
         run: |
