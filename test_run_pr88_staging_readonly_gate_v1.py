@@ -118,12 +118,13 @@ def test_guard_and_acceptance():
         assert bad["status"] == "AUTO_HOLD_UNVERIFIED"
         assert bad["staging_database_write_authorized"] is False
 
-        try:
-            gate.check_isolated_worktree(root, "0" * 40)
-        except gate.StagingGateRefused as exc:
-            assert "worktree_commit_mismatch" in str(exc)
-        else:
-            raise AssertionError("wrong PR head accepted")
+        with patch.object(gate, "git_output", side_effect=fake_git):
+            try:
+                gate.check_isolated_worktree(root, "0" * 40)
+            except gate.StagingGateRefused as exc:
+                assert "worktree_commit_mismatch" in str(exc)
+            else:
+                raise AssertionError("wrong PR head accepted")
 
         try:
             gate.check_pdf(pdf)
