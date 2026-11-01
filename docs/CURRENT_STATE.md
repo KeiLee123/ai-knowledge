@@ -50,3 +50,9 @@ Perform a **read-only** reconciliation of PR #88 vs Issue #87 and exact pinned t
 **Unknown until independently verified:** actual VPS checkout/dirty state, installed timers, real production/service health, latest Staging datasets, Anki import behavior, model-egress permissions. Never mark deployed solely from GitHub files.
 
 See [governance](DEVELOPMENT_GOVERNANCE.md) and [dated audit](DEVELOPMENT_HEALTH_AUDIT_2026-11-01.md).
+
+## Shared Jason OS development memory — 2026-11-02 addendum
+
+This document is a dated GitHub technical navigation snapshot. For a new development task, retrieve the [M1 Master Index](https://docs.google.com/document/d/1QDcl287N5zFqeYEpukN10cd-2qv7lJEdNcT4rJ0lpTI/edit) and [Knowledge Brain Current State](https://docs.google.com/document/d/1ETsFRfbE2HsRG2yb78EKDfRm2VzveyLNkLS-cr1g6Nk/edit) first, follow the [M2 Preflight/Handoff SOP](https://docs.google.com/document/d/1_WZ2rtpQOEsQFAWq1zjgoSxAgf6qyRrbhKlmqJlql5U/edit), and use the [M3 audit](https://docs.google.com/document/d/1Kq28KgAtzR9zcn5iYA8VoznxyrW3PsfDN0LrlSUKqAg/edit) only as dated evidence. Reconcile live PR/CI and bounded VPS evidence separately. The original open-PR count predates this governance Draft [PR #89](https://github.com/KeiLee123/ai-knowledge/pull/89).
+
+For [Document Ingestion PR #88](https://github.com/KeiLee123/ai-knowledge/pull/88), the pinned real VPS read-only audit already covered all 298 PDF pages, 148 structured table chunks and 148 writer-metadata checks with zero mismatches. Pages 151–298 were 148 extractor blank candidates, not independently rendered-blank pages. The separate render script passed synthetic CI on head a1b0f4856edf3c6090ce44fcbbd7d65cefcb1fa2, but the real 148-page raster test and database round-trip remain unverified. This addendum does not authorize Production deployment or modifications to Frozen v1.3.
