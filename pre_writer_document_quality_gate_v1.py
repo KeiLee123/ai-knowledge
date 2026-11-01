@@ -62,3 +62,27 @@ def enforce_pre_writer_quality_gate(source, report_path=None):
             and report.get("reason_codes") == []):
         raise DocumentQualityHold("QUALITY_GATE_MECHANICAL_MATCH_STILL_AUTO_HOLD")
     raise DocumentQualityHold("QUALITY_GATE_EVIDENCE_NOT_APPROVED")
+
+
+
+def registry_has_quality_gated_sources(registry):
+    """Read-only registry policy check; malformed opt-in settings fail closed.
+
+    Multimodal direct CLI cannot establish an authoritative source identity
+    from a user-controlled local PDF path. As an MVP, ANY enabled policy
+    disables direct multimodal writes until source binding is designed.
+    """
+    sources = registry.get("sources") if isinstance(registry, dict) else None
+    if not isinstance(sources, dict) or not sources:
+        raise DocumentQualityHold("QUALITY_GATE_REGISTRY_INVALID")
+    enabled = False
+    for source in sources.values():
+        if not isinstance(source, dict):
+            raise DocumentQualityHold("QUALITY_GATE_REGISTRY_SOURCE_INVALID")
+        policy = source.get("document_quality_gate")
+        if policy is None:
+            continue
+        if not isinstance(policy, dict) or type(policy.get("enabled")) is not bool:
+            raise DocumentQualityHold("QUALITY_GATE_POLICY_INVALID")
+        enabled = enabled or policy["enabled"]
+    return enabled
