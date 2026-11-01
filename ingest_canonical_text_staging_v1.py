@@ -6,6 +6,10 @@ import tempfile
 from pathlib import Path
 
 from build_multimodal_chunks_v2 import build_output
+from pre_writer_document_quality_gate_v1 import (
+    DocumentQualityHold, enforce_pre_writer_quality_gate,
+    registry_has_quality_gated_sources,
+)
 from extract_document_v2 import build_manifest
 from ingest_canonical_staging_v1 import (
     ALLOWED_REMOTE,
@@ -384,6 +388,11 @@ def main():
         help="Optional persistent directory for validation artifacts.",
     )
 
+    parser.add_argument(
+        "--document-quality-report-json", default=None,
+        help="Redacted quality reconciliation evidence; checked on --write.",
+    )
+
     args = parser.parse_args()
 
     if args.confirm_staging_write and not args.write:
@@ -403,6 +412,21 @@ def main():
             registry,
             args.source_id,
         )
+
+        if args.write:
+            # The checked-in Registry is authoritative for direct writes.
+            # A custom --registry cannot silently disable an enabled
+            # source's Quality Gate by replacing its profile.
+            pinned_registry = repo_root / "source_registry_v1.yaml"
+            default_registry = load_registry(pinned_registry)
+            if registry_has_quality_gated_sources(default_registry):
+                if Path(args.registry).expanduser().resolve() != pinned_registry:
+                    raise DocumentQualityHold("QUALITY_GATE_REGISTRY_OVERRIDE_REFUSED")
+                if args.source_id not in (default_registry.get("sources") or {}):
+                    raise DocumentQualityHold("QUALITY_GATE_UNKNOWN_SOURCE_REFUSED")
+            enforce_pre_writer_quality_gate(
+                source, args.document_quality_report_json,
+            )
 
         expected = load_expected_baseline(
             Path(args.state_root).expanduser().resolve(),
