@@ -160,6 +160,108 @@ def test_evidence_uses_existing_staging_and_currentness_guard():
     with_local_server(run)
 
 
+
+def auto_packet(sid, question, distance):
+    packet = sample_packet(question)
+    packet["source"] = dict(packet["source"])
+    packet["source"]["source_id"] = sid
+    if sid == "BD_PNAP_APP149":
+        packet["source"]["title"] = "Temporary Authorized Signatory APP149"
+        packet["source"]["official_url"] = APP145_URL.replace("APP145", "APP149")
+    packet["evidence"] = [dict(packet["evidence"][0])]
+    packet["evidence"][0]["distance"] = distance
+    packet["evidence"][0]["chunk_id"] = 123 if sid.endswith("149") else 115
+    return packet
+
+
+def test_question_first_auto_two_sources_global_rank_and_feedback():
+    question = "臨時認可簽署人有甚麼責任？"
+    def build(sid, q):
+        assert q == question
+        assert sid in ui.qa.ALLOWED
+        return auto_packet(sid, q, 0.10 if sid.endswith("149") else 0.25)
+
+    def run(port, feedback_path):
+        with patch.object(ui.qa, "build_packet", side_effect=build) as mocked, \\
+             patch.object(ui.qa, "generate_draft",
+                          side_effect=AssertionError("NO AI")):
+            status, _, raw = http_request(port, "POST", "/api/ask",
+                                          {"question": question})
+            assert status == 200, raw
+            result = json.loads(raw)
+            assert result["source"]["source_id"] == "AUTO_APPROVED"
+            assert [src["source_id"] for src in result["sources"]] == list(ui.qa.ALLOWED)
+            assert result["coverage"] == {
+                "indexed_chunks": 16, "retrieved_unique_chunks": 16,
+                "complete_index_coverage": True,
+            }
+            assert [e["source_id"] for e in result["evidence"]] == [
+                "BD_PNAP_APP149", "BD_PNAP_APP145"]
+            assert result["evidence"][0]["id"] == "S1"
+            assert result["evidence"][0]["source_url"].endswith("APP149.pdf#page=3")
+            assert result["evidence"][1]["source_url"].endswith("APP145.pdf#page=3")
+            assert result["ai_answer_generated"] is False
+            assert result["production_write"] is False
+            assert mocked.call_count == 2
+
+        rid = result["request_id"]
+        status, _, _ = http_request(port, "POST", "/api/feedback", {
+            "request_id": rid, "source": "BD_PNAP_APP145",
+            "type": "other", "comment": "Wrong auto-search scope",
+        })
+        assert status == 400
+        assert not feedback_path.exists()
+        status, _, raw = http_request(port, "POST", "/api/feedback", {
+            "request_id": rid, "source": "AUTO_APPROVED",
+            "type": "other", "comment": "Evidence order reviewed",
+        })
+        assert status == 201, raw
+        saved = feedback_path.read_text(encoding="utf-8")
+        assert '"source_id": "AUTO_APPROVED"' in saved
+        assert question not in saved
+    with_local_server(run)
+
+
+def test_auto_currentness_refusal_and_fail_closed_missing_source():
+    question = "截至2026年11月1日，現行法定期限是甚麼？"
+    def build(sid, q):
+        return auto_packet(sid, q, 0.2)
+    def run(port, feedback_path):
+        with patch.object(ui.qa, "build_packet", side_effect=build):
+            status, _, raw = http_request(port, "POST", "/api/ask",
+                                          {"source": "AUTO_APPROVED", "question": question})
+            assert status == 200, raw
+            result = json.loads(raw)
+            assert result["status"] == "CURRENTNESS_UNVERIFIED_ABSTAIN"
+            assert result["ai_answer_generated"] is False
+        def missing(sid, q):
+            if sid == "BD_PNAP_APP149":
+                raise ui.qa.BetaRefused("missing_verified_source")
+            return auto_packet(sid, q, 0.2)
+        with patch.object(ui.qa, "build_packet", side_effect=missing):
+            status, _, raw = http_request(port, "POST", "/api/ask",
+                                          {"question": question})
+            assert status == 400, raw
+            assert "missing_verified_source" in raw.decode("utf-8")
+        with patch.object(ui.qa, "build_packet", side_effect=lambda sid, q:
+                          sample_packet(q) if sid.endswith("149") else auto_packet(sid,q,0.2)):
+            status, _, raw = http_request(port, "POST", "/api/ask",
+                                          {"question": question})
+            assert status == 400, raw
+            assert b"unexpected_source" in raw or b"invalid_retrieval_distance" in raw
+        assert not feedback_path.exists()
+    with_local_server(run)
+
+
+def test_auto_is_default_in_browser_and_manual_filter_is_optional():
+    html = ui.PAGE_PATH.read_text(encoding="utf-8")
+    assert '<option value="AUTO_APPROVED" selected>' in html
+    assert 'id="sourceFilter"' in html
+    assert "進階選項" in html
+    assert "data.sources.forEach" in html
+    assert "item.source_id" in html
+
+
 def test_feedback_append_is_private_and_not_a_query_log():
     def run(port, feedback_path):
         with patch.object(ui.qa, "build_packet",
