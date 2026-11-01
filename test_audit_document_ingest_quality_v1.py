@@ -21,6 +21,7 @@ def sample():
             "width": 612.0, "height": 792.0,
             "text": "Synthetic table", "text_chars": 15,
             "images": [], "table_extraction_errors": [],
+            "blank": False, "visual_candidate": False,
             "layout_metrics": {"text_table_candidate": True},
             "vector_metrics": {"meaningful_drawing_item_count": 500},
             "ocr_candidate": False, "vector_candidate": False,
@@ -78,6 +79,7 @@ def test_bounded_full_document_coverage():
                 if number > 150:
                     unit["text"] = ""
                     unit["text_chars"] = 0
+                    unit["blank"] = True
                 m["units"].append(unit)
             return m
 
@@ -94,6 +96,11 @@ def test_bounded_full_document_coverage():
         assert result["document"]["pages_covered"] == 298
         assert result["document"]["native_text_pages"] == 150
         assert result["document"]["no_native_text_pages"] == 148
+        assert result["document"]["no_native_text_class_counts"] == {
+            "extractor_blank_candidate": 148,
+            "image_only": 0, "vector_or_graphic": 0, "unclassified": 0,
+        }
+        assert result["document"]["rendered_blankness_verified"] is False
         assert sum(b["native_text_pages"] + b["no_native_text_pages"]
                    for b in result["batches"]) == 298
         assert result["batches"][-1]["native_text_pages"] == 0
@@ -222,7 +229,48 @@ def test_native_text_metrics_fail_closed():
     print("test_native_text_metric_coverage_and_fail_closed: PASS")
 
 
+
+def test_no_native_text_page_signal_classes():
+    import copy
+    m = sample()
+    unit = m["units"][0]
+    unit["text"] = ""
+    unit["text_chars"] = 0
+    unit["tables"] = []
+    unit["layout_metrics"]["text_table_candidate"] = False
+    unit["blank"] = True
+    r = inspect(m)
+    assert r["document"]["no_native_text_class_counts"][
+        "extractor_blank_candidate"] == 1
+    assert r["document"]["no_native_text_pages"] == 1
+
+    m2 = copy.deepcopy(m)
+    m2["units"][0]["blank"] = False
+    m2["units"][0]["images"] = [{"bbox": [5, 5, 10, 10]}]
+    m2["units"][0]["ocr_candidate"] = True
+    r = inspect(m2)
+    assert r["document"]["no_native_text_class_counts"]["image_only"] == 1
+    assert r["status"] == "AUTO_HOLD_UNVERIFIED"
+
+    m3 = copy.deepcopy(m)
+    m3["units"][0]["blank"] = False
+    m3["units"][0]["visual_candidate"] = True
+    m3["units"][0]["vector_candidate"] = True
+    r = inspect(m3)
+    assert r["document"]["no_native_text_class_counts"][
+        "vector_or_graphic"] == 1
+    assert r["status"] == "AUTO_HOLD_UNVERIFIED"
+
+    m4 = copy.deepcopy(m)
+    m4["units"][0]["blank"] = False
+    r = inspect(m4)
+    assert r["document"]["no_native_text_class_counts"]["unclassified"] == 1
+    assert "NO_NATIVE_TEXT_UNCLASSIFIED" in r["issue_codes"]
+    print("test_no_native_text_page_signal_classes: PASS")
+
+
 def main():
+    test_no_native_text_page_signal_classes()
     test_native_text_metrics_fail_closed()
     test_real_canonical_text_sql_builder_preserves_table_metadata()
     test_report_json_is_independent_of_pdf_library_notice()
