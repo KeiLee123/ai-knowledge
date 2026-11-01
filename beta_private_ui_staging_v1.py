@@ -61,9 +61,9 @@ def ask_evidence(data):
     packets = [qa.build_packet(sid, question) for sid in scope]
     descriptions = []
     ranked = []
-    for packet in packets:
+    for expected_source_id, packet in zip(scope, packets):
         ref = packet["source"]
-        if ref["source_id"] not in scope:
+        if ref["source_id"] != expected_source_id:
             raise UIRefused("unexpected_source")
         coverage = packet["retrieval_coverage"]
         descriptions.append({
