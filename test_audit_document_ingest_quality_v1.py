@@ -145,7 +145,42 @@ def test_report_json_is_independent_of_pdf_library_notice():
     print("test_report_json_ignores_pdf_notice: PASS")
 
 
+
+def test_real_canonical_text_sql_builder_preserves_table_metadata():
+    # The writer builds SQL text only; do NOT run SQL or connect to a DB.
+    from pathlib import Path
+    from build_multimodal_chunks_v2 import build_chunks
+    from ingest_canonical_text_staging_v1 import build_text_transaction_sql
+
+    m = sample()
+    m["units"][0]["vector_metrics"]["meaningful_drawing_item_count"] = 0
+    chunks = build_chunks(m, target_chars=1800, overlap_chars=250)
+    tables = [x for x in chunks
+              if x["metadata"].get("evidence_origin") == "structured_table"]
+    assert len(tables) == 1
+    sql = build_text_transaction_sql(
+        payload={"chunks": tables,
+                 "source_manifest": {"document_sha256": "a" * 64},
+                 "summary": {"chunk_count": len(tables),
+                             "counts_by_origin": {"structured_table": 1}}},
+        vectors=[[0.0] * 384],
+        chunks_path=Path("synthetic-only-chunks.json"),
+        title="synthetic-only", domain="test", topic="test",
+        document_type="test", authority="", jurisdiction="HK",
+        language="en", source_url="", canonical_source="TEST_ONLY",
+    )
+    assert '"evidence_origin":"structured_table"' in sql
+    assert '"modality":"table"' in sql
+    assert '"table_row_count":2' in sql
+    assert '"table_column_count":2' in sql
+    assert '"page_number":1' in sql
+    assert "INSERT INTO chunks" in sql
+    assert "COMMIT" in sql
+    print("test_canonical_text_sql_metadata_preview: PASS")
+
+
 def main():
+    test_real_canonical_text_sql_builder_preserves_table_metadata()
     test_report_json_is_independent_of_pdf_library_notice()
     test_bounded_full_document_coverage()
     m = sample()
@@ -159,9 +194,20 @@ def main():
     m = sample()
     m["units"][0]["vector_metrics"]["meaningful_drawing_item_count"] = 0
     r = inspect(m)
-    assert r["status"] == "AUTO_HOLD_UNVERIFIED"
-    assert "LEGACY_ROUTE_MAY_DROP_TABLE_STRUCTURE" in r["issue_codes"]
-    print("test_legacy_route_auto_hold: PASS")
+    assert r["status"] == "MECHANICAL_CHECKS_PASS_LIMITED", r
+    assert r["document"]["legacy_table_writer_metadata_checked"] == 1
+    assert r["document"]["legacy_table_writer_metadata_mismatches"] == 0
+    assert r["db_roundtrip_verified"] is False
+    print("test_legacy_text_writer_metadata_preserved: PASS")
+
+    import audit_document_ingest_quality_v1 as audit
+    from unittest.mock import patch
+    with patch.object(audit, "text_chunk_metadata", return_value={}):
+        failed = inspect(m)
+    assert failed["status"] == "AUTO_HOLD_UNVERIFIED"
+    assert "LEGACY_TEXT_WRITER_TABLE_METADATA_MISMATCH" in failed["issue_codes"]
+    assert failed["document"]["legacy_table_writer_metadata_mismatches"] == 1
+    print("test_legacy_text_writer_metadata_loss_held: PASS")
 
     m = sample()
     m["units"][0]["tables"] = []
