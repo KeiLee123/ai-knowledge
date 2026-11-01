@@ -75,6 +75,9 @@ def test_bounded_full_document_coverage():
                 unit["vector_metrics"] = {
                     "meaningful_drawing_item_count": 0,
                 }
+                if number > 150:
+                    unit["text"] = ""
+                    unit["text_chars"] = 0
                 m["units"].append(unit)
             return m
 
@@ -89,6 +92,12 @@ def test_bounded_full_document_coverage():
             )
         assert result["document"]["physical_pages"] == 298
         assert result["document"]["pages_covered"] == 298
+        assert result["document"]["native_text_pages"] == 150
+        assert result["document"]["no_native_text_pages"] == 148
+        assert sum(b["native_text_pages"] + b["no_native_text_pages"]
+                   for b in result["batches"]) == 298
+        assert result["batches"][-1]["native_text_pages"] == 0
+        assert result["batches"][-1]["no_native_text_pages"] == 23
         assert result["document"]["coverage_complete"] is True
         assert result["document"]["batch_count"] == 12
         assert result["document"]["batch_size"] == 25
@@ -179,7 +188,42 @@ def test_real_canonical_text_sql_builder_preserves_table_metadata():
     print("test_canonical_text_sql_metadata_preview: PASS")
 
 
+
+def test_native_text_metrics_fail_closed():
+    m = sample()
+    r = inspect(m)
+    assert r["document"]["native_text_pages"] == 1
+    assert r["document"]["no_native_text_pages"] == 0
+    assert r["pages"][0]["native_text_chars"] == 15
+
+    m = sample()
+    m["units"][0]["text"] = ""
+    m["units"][0]["text_chars"] = 0
+    r = inspect(m)
+    assert r["document"]["native_text_pages"] == 0
+    assert r["document"]["no_native_text_pages"] == 1
+
+    for invalid in ("missing", "none", "string", "mismatch"):
+        m = sample()
+        if invalid == "missing":
+            del m["units"][0]["text_chars"]
+        elif invalid == "none":
+            m["units"][0]["text_chars"] = None
+        elif invalid == "string":
+            m["units"][0]["text_chars"] = "15"
+        else:
+            m["units"][0]["text_chars"] = 1
+        try:
+            inspect(m)
+        except IngestAuditRefused as exc:
+            assert "native_text_metric_invalid" in str(exc)
+        else:
+            raise AssertionError("invalid native text metric was accepted")
+    print("test_native_text_metric_coverage_and_fail_closed: PASS")
+
+
 def main():
+    test_native_text_metrics_fail_closed()
     test_real_canonical_text_sql_builder_preserves_table_metadata()
     test_report_json_is_independent_of_pdf_library_notice()
     test_bounded_full_document_coverage()
