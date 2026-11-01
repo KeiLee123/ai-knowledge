@@ -302,6 +302,12 @@ jobs:
           set -euo pipefail
           python test_official_source_quality_gate_controller_v1.py
 
+      - name: Direct text and multimodal writer quality gate synthetic test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_direct_writer_quality_gate_v1.py
+
       - name: Multimodal ingestion contract test
         shell: bash
         run: |
