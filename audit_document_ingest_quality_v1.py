@@ -13,6 +13,7 @@ from pathlib import Path
 
 from build_multimodal_chunks_v2 import build_chunks
 from extract_document_v2 import build_manifest
+from ingest_canonical_text_staging_v1 import text_chunk_metadata
 from route_document_v2 import assess_manifest
 
 VERSION = "document-ingest-quality-audit-v1"
@@ -102,8 +103,11 @@ def analyze_manifest(manifest, *, drive_file_id, expected_size,
     router = assess_manifest(manifest, allow_partial=selection is not None)
     require(router.get("safety", {}).get("database_write_performed") is False,
             "router_side_effect_refused")
+    route = (router.get("decision") or {}).get("recommended_pipeline")
     chunks = build_chunks(manifest, target_chars=1800, overlap_chars=250)
     table_chunk_groups = {}
+    legacy_table_writer_metadata_checked = 0
+    legacy_table_writer_metadata_mismatches = 0
     for chunk in chunks:
         meta = chunk.get("metadata") or {}
         page = chunk.get("page_start")
@@ -119,6 +123,21 @@ def analyze_manifest(manifest, *, drive_file_id, expected_size,
                     "structured_table_chunk_invalid")
             table_chunk_groups.setdefault(
                 (page, meta.get("table_index")), []).append(meta)
+            if route == "legacy-v1":
+                # Reuse the real pure metadata adapter in the canonical text
+                # writer; never connect to DB or precompute embeddings here.
+                writer_meta = text_chunk_metadata(chunk)
+                keys = (
+                    "evidence_origin", "modality", "evidence_tier",
+                    "page_number", "table_index", "table_row_count",
+                    "table_column_count", "table_detection_strategy",
+                    "table_bbox",
+                )
+                if all(writer_meta.get(key) == meta.get(key)
+                       for key in keys):
+                    legacy_table_writer_metadata_checked += 1
+                else:
+                    legacy_table_writer_metadata_mismatches += 1
     issues = []
     page_reports = []
     expected_table_keys = set()
@@ -169,9 +188,8 @@ def analyze_manifest(manifest, *, drive_file_id, expected_size,
         issues.append("UNEXPECTED_STRUCTURED_TABLE_CHUNK")
     if not detected_tables:
         issues.append("NO_STRUCTURED_TABLE_DETECTED")
-    route = (router.get("decision") or {}).get("recommended_pipeline")
-    if detected_tables and route == "legacy-v1":
-        issues.append("LEGACY_ROUTE_MAY_DROP_TABLE_STRUCTURE")
+    if legacy_table_writer_metadata_mismatches:
+        issues.append("LEGACY_TEXT_WRITER_TABLE_METADATA_MISMATCH")
     if route not in ("legacy-v1", "multimodal-v2"):
         issues.append("ROUTER_DECISION_UNKNOWN")
     return {
@@ -194,10 +212,22 @@ def analyze_manifest(manifest, *, drive_file_id, expected_size,
                 len(v) for v in table_chunk_groups.values()),
             "all_chunk_count": len(chunks),
             "router_recommendation": route,
+            "legacy_table_writer_metadata_checked":
+                legacy_table_writer_metadata_checked,
+            "legacy_table_writer_metadata_mismatches":
+                legacy_table_writer_metadata_mismatches,
+            "native_text_pages": sum(
+                type(p.get("text_chars")) is int
+                and p["text_chars"] > 0 for p in page_reports),
+            "no_native_text_pages": sum(
+                type(p.get("text_chars")) is int
+                and p["text_chars"] == 0 for p in page_reports),
         },
         "pages": page_reports,
         "issue_codes": sorted(set(issues)),
         "semantic_table_accuracy": "NOT_MEASURED",
+        "db_roundtrip_verified": False,
+        "legacy_writer_metadata_preview_only": True,
         "ocr_or_vision_performed": False,
         "database_access": False,
         "external_ai_called": False,
@@ -258,6 +288,10 @@ def audit_pdf_batched(path, *, drive_file_id, expected_size,
     total_rows = 0
     total_chunks = 0
     total_table_chunks = 0
+    total_native_text_pages = 0
+    total_no_native_text_pages = 0
+    total_legacy_writer_checked = 0
+    total_legacy_writer_mismatches = 0
     routing_counts = {}
     for start in range(1, count + 1, batch_size):
         pages = list(range(start, min(start + batch_size, count + 1)))
@@ -277,6 +311,10 @@ def audit_pdf_batched(path, *, drive_file_id, expected_size,
         total_rows += result["document"]["table_rows_total"]
         total_chunks += result["document"]["all_chunk_count"]
         total_table_chunks += result["document"]["structured_table_chunk_count"]
+        total_native_text_pages += result["document"]["native_text_pages"]
+        total_no_native_text_pages += result["document"]["no_native_text_pages"]
+        total_legacy_writer_checked += result["document"]["legacy_table_writer_metadata_checked"]
+        total_legacy_writer_mismatches += result["document"]["legacy_table_writer_metadata_mismatches"]
         route = result["document"]["router_recommendation"]
         routing_counts[route] = routing_counts.get(route, 0) + 1
 
@@ -324,6 +362,12 @@ def audit_pdf_batched(path, *, drive_file_id, expected_size,
             "table_rows_total": total_rows,
             "structured_table_chunk_count": total_table_chunks,
             "all_chunk_count": total_chunks,
+            "native_text_pages": total_native_text_pages,
+            "no_native_text_pages": total_no_native_text_pages,
+            "legacy_table_writer_metadata_checked":
+                total_legacy_writer_checked,
+            "legacy_table_writer_metadata_mismatches":
+                total_legacy_writer_mismatches,
             "router_batch_counts": routing_counts,
         },
         "batches": batches,
@@ -333,6 +377,8 @@ def audit_pdf_batched(path, *, drive_file_id, expected_size,
             for key, values in sorted(issue_pages_by_code.items())
         },
         "semantic_table_accuracy": "NOT_MEASURED",
+        "db_roundtrip_verified": False,
+        "legacy_writer_metadata_preview_only": True,
         "ocr_or_vision_performed": False,
         "database_access": False,
         "external_ai_called": False,
