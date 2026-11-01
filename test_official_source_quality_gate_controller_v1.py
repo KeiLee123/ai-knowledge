@@ -90,7 +90,7 @@ def test_controller_gate():
     assert "QUALITY_GATE_EVIDENCE_NOT_APPROVED" in unknown_error
 
     legacy = run_isolated({})
-    assert legacy == "SYNTHETIC_LEGACY_BASELINE_REACHED", legacy
+    assert "OFFICIAL SOURCE PROCESSING FAILED: ReachedBaseline" in legacy, legacy
 
     # Even ungated source must not ignore explicitly provided evidence.
     legacy_with_report = run_isolated({}, report)
