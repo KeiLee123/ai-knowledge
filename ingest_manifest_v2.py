@@ -7,6 +7,11 @@ import subprocess
 import urllib.request
 from pathlib import Path
 
+import detect_source_changes_v1 as registry_detector
+from pre_writer_document_quality_gate_v1 import (
+    enforce_unattributed_raw_v2_write,
+)
+
 
 INGESTER_VERSION = "phase-d3-1.4"
 SUPPORTED_SCHEMA = "retrieval-chunks-v2"
@@ -1219,6 +1224,15 @@ def main() -> None:
     )
 
     args = parser.parse_args()
+
+    if args.write:
+        # This lowest-level CLI lacks trusted Registry source attribution.
+        # Enforce on entry even if the orchestrator/controller was bypassed.
+        enforce_unattributed_raw_v2_write(
+            registry_detector.load_registry(
+                Path(__file__).resolve().with_name("source_registry_v1.yaml")
+            )
+        )
 
     chunks_path = Path(
         args.chunks

@@ -12,6 +12,10 @@ from ingest_manifest_v2 import (
     DEFAULT_DB_CONTAINER,
     read_existing_document,
 )
+import detect_source_changes_v1 as registry_detector
+from pre_writer_document_quality_gate_v1 import (
+    enforce_unattributed_raw_v2_write,
+)
 
 
 ORCHESTRATOR_VERSION = "phase-d5-3"
@@ -358,6 +362,15 @@ def main() -> None:
         raise SystemExit(
             "Non-synthetic --write requires "
             "--confirm-live-write"
+        )
+
+    if args.write:
+        # An arbitrary local path/URL cannot prove a Registry source identity.
+        # Hold before workdir creation, OCR, embeddings or DB access.
+        enforce_unattributed_raw_v2_write(
+            registry_detector.load_registry(
+                Path(__file__).resolve().with_name("source_registry_v1.yaml")
+            )
         )
 
     source = (
