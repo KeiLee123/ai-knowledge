@@ -149,6 +149,14 @@ def analyze_manifest(manifest, *, drive_file_id, expected_size,
                 and type(p.get("height")) in (int, float)
                 and p["width"] > 0 and p["height"] > 0,
                 "page_geometry_invalid")
+        # Extractor's documented field is text_chars; do not silently count
+        # missing statistics as zero in the final quality report.
+        chars = p.get("text_chars")
+        native_text = p.get("text")
+        require(type(chars) is int and chars >= 0
+                and isinstance(native_text, str)
+                and len(native_text) == chars,
+                "native_text_metric_invalid")
         tables = p.get("tables") or []
         require(isinstance(tables, list), "table_list_invalid")
         local_issues = []
@@ -177,7 +185,7 @@ def analyze_manifest(manifest, *, drive_file_id, expected_size,
                 local_issues.append("TABLE_CHUNK_METADATA_MISMATCH")
         page_reports.append({
             "page": pg,
-            "native_text_chars": p.get("text_chars"),
+            "native_text_chars": chars,
             "tables_detected": len(tables),
             "table_rows": [t.get("row_count") for t in tables],
             "table_columns": [t.get("column_count") for t in tables],
@@ -192,6 +200,12 @@ def analyze_manifest(manifest, *, drive_file_id, expected_size,
         issues.append("LEGACY_TEXT_WRITER_TABLE_METADATA_MISMATCH")
     if route not in ("legacy-v1", "multimodal-v2"):
         issues.append("ROUTER_DECISION_UNKNOWN")
+    native_text_pages = sum(
+        p["native_text_chars"] > 0 for p in page_reports)
+    no_native_text_pages = sum(
+        p["native_text_chars"] == 0 for p in page_reports)
+    require(native_text_pages + no_native_text_pages == len(pages),
+            "native_text_coverage_incomplete")
     return {
         "version": VERSION,
         "test_scope": "existing_pdf_extract_route_chunks_only",
@@ -216,12 +230,8 @@ def analyze_manifest(manifest, *, drive_file_id, expected_size,
                 legacy_table_writer_metadata_checked,
             "legacy_table_writer_metadata_mismatches":
                 legacy_table_writer_metadata_mismatches,
-            "native_text_pages": sum(
-                type(p.get("text_chars")) is int
-                and p["text_chars"] > 0 for p in page_reports),
-            "no_native_text_pages": sum(
-                type(p.get("text_chars")) is int
-                and p["text_chars"] == 0 for p in page_reports),
+            "native_text_pages": native_text_pages,
+            "no_native_text_pages": no_native_text_pages,
         },
         "pages": page_reports,
         "issue_codes": sorted(set(issues)),
@@ -313,6 +323,10 @@ def audit_pdf_batched(path, *, drive_file_id, expected_size,
         total_table_chunks += result["document"]["structured_table_chunk_count"]
         total_native_text_pages += result["document"]["native_text_pages"]
         total_no_native_text_pages += result["document"]["no_native_text_pages"]
+        require(
+            result["document"]["native_text_pages"] +
+            result["document"]["no_native_text_pages"] == len(pages),
+            "batch_native_text_coverage_incomplete")
         total_legacy_writer_checked += result["document"]["legacy_table_writer_metadata_checked"]
         total_legacy_writer_mismatches += result["document"]["legacy_table_writer_metadata_mismatches"]
         route = result["document"]["router_recommendation"]
@@ -332,10 +346,14 @@ def audit_pdf_batched(path, *, drive_file_id, expected_size,
             "tables_detected": result["document"]["tables_detected"],
             "structured_table_chunks":
                 result["document"]["structured_table_chunk_count"],
+            "native_text_pages": result["document"]["native_text_pages"],
+            "no_native_text_pages": result["document"]["no_native_text_pages"],
             "issue_codes": issues,
         })
     require(reviewed_pages == set(range(1, count + 1)),
             "incomplete_document_page_coverage")
+    require(total_native_text_pages + total_no_native_text_pages == count,
+            "document_native_text_coverage_incomplete")
     if total_tables == 0:
         all_issues.add("NO_STRUCTURED_TABLE_DETECTED")
 
