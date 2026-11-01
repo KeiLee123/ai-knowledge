@@ -105,7 +105,48 @@ def test_bounded_full_document_coverage():
         print("test_298_page_batched_coverage: PASS")
 
 
+
+def test_report_json_is_independent_of_pdf_library_notice():
+    import io
+    import json
+    import sys
+    import tempfile
+    from contextlib import redirect_stdout
+    from pathlib import Path
+    from unittest.mock import patch
+    import audit_document_ingest_quality_v1 as audit
+
+    def fake_audit(*args, **kwargs):
+        print("Consider using the pymupdf_layout package.")
+        return {
+            "status": "AUTO_HOLD_UNVERIFIED",
+            "document": {"physical_pages": 298, "pages_covered": 298},
+        }
+
+    with tempfile.TemporaryDirectory() as folder:
+        report = Path(folder) / "report.json"
+        args = [
+            "audit_document_ingest_quality_v1.py",
+            "--pdf", "/tmp/synthetic-only.pdf",
+            "--drive-file-id", "SYNTHETIC",
+            "--expected-size", "1024",
+            "--report-json", str(report),
+        ]
+        stdout = io.StringIO()
+        with patch.object(sys, "argv", args), patch.object(
+            audit, "audit_pdf_batched", side_effect=fake_audit
+        ), redirect_stdout(stdout):
+            audit.main()
+        assert "Consider using the pymupdf_layout" in stdout.getvalue()
+        assert "REPORT_JSON_WRITTEN" in stdout.getvalue()
+        data = json.loads(report.read_text(encoding="utf-8"))
+        assert data["document"]["physical_pages"] == 298
+        assert data["status"] == "AUTO_HOLD_UNVERIFIED"
+    print("test_report_json_ignores_pdf_notice: PASS")
+
+
 def main():
+    test_report_json_is_independent_of_pdf_library_notice()
     test_bounded_full_document_coverage()
     m = sample()
     assert table_shape(m["units"][0]["tables"][0], 1, 612, 792) == []
