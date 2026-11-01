@@ -6,6 +6,11 @@ import subprocess
 import sys
 from pathlib import Path
 
+import detect_source_changes_v1 as registry_detector
+from pre_writer_document_quality_gate_v1 import (
+    DocumentQualityHold, registry_has_quality_gated_sources,
+)
+
 
 CANARY_GUARD_VERSION = "canary-guard-v1"
 STAGING_DB_CONTAINER = "jason-os-knowledge-db-staging"
@@ -512,6 +517,20 @@ def main() -> None:
     require_ingest_args(
         args
     )
+
+    # This generic direct CLI only has a user-supplied PDF path. Once ANY
+    # source adopts document_quality_gate.enabled, refuse anonymous direct
+    # multimodal writes rather than trusting a spoofable --source-url.
+    # Prepare/verify-only paths and existing registries with no opt-in
+    # retain their previous behavior.
+    if args.write:
+        active_registry = registry_detector.load_registry(
+            repo_root / "source_registry_v1.yaml"
+        )
+        if registry_has_quality_gated_sources(active_registry):
+            raise DocumentQualityHold(
+                "QUALITY_GATE_UNATTRIBUTABLE_DIRECT_MULTIMODAL_WRITE_AUTO_HOLD"
+            )
 
     source = (
         Path(args.file)
