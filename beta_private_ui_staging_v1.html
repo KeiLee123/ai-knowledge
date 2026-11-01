@@ -82,7 +82,7 @@
   </header>
   <div class="container">
     <h1>Ask the evidence.</h1>
-    <p class="lead">香港建築專業知識庫 · 私人測試版。先核對官方文件，再決定下一步。這個版本只顯示原文證據，尚不產生 AI 解釋或法律意見。</p>
+    <p class="lead">香港建築專業知識庫 · 私人測試版。直接輸入問題，系統自動搜尋目前已核准的官方文件（APP145／APP149）。只顯示原文證據，尚不產生 AI 解釋或法律意見。</p>
     <div class="layout">
       <main>
         <section class="panel">
@@ -93,13 +93,15 @@
               <input id="token" type="password" autocomplete="off" required placeholder="從 VPS 啟動畫面複製">
               <p class="hint">只保存在本頁記憶體；不寫入網址、瀏覽器儲存或查詢紀錄。</p>
             </div>
-            <div class="field">
+            <details class="field" id="sourceFilter">
+              <summary>進階選項：限制搜尋文件（不必選）</summary>
               <label for="source">官方文件範圍</label>
               <select id="source">
-                <option value="BD_PNAP_APP149">BD APP149 — Temporary Authorized Signatory</option>
-                <option value="BD_PNAP_APP145">BD APP145 — Fire Safety (Buildings) Ordinance</option>
+                <option value="AUTO_APPROVED" selected>自動搜尋所有已核准文件（APP145 + APP149）</option>
+                <option value="BD_PNAP_APP149">只搜尋 BD APP149</option>
+                <option value="BD_PNAP_APP145">只搜尋 BD APP145</option>
               </select>
-            </div>
+            </details>
             <div class="field">
               <label for="question">你的專業問題</label>
               <textarea id="question" required minlength="5" maxlength="1200" placeholder="例如：臨時認可簽署人可以簽署監督計劃及指定表格嗎？"></textarea>
@@ -110,14 +112,14 @@
         </section>
         <section class="panel" aria-live="polite" id="results">
           <div class="sectionlabel">02 / 查詢結果</div>
-          <p class="note">輸入問題後，這裡會顯示來源文件、可點擊的官方頁碼及完整證據片段。</p>
+          <p class="note">直接提問；系統自動找到已核准文件，顯示跨文件排序、來源及可點擊的官方頁碼。此版僅涵蓋 APP145／APP149。</p>
         </section>
       </main>
       <aside>
         <section class="panel">
           <div class="sectionlabel">安全範圍</div>
           <h2>Evidence first</h2>
-          <p class="note">僅查詢已核准的 APP145／APP149；資料來自隔離的 Staging 索引。</p>
+          <p class="note">自動搜尋兩份已核准文件 APP145／APP149；尚未涵蓋建築署所有文件。資料來自隔離的 Staging 索引。</p>
           <div class="disclaimer">原文齊全 ≠ 法例現行有效。涉及「最新／現行／法定期限」而版本未驗證時，系統會明確拒答。</div>
           <div class="rule">
             <h3>此版會做</h3>
@@ -150,7 +152,7 @@
         </section>
       </aside>
     </div>
-    <footer>Jason OS · Private Beta v0.1 · SSH Tunnel + localhost only · No auto-deployment · Source validity and legal applicability require independent review.</footer>
+    <footer>Jason OS · Private Beta v0.2 · SSH Tunnel + localhost only · No auto-deployment · Source validity and legal applicability require independent review.</footer>
   </div>
   <script nonce="__NONCE__">
     "use strict";
@@ -192,23 +194,26 @@
       status.appendChild(element("p", "", data.message));
       results.appendChild(status);
 
-      var doc = element("div", "docbox");
-      doc.appendChild(element("div", "name", data.source.title));
-      doc.appendChild(element("p", "small", "來源：" + data.source.source_id + " · 版本適用性：" + data.source.revision_date));
-      var link = element("a", "", "開啟官方 PDF");
-      link.href = data.source.official_url;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      doc.appendChild(link);
       var coverage = data.coverage;
-      doc.appendChild(element("p", "small", "已取回 " + coverage.retrieved_unique_chunks + " / " + coverage.indexed_chunks + " 個已索引證據片段；完整性不代表法律效力或語義正確。"));
-      results.appendChild(doc);
-      results.appendChild(element("h2", "", "Evidence / 原文片段"));
+      results.appendChild(element("p", "note", "已搜尋 " + data.sources.length + " 份核准文件；取回 " + coverage.retrieved_unique_chunks + " / " + coverage.indexed_chunks + " 個片段。完整性不代表法律效力或語義正確。"));
+      data.sources.forEach(function (source) {
+        var doc = element("div", "docbox");
+        doc.appendChild(element("div", "name", source.title));
+        doc.appendChild(element("p", "small", "來源：" + source.source_id + " · 版本適用性：" + source.revision_date));
+        var link = element("a", "", "開啟官方 PDF");
+        link.href = source.official_url;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        doc.appendChild(link);
+        doc.appendChild(element("p", "small", "本文件取回 " + source.coverage.retrieved_unique_chunks + " / " + source.coverage.indexed_chunks + " 個已索引片段"));
+        results.appendChild(doc);
+      });
+      results.appendChild(element("h2", "", "Evidence / 跨文件排序原文片段"));
 
       data.evidence.forEach(function (item) {
         var card = element("article", "evidence");
         var head = element("div", "evidence-head");
-        head.appendChild(element("h3", "", "[" + item.id + "] · PDF 第 " + item.page + " 頁"));
+        head.appendChild(element("h3", "", "[" + item.id + "] · " + item.source_id + " · PDF 第 " + item.page + " 頁"));
         var sourceLink = element("a", "", "核對原始頁面");
         sourceLink.href = item.source_url;
         sourceLink.target = "_blank";
