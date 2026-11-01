@@ -18,7 +18,7 @@ The Google Drive decision log remains authoritative for cross-system product and
 
 ## Progressive context loading
 
-- **L0**: read root `AGENTS.md` + `CURRENT_STATE.md` once at task start.
+- **L0**: first read the linked Google Drive M1 Index, system Current State and M2 SOP; then read root `AGENTS.md` and `CURRENT_STATE.md` as repository navigation snapshots.
 - **L1**: target Issue, PR, approved decision link and *only* relevant module README/contract.
 - **L2**: exact code, tests, CI logs, deployment evidence when needed.
 - No whole-repo scan by default. If status is stale, refresh from actual GitHub and/or the authorized environment, reporting exact source/date/commit.
