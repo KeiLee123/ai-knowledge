@@ -266,6 +266,48 @@ jobs:
           set -euo pipefail
           python test_write_canonical_text_production_v1.py
 
+      - name: Document Ingestion Quality audit offline test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_audit_document_ingest_quality_v1.py
+
+      - name: PDF raster blankness offline test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_verify_pdf_blank_pages_v1.py
+
+      - name: Document ingest evidence reconciliation offline test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_reconcile_document_ingest_evidence_v1.py
+
+      - name: PR88 isolated read-only staging driver offline test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_run_pr88_staging_readonly_gate_v1.py
+
+      - name: Document pre-writer quality gate offline test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_pre_writer_document_quality_gate_v1.py
+
+      - name: Official source pre-writer controller synthetic test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_official_source_quality_gate_controller_v1.py
+
+      - name: Direct text and multimodal writer quality gate synthetic test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_direct_writer_quality_gate_v1.py
+
       - name: Multimodal ingestion contract test
         shell: bash
         run: |
