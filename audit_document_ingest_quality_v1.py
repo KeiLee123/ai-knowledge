@@ -327,6 +327,7 @@ def audit_pdf_batched(path, *, drive_file_id, expected_size,
     total_table_chunks = 0
     total_native_text_pages = 0
     total_no_native_text_pages = 0
+    total_blank_candidate_pages = []
     total_no_native_text_classes = {
         "extractor_blank_candidate": 0,
         "image_only": 0,
@@ -369,6 +370,8 @@ def audit_pdf_batched(path, *, drive_file_id, expected_size,
         routing_counts[route] = routing_counts.get(route, 0) + 1
 
         for p in result["pages"]:
+            if p["no_native_text_class"] == "extractor_blank_candidate":
+                total_blank_candidate_pages.append(p["page"])
             for issue in p["issue_codes"]:
                 issue_pages_by_code.setdefault(issue, []).append(p["page"])
         # Zero-table batches are expected in mixed documents; only zero
@@ -395,6 +398,10 @@ def audit_pdf_batched(path, *, drive_file_id, expected_size,
     require(sum(total_no_native_text_classes.values()) ==
             total_no_native_text_pages,
             "document_no_native_text_class_coverage_incomplete")
+    require(total_blank_candidate_pages == sorted(set(total_blank_candidate_pages))
+            and len(total_blank_candidate_pages) ==
+            total_no_native_text_classes["extractor_blank_candidate"],
+            "blank_candidate_page_identity_invalid")
     if total_tables == 0:
         all_issues.add("NO_STRUCTURED_TABLE_DETECTED")
 
@@ -424,6 +431,7 @@ def audit_pdf_batched(path, *, drive_file_id, expected_size,
             "native_text_pages": total_native_text_pages,
             "no_native_text_pages": total_no_native_text_pages,
             "no_native_text_class_counts": total_no_native_text_classes,
+            "extractor_blank_candidate_pages": total_blank_candidate_pages,
             "rendered_blankness_verified": False,
             "legacy_table_writer_metadata_checked":
                 total_legacy_writer_checked,
