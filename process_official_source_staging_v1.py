@@ -10,6 +10,7 @@ from pathlib import Path
 import detect_source_changes_v1 as detector
 import source_monitor_baseline_v1 as baseline
 import write_pnap_staging_v1 as staging_writer
+from pre_writer_document_quality_gate_v1 import enforce_pre_writer_quality_gate
 
 from extract_document_v2 import build_manifest
 from ingest_manifest_v2 import read_existing_document
@@ -813,6 +814,9 @@ def main() -> None:
         default="",
     )
 
+    parser.add_argument("--document-quality-report-json", default=None,
+                        help="Read-only reconciliation evidence for opted-in quality gate")
+
     args = parser.parse_args()
 
     if (
@@ -890,6 +894,11 @@ def main() -> None:
             registry_path,
             args.source_id,
         )
+
+        if args.execute:
+            enforce_pre_writer_quality_gate(
+                source, args.document_quality_report_json,
+            )
 
         (
             baseline_state,
