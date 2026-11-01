@@ -290,6 +290,12 @@ jobs:
           set -euo pipefail
           python test_run_pr88_staging_readonly_gate_v1.py
 
+      - name: Document pre-writer quality gate offline test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_pre_writer_document_quality_gate_v1.py
+
       - name: Multimodal ingestion contract test
         shell: bash
         run: |
