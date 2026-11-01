@@ -182,7 +182,7 @@ def test_question_first_auto_two_sources_global_rank_and_feedback():
         return auto_packet(sid, q, 0.10 if sid.endswith("149") else 0.25)
 
     def run(port, feedback_path):
-        with patch.object(ui.qa, "build_packet", side_effect=build) as mocked, \\
+        with patch.object(ui.qa, "build_packet", side_effect=build) as mocked, \
              patch.object(ui.qa, "generate_draft",
                           side_effect=AssertionError("NO AI")):
             status, _, raw = http_request(port, "POST", "/api/ask",
