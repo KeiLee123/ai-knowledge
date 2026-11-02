@@ -66,10 +66,14 @@ def check_explicit_target_before_any_io():
             assert "DB access requires explicit --db-container" in result, result
             assert checked == 0
 
-            for forbidden in (PRODUCTION_DB_CONTAINER, "arbitrary-db", ""):
+            for forbidden in (PRODUCTION_DB_CONTAINER, "arbitrary-db"):
                 result, checked = invoke_cli(module, flags, forbidden)
                 assert "STAGING_DB_TARGET_REFUSED" in result, result
                 assert checked == 0
+
+            result, checked = invoke_cli(module, flags, "")
+            assert "DB access requires explicit --db-container" in result, result
+            assert checked == 0
 
             result, checked = invoke_cli(module, flags, STAGING_DB_CONTAINER)
             assert "file not found" in result.lower(), result
