@@ -16,6 +16,7 @@ import detect_source_changes_v1 as registry_detector
 from pre_writer_document_quality_gate_v1 import (
     enforce_unattributed_raw_v2_write,
 )
+from staging_db_target_guard_v1 import enforce_staging_write_target
 
 
 ORCHESTRATOR_VERSION = "phase-d5-3"
@@ -371,6 +372,15 @@ def main() -> None:
             registry_detector.load_registry(
                 Path(__file__).resolve().with_name("source_registry_v1.yaml")
             )
+        )
+
+    if (args.prepare or args.write) and not args.db_container:
+        raise SystemExit("DB access requires explicit --db-container")
+
+    if args.write:
+        # The raw orchestrator must enforce isolation before OCR/workdir/DB.
+        enforce_staging_write_target(
+            args.db_container, Path(__file__).resolve().parent
         )
 
     source = (

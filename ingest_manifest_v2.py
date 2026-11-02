@@ -11,12 +11,14 @@ import detect_source_changes_v1 as registry_detector
 from pre_writer_document_quality_gate_v1 import (
     enforce_unattributed_raw_v2_write,
 )
+from staging_db_target_guard_v1 import enforce_staging_write_target
 
 
 INGESTER_VERSION = "phase-d3-1.4"
 SUPPORTED_SCHEMA = "retrieval-chunks-v2"
 
-DEFAULT_DB_CONTAINER = "ai-knowledge-db-jiyckdrlappwgimwebnzxwmr"
+# No implicit Production DB access. Explicit --db-container for DB operations.
+DEFAULT_DB_CONTAINER = ""
 DEFAULT_EMBED_URL = "http://127.0.0.1:8088/embed"
 EXPECTED_DIMENSIONS = 384
 EMBED_MODEL = "multilingual-e5-small"
@@ -954,6 +956,11 @@ def execute_transaction(
     sql: str,
     db_container: str,
 ) -> str:
+    # Guard again at the lowest SQL execution boundary, including callers
+    # that bypass the raw CLI or the high-level orchestrator.
+    enforce_staging_write_target(
+        db_container, Path(__file__).resolve().parent
+    )
     result = subprocess.run(
         [
             "docker",
@@ -1232,6 +1239,15 @@ def main() -> None:
             registry_detector.load_registry(
                 Path(__file__).resolve().with_name("source_registry_v1.yaml")
             )
+        )
+
+    if (args.write or args.prepare_write or args.check_db) and not args.db_container:
+        raise SystemExit("DB access requires explicit --db-container")
+
+    if args.write:
+        # Refuse wrong/Production targets before source or DB I/O.
+        enforce_staging_write_target(
+            args.db_container, Path(__file__).resolve().parent
         )
 
     chunks_path = Path(
