@@ -314,6 +314,12 @@ jobs:
           set -euo pipefail
           python test_raw_v2_writer_quality_gate_v1.py
 
+      - name: Staging DB target lock and low-level SQL safety test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_staging_db_target_lock_v1.py
+
       - name: Multimodal ingestion contract test
         shell: bash
         run: |
