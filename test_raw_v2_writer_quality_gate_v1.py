@@ -52,6 +52,7 @@ def test_orchestrator(write_flags, enabled):
         "orchestrate_document_v2.py", "/tmp/raw-v2-no-such-source-guard.pdf",
         "--title", "synthetic", "--domain", "test", "--topic", "test",
         "--document-type", "pdf", *write_flags,
+        *(['--db-container', 'jason-os-knowledge-db-staging'] if '--write' in write_flags else []),
     ]
     with patch.object(sys, "argv", argv), patch.object(
         orchestrator.registry_detector, "load_registry",
@@ -59,6 +60,8 @@ def test_orchestrator(write_flags, enabled):
     ) as read_registry, patch.object(
         orchestrator, "run_checked",
     ) as run_command, patch.object(
+        orchestrator, "enforce_staging_write_target",
+    ) as db_target, patch.object(
         orchestrator, "write_state",
     ) as write_state, patch.object(
         orchestrator, "read_existing_document",
@@ -75,6 +78,7 @@ def test_orchestrator(write_flags, enabled):
         else:
             assert "Source file not found" in message, message
             assert read_registry.called is ("--write" in write_flags)
+        assert db_target.called is ("--write" in write_flags and not enabled)
         assert not run_command.called
         assert not write_state.called
         assert not db_read.called
@@ -84,11 +88,14 @@ def test_manifest(write_flags, enabled):
     argv = [
         "ingest_manifest_v2.py", "/tmp/raw-v2-no-such-chunks-guard.json",
         "--title", "synthetic", "--domain", "test", *write_flags,
+        *(['--db-container', 'jason-os-knowledge-db-staging'] if '--write' in write_flags else []),
     ]
     with patch.object(sys, "argv", argv), patch.object(
         ingester.registry_detector, "load_registry",
         return_value=registry(enabled),
     ) as read_registry, patch.object(
+        ingester, "enforce_staging_write_target",
+    ) as db_target, patch.object(
         ingester, "load_chunks",
     ) as load_chunks, patch.object(
         ingester, "read_existing_document",
@@ -109,6 +116,7 @@ def test_manifest(write_flags, enabled):
         else:
             assert "Chunks file not found" in message, message
             assert read_registry.called is ("--write" in write_flags)
+        assert db_target.called is ("--write" in write_flags and not enabled)
         assert not load_chunks.called
         assert not db_read.called
         assert not embeddings.called
