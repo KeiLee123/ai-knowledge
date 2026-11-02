@@ -320,6 +320,12 @@ jobs:
           set -euo pipefail
           python test_staging_db_target_lock_v1.py
 
+      - name: Staging least-privilege writer role offline test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_staging_least_privilege_writer_v1.py
+
       - name: Multimodal ingestion contract test
         shell: bash
         run: |
