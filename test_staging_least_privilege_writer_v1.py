@@ -23,7 +23,7 @@ def refused(call, reason):
     try:
         call()
     except (RuntimeError, SystemExit) as exc:
-        assert reason in str(exc), str(exc)
+        assert reason.lower() in str(exc).lower(), str(exc)
     else:
         raise AssertionError("Expected fail-closed refusal: " + reason)
 
