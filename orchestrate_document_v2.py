@@ -10,13 +10,19 @@ from pathlib import Path
 
 from ingest_manifest_v2 import (
     DEFAULT_DB_CONTAINER,
+    DEFAULT_DB_ROLE,
+    READ_ONLY_DB_ROLE,
     read_existing_document,
 )
 import detect_source_changes_v1 as registry_detector
 from pre_writer_document_quality_gate_v1 import (
     enforce_unattributed_raw_v2_write,
 )
-from staging_db_target_guard_v1 import enforce_staging_write_target
+from staging_db_target_guard_v1 import (
+    enforce_staging_write_target,
+    enforce_staging_writer_role,
+    verify_staging_writer_role,
+)
 
 
 ORCHESTRATOR_VERSION = "phase-d5-3"
@@ -294,8 +300,13 @@ def main() -> None:
 
     parser.add_argument(
         "--db-container",
-        default=
-            DEFAULT_DB_CONTAINER,
+        default=DEFAULT_DB_CONTAINER,
+    )
+
+    parser.add_argument(
+        "--db-role",
+        default=DEFAULT_DB_ROLE,
+        help="Mandatory fixed low-privilege role for --write",
     )
 
     mode = parser.add_mutually_exclusive_group()
@@ -378,10 +389,14 @@ def main() -> None:
         raise SystemExit("DB access requires explicit --db-container")
 
     if args.write:
-        # The raw orchestrator must enforce isolation before OCR/workdir/DB.
+        # Refuse missing/wrong role before OCR, workdir or DB operations.
         enforce_staging_write_target(
             args.db_container, Path(__file__).resolve().parent
         )
+        enforce_staging_writer_role(args.db_role)
+        verify_staging_writer_role(args.db_container, args.db_role)
+    elif args.db_role:
+        raise SystemExit("--db-role is only supported with --write")
 
     source = (
         Path(args.file)
@@ -609,6 +624,7 @@ def main() -> None:
             read_existing_document(
                 checksum,
                 args.db_container,
+                args.db_role if args.write else READ_ONLY_DB_ROLE,
             )
         )
 
@@ -746,6 +762,12 @@ def main() -> None:
             ingest_command.append(
                 "--synthetic"
             )
+
+        if args.write:
+            ingest_command.extend([
+                "--db-role",
+                args.db_role,
+            ])
 
         if args.prepare:
             ingest_command.append(
