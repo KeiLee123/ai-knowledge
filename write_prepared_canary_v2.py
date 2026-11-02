@@ -5,11 +5,10 @@ import json
 import sys
 from pathlib import Path
 
-from staging_db_target_guard_v1 import STAGING_DB_WRITER_ROLE
-
 from run_multimodal_canary_v2 import (
     PRODUCTION_DB_CONTAINER,
     STAGING_DB_CONTAINER,
+    STAGING_DB_WRITER_ROLE,
     run_checked,
     verify_runtime,
 )
