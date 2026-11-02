@@ -118,7 +118,7 @@ def test_prewrite_role_boundary():
         for role_args in ([], ["--db-role", "ai_knowledge"], ["--db-role", "postgres"]):
             with patch.object(sys, "argv", argv + role_args), patch.object(
                 module.registry_detector, "load_registry",
-                return_value={"source_registry_version": 1, "sources": {}},
+                return_value={"source_registry_version": 1, "sources": {"SYNTHETIC": {"enabled": True}}},
             ), patch.object(module, "enforce_staging_write_target") as target, patch.object(
                 module, "verify_staging_writer_role"
             ) as checked, patch.object(module, "read_existing_document") as duplicate, patch.object(
@@ -132,7 +132,7 @@ def test_prewrite_role_boundary():
 
         with patch.object(sys, "argv", argv + ["--db-role", ROLE]), patch.object(
             module.registry_detector, "load_registry",
-            return_value={"source_registry_version": 1, "sources": {}},
+            return_value={"source_registry_version": 1, "sources": {"SYNTHETIC": {"enabled": True}}},
         ), patch.object(module, "enforce_staging_write_target"), patch.object(
             module, "verify_staging_writer_role"
         ) as checked, patch.object(
