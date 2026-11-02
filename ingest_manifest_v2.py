@@ -11,7 +11,11 @@ import detect_source_changes_v1 as registry_detector
 from pre_writer_document_quality_gate_v1 import (
     enforce_unattributed_raw_v2_write,
 )
-from staging_db_target_guard_v1 import enforce_staging_write_target
+from staging_db_target_guard_v1 import (
+    enforce_staging_write_target,
+    enforce_staging_writer_role,
+    verify_staging_writer_role,
+)
 
 
 INGESTER_VERSION = "phase-d3-1.4"
@@ -19,6 +23,8 @@ SUPPORTED_SCHEMA = "retrieval-chunks-v2"
 
 # No implicit Production DB access. Explicit --db-container for DB operations.
 DEFAULT_DB_CONTAINER = ""
+DEFAULT_DB_ROLE = ""
+READ_ONLY_DB_ROLE = "ai_knowledge"
 DEFAULT_EMBED_URL = "http://127.0.0.1:8088/embed"
 EXPECTED_DIMENSIONS = 384
 EMBED_MODEL = "multilingual-e5-small"
@@ -371,6 +377,7 @@ def precompute_embeddings(
 def run_db_query(
     sql: str,
     db_container: str,
+    db_role: str = READ_ONLY_DB_ROLE,
 ) -> str:
     result = subprocess.run(
         [
@@ -380,7 +387,7 @@ def run_db_query(
             db_container,
             "psql",
             "-U",
-            "ai_knowledge",
+            db_role,
             "-d",
             "ai_knowledge",
             "-qAt",
@@ -406,6 +413,7 @@ def run_db_query(
 def check_database_contract(
     checksum: str,
     db_container: str,
+    db_role: str = READ_ONLY_DB_ROLE,
 ) -> dict:
     required = {
         "documents": {
@@ -454,6 +462,7 @@ def check_database_contract(
         ORDER BY table_name, ordinal_position;
         """,
         db_container,
+        db_role,
     )
 
     actual = {
@@ -517,6 +526,7 @@ def check_database_contract(
         LIMIT 1;
         """,
         db_container,
+        db_role,
     )
 
     dimension_rows = run_db_query(
@@ -529,6 +539,7 @@ def check_database_contract(
             "ORDER BY dimensions;"
         ),
         db_container,
+        db_role,
     )
 
     model_dimensions = []
@@ -561,6 +572,7 @@ def check_database_contract(
                 f"<> {EXPECTED_DIMENSIONS};"
             ),
             db_container,
+            db_role,
         )
     )
 
@@ -587,6 +599,7 @@ def check_database_contract(
             "LIMIT 1;"
         ),
         db_container,
+        db_role,
     )
 
     duplicate = None
@@ -657,6 +670,7 @@ def check_database_contract(
 def read_existing_document(
     checksum: str,
     db_container: str,
+    db_role: str = READ_ONLY_DB_ROLE,
 ) -> str:
     sql = (
         "SELECT id "
@@ -674,7 +688,7 @@ def read_existing_document(
             db_container,
             "psql",
             "-U",
-            "ai_knowledge",
+            db_role,
             "-d",
             "ai_knowledge",
             "-qAt",
@@ -955,12 +969,14 @@ def inspect_transaction_sql(
 def execute_transaction(
     sql: str,
     db_container: str,
+    db_role: str = DEFAULT_DB_ROLE,
 ) -> str:
-    # Guard again at the lowest SQL execution boundary, including callers
-    # that bypass the raw CLI or the high-level orchestrator.
+    # Guard again at the lowest SQL boundary; direct callers cannot bypass.
     enforce_staging_write_target(
         db_container, Path(__file__).resolve().parent
     )
+    enforce_staging_writer_role(db_role)
+    verify_staging_writer_role(db_container, db_role)
     result = subprocess.run(
         [
             "docker",
@@ -969,7 +985,7 @@ def execute_transaction(
             db_container,
             "psql",
             "-U",
-            "ai_knowledge",
+            db_role,
             "-d",
             "ai_knowledge",
             "-q",
@@ -1164,8 +1180,13 @@ def main() -> None:
 
     parser.add_argument(
         "--db-container",
-        default=
-            DEFAULT_DB_CONTAINER,
+        default=DEFAULT_DB_CONTAINER,
+    )
+
+    parser.add_argument(
+        "--db-role",
+        default=DEFAULT_DB_ROLE,
+        help="Required fixed low-privilege Staging role for --write",
     )
 
     parser.add_argument(
@@ -1245,10 +1266,14 @@ def main() -> None:
         raise SystemExit("DB access requires explicit --db-container")
 
     if args.write:
-        # Refuse wrong/Production targets before source or DB I/O.
+        # Fail before reading chunks, embedding, or touching the writer DB.
         enforce_staging_write_target(
             args.db_container, Path(__file__).resolve().parent
         )
+        enforce_staging_writer_role(args.db_role)
+        verify_staging_writer_role(args.db_container, args.db_role)
+    elif args.db_role:
+        raise SystemExit("--db-role is only supported with --write")
 
     chunks_path = Path(
         args.chunks
@@ -1323,6 +1348,7 @@ def main() -> None:
                         "document_sha256"
                     ],
                     args.db_container,
+                    args.db_role if args.write else READ_ONLY_DB_ROLE,
                 )
             )
 
@@ -1465,6 +1491,7 @@ def main() -> None:
             read_existing_document(
                 checksum,
                 args.db_container,
+                args.db_role,
             )
         )
 
@@ -1491,6 +1518,7 @@ def main() -> None:
         result = execute_transaction(
             sql,
             args.db_container,
+            args.db_role,
         )
 
         print()
