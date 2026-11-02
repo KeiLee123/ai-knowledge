@@ -10,6 +10,7 @@ import detect_source_changes_v1 as registry_detector
 from pre_writer_document_quality_gate_v1 import (
     DocumentQualityHold, registry_has_quality_gated_sources,
 )
+from staging_db_target_guard_v1 import STAGING_DB_WRITER_ROLE
 
 
 CANARY_GUARD_VERSION = "canary-guard-v1"
@@ -339,6 +340,8 @@ def build_orchestrator_command(
 
     if write:
         command.extend([
+            "--db-role",
+            STAGING_DB_WRITER_ROLE,
             "--write",
             "--confirm-live-write",
         ])
