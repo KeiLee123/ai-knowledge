@@ -14,6 +14,8 @@ from pre_writer_document_quality_gate_v1 import (
 
 CANARY_GUARD_VERSION = "canary-guard-v1"
 STAGING_DB_CONTAINER = "jason-os-knowledge-db-staging"
+# Fixed identity for future Staging writes; no role provisioning in this PR.
+STAGING_DB_WRITER_ROLE = "ai_knowledge_writer_staging"
 PRODUCTION_DB_CONTAINER = "ai-knowledge-db-jiyckdrlappwgimwebnzxwmr"
 
 EXPECTED_LABELS = {
@@ -339,6 +341,8 @@ def build_orchestrator_command(
 
     if write:
         command.extend([
+            "--db-role",
+            STAGING_DB_WRITER_ROLE,
             "--write",
             "--confirm-live-write",
         ])

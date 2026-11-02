@@ -8,6 +8,7 @@ from pathlib import Path
 from run_multimodal_canary_v2 import (
     PRODUCTION_DB_CONTAINER,
     STAGING_DB_CONTAINER,
+    STAGING_DB_WRITER_ROLE,
     run_checked,
     verify_runtime,
 )
@@ -104,6 +105,8 @@ def build_prepared_write_command(
         language,
         "--db-container",
         STAGING_DB_CONTAINER,
+        "--db-role",
+        STAGING_DB_WRITER_ROLE,
         "--check-db",
         "--write",
         "--confirm-live-write",
