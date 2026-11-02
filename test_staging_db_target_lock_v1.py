@@ -7,6 +7,7 @@ from unittest.mock import patch
 import ingest_manifest_v2 as ingester
 import orchestrate_document_v2 as orchestrator
 import staging_db_target_guard_v1 as guard
+from staging_db_target_guard_v1 import STAGING_DB_WRITER_ROLE
 from run_multimodal_canary_v2 import (
     PRODUCTION_DB_CONTAINER,
     STAGING_DB_CONTAINER,
@@ -31,6 +32,8 @@ def invoke_cli(module, flags, db_container=None):
             "--document-type", "pdf",
         ]
     argv.extend(flags)
+    if "--write" in flags:
+        argv.extend(["--db-role", STAGING_DB_WRITER_ROLE])
     if db_container is not None:
         argv.extend(["--db-container", db_container])
 
@@ -39,6 +42,8 @@ def invoke_cli(module, flags, db_container=None):
     ), patch.object(
         guard, "verify_runtime", return_value={"guard_ok": True}
     ) as runtime, patch.object(
+        module, "verify_staging_writer_role"
+    ), patch.object(
         module, "read_existing_document"
     ) as db_read, patch.object(
         module, "run_checked" if module is orchestrator else "load_chunks"
@@ -100,10 +105,12 @@ def check_low_level_sql_boundary():
     with patch.object(guard, "verify_runtime", return_value={"guard_ok": True}) as runtime, patch.object(
         ingester.subprocess, "run",
         return_value=SimpleNamespace(returncode=0, stdout="SYNTHETIC_OK", stderr=""),
-    ) as sql_runner:
+    ) as sql_runner, patch.object(
+        ingester, "verify_staging_writer_role",
+    ) as privilege_check:
         for forbidden in (PRODUCTION_DB_CONTAINER, "arbitrary-db", ""):
             try:
-                ingester.execute_transaction("SELECT 1;", forbidden)
+                ingester.execute_transaction("SELECT 1;", forbidden, STAGING_DB_WRITER_ROLE)
             except RuntimeError as exc:
                 assert "STAGING_DB_TARGET_REFUSED" in str(exc), str(exc)
             else:
@@ -111,9 +118,10 @@ def check_low_level_sql_boundary():
         assert not sql_runner.called
         assert not runtime.called
 
-        result = ingester.execute_transaction("SELECT 1;", STAGING_DB_CONTAINER)
+        result = ingester.execute_transaction("SELECT 1;", STAGING_DB_CONTAINER, STAGING_DB_WRITER_ROLE)
         assert result == "SYNTHETIC_OK"
         assert runtime.call_count == 1
+        assert privilege_check.call_count == 1
         assert sql_runner.call_count == 1
         assert STAGING_DB_CONTAINER in sql_runner.call_args.args[0]
         assert PRODUCTION_DB_CONTAINER not in sql_runner.call_args.args[0]
@@ -122,7 +130,7 @@ def check_low_level_sql_boundary():
 def check_runtime_failure_holds():
     with patch.object(guard, "verify_runtime", side_effect=RuntimeError("bad Git branch")):
         try:
-            ingester.execute_transaction("SELECT 1;", STAGING_DB_CONTAINER)
+            ingester.execute_transaction("SELECT 1;", STAGING_DB_CONTAINER, STAGING_DB_WRITER_ROLE)
         except RuntimeError as exc:
             assert "bad Git branch" in str(exc)
         else:
