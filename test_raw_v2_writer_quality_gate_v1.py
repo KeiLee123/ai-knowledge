@@ -52,7 +52,7 @@ def test_orchestrator(write_flags, enabled):
         "orchestrate_document_v2.py", "/tmp/raw-v2-no-such-source-guard.pdf",
         "--title", "synthetic", "--domain", "test", "--topic", "test",
         "--document-type", "pdf", *write_flags,
-        *(['--db-container', 'jason-os-knowledge-db-staging'] if '--write' in write_flags else []),
+        *(['--db-container', 'jason-os-knowledge-db-staging'] if any(x in write_flags for x in ('--write', '--prepare')) else []),
     ]
     with patch.object(sys, "argv", argv), patch.object(
         orchestrator.registry_detector, "load_registry",
@@ -88,7 +88,7 @@ def test_manifest(write_flags, enabled):
     argv = [
         "ingest_manifest_v2.py", "/tmp/raw-v2-no-such-chunks-guard.json",
         "--title", "synthetic", "--domain", "test", *write_flags,
-        *(['--db-container', 'jason-os-knowledge-db-staging'] if '--write' in write_flags else []),
+        *(['--db-container', 'jason-os-knowledge-db-staging'] if any(x in write_flags for x in ('--write', '--prepare-write')) else []),
     ]
     with patch.object(sys, "argv", argv), patch.object(
         ingester.registry_detector, "load_registry",
