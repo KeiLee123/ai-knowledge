@@ -44,6 +44,10 @@ def verify_staging_writer_role(db_container: str, db_role: str) -> None:
     import subprocess
 
     enforce_staging_writer_role(db_role)
+    if db_container != STAGING_DB_CONTAINER:
+        raise RuntimeError(
+            "STAGING_DB_TARGET_REFUSED: role check requires fixed staging DB"
+        )
     # Executed as the actual proposed writer role. Reject unexpected database,
     # privileged role flags, or membership in the existing superuser account.
     sql = (
