@@ -9,6 +9,7 @@ from pathlib import Path
 
 from run_multimodal_canary_v2 import (
     STAGING_DB_CONTAINER,
+    STAGING_DB_WRITER_ROLE,
     verify_runtime,
 )
 
@@ -25,10 +26,6 @@ def enforce_staging_write_target(
     # verify_runtime checks Git branch, Docker container labels, network,
     # port bindings, running and health. Fail closed on any error.
     return verify_runtime(repo_root)
-
-
-# Proposed Staging-only writer login; not created by this code-only change.
-STAGING_DB_WRITER_ROLE = "ai_knowledge_writer_staging"
 
 
 def enforce_staging_writer_role(db_role: str) -> None:
