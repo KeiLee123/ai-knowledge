@@ -10,11 +10,12 @@ import detect_source_changes_v1 as registry_detector
 from pre_writer_document_quality_gate_v1 import (
     DocumentQualityHold, registry_has_quality_gated_sources,
 )
-from staging_db_target_guard_v1 import STAGING_DB_WRITER_ROLE
 
 
 CANARY_GUARD_VERSION = "canary-guard-v1"
 STAGING_DB_CONTAINER = "jason-os-knowledge-db-staging"
+# Fixed identity for future Staging writes; no role provisioning in this PR.
+STAGING_DB_WRITER_ROLE = "ai_knowledge_writer_staging"
 PRODUCTION_DB_CONTAINER = "ai-knowledge-db-jiyckdrlappwgimwebnzxwmr"
 
 EXPECTED_LABELS = {
