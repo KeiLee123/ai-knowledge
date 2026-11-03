@@ -16,6 +16,7 @@ from build_multimodal_chunks_v2 import build_chunks
 from phase_b_shadow.contract import ContractGap, load_fixture, task_id
 from phase_b_shadow.docling_adapter import build_manifest
 from phase_b_shadow.runner import run_fixture
+from phase_b_shadow.model_inventory import inventory_model_bundle
 
 
 def box(l=10, t=10, r=100, b=30, origin="TOPLEFT"):
@@ -45,6 +46,7 @@ class PhaseBShadowTests(unittest.TestCase):
         for directory in (self.input_dir, self.output_dir, self.model_dir):
             directory.mkdir()
         (self.model_dir / "model-version.txt").write_text("operator-reviewed-test-model-v1\n", encoding="utf-8")
+        (self.model_dir / "synthetic-weights.bin").write_bytes(b"mock only - not a Docling model")
         self.pdf = self.input_dir / "APP149.pdf"
         synthetic = pymupdf.open()
         page = synthetic.new_page()
@@ -54,6 +56,7 @@ class PhaseBShadowTests(unittest.TestCase):
         self.sha = hashlib.sha256(self.pdf.read_bytes()).hexdigest()
         self.entry = {"source_id": "BD_PNAP_APP149", "version_id": "offline_test_v1",
                       "model_version": "operator-reviewed-test-model-v1",
+                      "model_bundle_sha256": inventory_model_bundle(self.model_dir)["model_bundle_sha256"],
                       "filename": "APP149.pdf", "sha256": self.sha}
         self.write_catalog()
 
@@ -192,6 +195,10 @@ class PhaseBShadowTests(unittest.TestCase):
         self.assertEqual(len(list(self.output_dir.glob("*.manifest.json"))), 1)
         self.assertFalse(list(self.output_dir.glob("*.lock")))
         self.assertFalse(first["database_write_performed"])
+        self.assertEqual(first["model_bundle_sha256"], self.entry["model_bundle_sha256"])
+        manifest = json.loads((self.output_dir / first["manifest"]).read_text(encoding="utf-8"))
+        self.assertEqual(manifest["extraction"]["model_bundle_sha256"],
+                         self.entry["model_bundle_sha256"])
         (self.output_dir / first["manifest"]).write_text("tampered", encoding="utf-8")
         with patch.dict(os.environ, {"JASON_OS_ENV": "staging"}):
             with self.assertRaises(ContractGap):
@@ -220,6 +227,49 @@ class PhaseBShadowTests(unittest.TestCase):
                                  self.model_dir, lambda *_: self.fail("converter must not run"), "2.146.0")
         self.assertEqual(result["status"], "AUTO_HOLD_CONTRACT_GAP")
         self.assertFalse(list(self.output_dir.glob("*.manifest.json")))
+
+
+    def test_model_bundle_identity_is_content_based(self):
+        first = inventory_model_bundle(self.model_dir)
+        self.assertEqual(first["file_count"], 2)
+        self.assertEqual(first["model_bundle_sha256"], self.entry["model_bundle_sha256"])
+        (self.model_dir / "synthetic-weights.bin").write_bytes(b"different model bytes")
+        second = inventory_model_bundle(self.model_dir)
+        self.assertNotEqual(first["model_bundle_sha256"], second["model_bundle_sha256"])
+        # A model change must yield a new task identity, never reuse an old receipt.
+        from dataclasses import replace
+        self.assertNotEqual(task_id(self.fixture()),
+                            task_id(replace(self.fixture(),
+                                            model_bundle_sha256=second["model_bundle_sha256"])))
+
+    def test_changed_model_bundle_holds_before_conversion(self):
+        (self.model_dir / "synthetic-weights.bin").write_bytes(b"tampered weights")
+        with patch.dict(os.environ, {"JASON_OS_ENV": "staging"}):
+            result = run_fixture("app149_small", self.sha, self.input_dir,
+                                 self.output_dir, self.model_dir,
+                                 lambda *_: self.fail("converter must not run"), "2.146.0")
+        self.assertEqual(result["status"], "AUTO_HOLD_CONTRACT_GAP")
+        self.assertIn("model bundle SHA256 mismatch", result["reason"])
+        self.assertFalse(list(self.output_dir.glob("*.manifest.json")))
+
+    def test_symlinked_or_missing_model_assets_fail_closed(self):
+        (self.model_dir / "synthetic-weights.bin").unlink()
+        with self.assertRaisesRegex(ContractGap, "no model artifacts"):
+            inventory_model_bundle(self.model_dir)
+        external = self.input_dir / "external-weights.bin"
+        external.write_bytes(b"synthetic external bytes")
+        try:
+            (self.model_dir / "synthetic-weights.bin").symlink_to(external)
+        except (OSError, NotImplementedError):
+            return
+        with self.assertRaisesRegex(ContractGap, "symlink"):
+            inventory_model_bundle(self.model_dir)
+
+    def test_unpinned_model_catalog_rejected(self):
+        del self.entry["model_bundle_sha256"]
+        self.write_catalog()
+        with self.assertRaisesRegex(ContractGap, "model bundle SHA256"):
+            self.fixture()
 
     def test_celery_and_compose_isolation_contract(self):
         compose = yaml.safe_load((Path(__file__).parent / "ops/phase_b_shadow/compose.yaml").read_text(encoding="utf-8"))

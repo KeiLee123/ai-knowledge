@@ -27,7 +27,7 @@ bytes. A catalog entry is pinned to the local file SHA256 and an enabled officia
 `source_id` in `source_registry_v1.yaml`:
 
 ```json
-{"fixtures":{"app149_small":{"source_id":"BD_PNAP_APP149","version_id":"REVIEWED_VERSION_ID","model_version":"REVIEWED_MODEL_BUNDLE_ID","filename":"APP149.pdf","sha256":"64 lowercase hex characters"}}}
+{"fixtures":{"app149_small":{"source_id":"BD_PNAP_APP149","version_id":"REVIEWED_VERSION_ID","model_version":"REVIEWED_MODEL_BUNDLE_ID","model_bundle_sha256":"64 lowercase hex digits from reviewed offline model inventory","filename":"APP149.pdf","sha256":"64 lowercase hex characters"}}}
 ```
 
 `version_id` must come from reviewed source/version evidence. The catalog does
@@ -39,9 +39,24 @@ pages and is not encrypted before dispatch or Docling model loading.
 
 The separately prepared, read-only model directory must contain all required
 Docling model artifacts and a reviewed `model-version.txt` matching the
-catalog's `model_version`. The worker sets offline mode and disables Docling remote services,
-external plugins, OCR and GPU. No model is fetched as part of the first VPS
-run. Model identity and table correctness still require real acceptance.
+catalog's `model_version`. Prepare a content-based inventory **offline in a
+separately approved preparation environment**, without running any model:
+
+```sh
+python -m phase_b_shadow.model_inventory /absolute/path/to/reviewed/models
+```
+
+The tool produces sorted relative paths, byte sizes, per-file SHA256 and the
+canonical `model_bundle_sha256`. Review that inventory independently; pin
+its exact digest in the **read-only** `catalog.json` fixture entry. Every
+artifact, including `model-version.txt`, must be a regular file (no symlinks,
+including Hugging Face cache links). Materialize a standalone model bundle
+before review if needed. The Worker now recomputes the entire bundle digest
+**before conversion** and refuses mismatches; changing model bytes also
+changes the deterministic task ID. The Worker sets offline mode and disables
+Docling remote services, external plugins, OCR and GPU. No model is fetched
+as part of the first VPS run. Model content integrity alone does not establish
+license/provenance, verified model quality or successful Docling runtime.
 
 ## Proposed Staging-only invocation after separate approval
 
@@ -99,8 +114,9 @@ Docling package version, each model artifact's relative path/size/SHA256, and
 a canonical bundle inventory digest; review and preserve those values in the
 acceptance evidence. Mount the bundle read-only. **A matching
 `model-version.txt` alone is insufficient to authenticate model bytes.** The
-current code only enforces that marker; independent bundle-hash verification
-remains a deployment HOLD. Never let the runtime fetch missing models.
+new code additionally verifies every staged model artifact against the catalog's
+pinned whole-bundle digest, but genuine model supply/identity still require
+independent operator review. Never let the runtime fetch missing models.
 
 For the approved one-job trial, the operator should:
 

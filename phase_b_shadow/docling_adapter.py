@@ -75,7 +75,8 @@ def _table(item, page: dict, index: int) -> dict:
             "bbox_coordinate_system": "pdf_points_top_left"}
 
 
-def build_manifest(doc, fixture: Fixture, source: Path, parser_version: str, model_version: str) -> dict:
+def build_manifest(doc, fixture: Fixture, source: Path, parser_version: str, model_version: str,
+                   model_bundle_sha256: str | None = None) -> dict:
     if not parser_version or not model_version:
         raise ContractGap("parser/model version is missing")
     pages = getattr(doc, "pages", None)
@@ -150,6 +151,7 @@ def build_manifest(doc, fixture: Fixture, source: Path, parser_version: str, mod
                            "image_extractor": None, "vector_extractor": None, "ocr_performed": False,
                            "vision_model_used": False, "database_write_performed": False,
                            "parser_version": parser_version, "model_version": model_version,
+                           "model_bundle_sha256": model_bundle_sha256,
                            "config_version": CONFIG_VERSION},
             "compatibility": {"status": "READY_SHADOW", "database_write_allowed": False,
                               "bbox_coordinate_system": "pdf_points_top_left"}}

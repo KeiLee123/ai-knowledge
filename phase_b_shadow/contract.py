@@ -25,6 +25,7 @@ class Fixture:
     source_id: str
     version_id: str
     model_version: str
+    model_bundle_sha256: str
     filename: str
     sha256: str
 
@@ -56,6 +57,9 @@ def load_fixture(catalog: Path, fixture_id: str, input_dir: Path) -> tuple[Fixtu
     digest = raw.get("sha256")
     if not isinstance(digest, str) or not SHA256.fullmatch(digest):
         raise ContractGap("invalid pinned source SHA256")
+    model_digest = raw.get("model_bundle_sha256")
+    if not isinstance(model_digest, str) or not SHA256.fullmatch(model_digest):
+        raise ContractGap("missing independently reviewed model bundle SHA256")
     path = input_dir / filename
     if not path.is_file() or path.is_symlink() or path.resolve().parent != input_dir.resolve():
         raise ContractGap("source must be a regular PDF inside the isolated input directory")
@@ -75,9 +79,15 @@ def load_fixture(catalog: Path, fixture_id: str, input_dir: Path) -> tuple[Fixtu
         raise
     except Exception as exc:
         raise ContractGap(f"PDF preflight failed: {type(exc).__name__}") from exc
-    return Fixture(fixture_id, raw["source_id"], raw["version_id"], raw["model_version"], filename, digest), path
+    return Fixture(
+        fixture_id, raw["source_id"], raw["version_id"], raw["model_version"],
+        model_digest, filename, digest
+    ), path
 
 
 def task_id(fixture: Fixture) -> str:
-    key = "\0".join((fixture.source_id, fixture.version_id, fixture.model_version, fixture.sha256, CONFIG_VERSION))
+    key = "\0".join((
+        fixture.source_id, fixture.version_id, fixture.model_version,
+        fixture.model_bundle_sha256, fixture.sha256, CONFIG_VERSION
+    ))
     return "phase-b-" + hashlib.sha256(key.encode("utf-8")).hexdigest()

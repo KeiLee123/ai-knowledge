@@ -10,6 +10,7 @@ from extract_document_v2 import sha256_file
 from phase_b_shadow import CONFIG_VERSION
 from phase_b_shadow.contract import ContractGap, load_fixture, task_id
 from phase_b_shadow.docling_adapter import build_manifest, convert_pdf
+from phase_b_shadow.model_inventory import inventory_model_bundle
 from route_document_v2 import assess_manifest
 
 
@@ -53,12 +54,20 @@ def run_fixture(fixture_id: str, expected_sha256: str, input_dir: Path,
         with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
             stream.write(key + "\n")
         model_version_file = model_dir / "model-version.txt"
-        if not model_version_file.is_file() or model_version_file.read_text(encoding="utf-8").strip() != fixture.model_version:
+        if (model_version_file.is_symlink() or not model_version_file.is_file()
+                or not 0 < model_version_file.stat().st_size <= 256
+                or model_version_file.read_text(encoding="utf-8").strip() != fixture.model_version):
             raise ContractGap("reviewed model version does not match the mounted model directory")
+        model_inventory = inventory_model_bundle(model_dir)
+        if model_inventory["model_bundle_sha256"] != fixture.model_bundle_sha256:
+            raise ContractGap("reviewed offline model bundle SHA256 mismatch")
         document = converter(source, model_dir)
         if sha256_file(source) != fixture.sha256:
             raise ContractGap("source changed during parsing")
-        manifest = build_manifest(document, fixture, source, parser_version or version("docling"), fixture.model_version)
+        manifest = build_manifest(
+            document, fixture, source, parser_version or version("docling"),
+            fixture.model_version, model_inventory["model_bundle_sha256"]
+        )
         route = assess_manifest(manifest, allow_partial=False)
         if route["source"]["sha256"] != fixture.sha256:
             raise ContractGap("router source SHA256 mismatch")
@@ -69,6 +78,7 @@ def run_fixture(fixture_id: str, expected_sha256: str, input_dir: Path,
         result = {"task_id": key, "fixture_id": fixture_id, "source_sha256": fixture.sha256,
                   "status": "READY_SHADOW", "manifest": artifact.name,
                   "manifest_sha256": sha256_file(artifact), "model_version": fixture.model_version,
+                  "model_bundle_sha256": model_inventory["model_bundle_sha256"],
                   "config_version": CONFIG_VERSION,
                   "route": route["decision"]["recommended_pipeline"],
                   "chunk_count": len(chunks["chunks"]), "duplicate": False,
