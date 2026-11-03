@@ -229,6 +229,20 @@ class PhaseBShadowTests(unittest.TestCase):
         self.assertFalse(list(self.output_dir.glob("*.manifest.json")))
 
 
+
+    def test_duplicate_success_does_not_mask_model_tampering(self):
+        with patch.dict(os.environ, {"JASON_OS_ENV": "staging"}):
+            first = run_fixture("app149_small", self.sha, self.input_dir,
+                                self.output_dir, self.model_dir,
+                                lambda *_: document(), "2.146.0")
+        self.assertEqual(first["status"], "READY_SHADOW")
+        (self.model_dir / "synthetic-weights.bin").write_bytes(b"new bytes after original receipt")
+        with patch.dict(os.environ, {"JASON_OS_ENV": "staging"}):
+            with self.assertRaisesRegex(ContractGap, "model bundle SHA256 mismatch"):
+                run_fixture("app149_small", self.sha, self.input_dir,
+                            self.output_dir, self.model_dir,
+                            lambda *_: self.fail("must not rerun converter"), "2.146.0")
+
     def test_model_bundle_identity_is_content_based(self):
         first = inventory_model_bundle(self.model_dir)
         self.assertEqual(first["file_count"], 2)

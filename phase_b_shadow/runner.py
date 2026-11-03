@@ -41,6 +41,12 @@ def run_fixture(fixture_id: str, expected_sha256: str, input_dir: Path,
         previous = json.loads(receipt.read_text(encoding="utf-8"))
         if previous.get("task_id") != key or previous.get("source_sha256") != fixture.sha256:
             raise ContractGap("existing receipt identity mismatch")
+        # A redelivered successful task must not reuse an old receipt if the
+        # reviewed model artifacts have since changed or disappeared.
+        if previous.get("status") == "READY_SHADOW" and (
+            inventory_model_bundle(model_dir)["model_bundle_sha256"] != fixture.model_bundle_sha256
+        ):
+            raise ContractGap("model bundle SHA256 mismatch on duplicate receipt")
         if previous.get("status") == "READY_SHADOW" and (
             not artifact.is_file() or sha256_file(artifact) != previous.get("manifest_sha256")
         ):
