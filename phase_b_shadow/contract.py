@@ -64,6 +64,15 @@ def load_fixture(catalog: Path, fixture_id: str, input_dir: Path) -> tuple[Fixtu
             raise ContractGap("source is not a PDF byte stream")
     if sha256_file(path) != digest:
         raise ContractGap("source SHA256 mismatch")
+    try:
+        import pymupdf
+        with pymupdf.open(path) as pdf:
+            if pdf.is_encrypted or not (1 <= len(pdf) <= 10):
+                raise ContractGap("PDF is encrypted or exceeds the 10-page preflight bound")
+    except ContractGap:
+        raise
+    except Exception as exc:
+        raise ContractGap(f"PDF preflight failed: {type(exc).__name__}") from exc
     return Fixture(fixture_id, raw["source_id"], raw["version_id"], raw["model_version"], filename, digest), path
 
 

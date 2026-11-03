@@ -34,7 +34,8 @@ bytes. A catalog entry is pinned to the local file SHA256 and an enabled officia
 not grant current-version or publication authority by itself. Do not populate
 it from a guessed URL, date or filename. The worker accepts only `fixture_id`
 and SHA256 in the JSON task payload; no path, URL, PDF bytes or credentials.
-Source size is capped at 5 MiB and parsed page count at 10.
+Source size is capped at 5 MiB; PyMuPDF verifies the PDF has 1–10 physical
+pages and is not encrypted before dispatch or Docling model loading.
 
 The separately prepared, read-only model directory must contain all required
 Docling model artifacts and a reviewed `model-version.txt` matching the

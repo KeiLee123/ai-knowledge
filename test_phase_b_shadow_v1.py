@@ -10,6 +10,7 @@ from types import SimpleNamespace as NS
 from unittest.mock import patch
 
 import yaml
+import pymupdf
 
 from build_multimodal_chunks_v2 import build_chunks
 from phase_b_shadow.contract import ContractGap, load_fixture, task_id
@@ -44,7 +45,11 @@ class PhaseBShadowTests(unittest.TestCase):
             directory.mkdir()
         (self.model_dir / "model-version.txt").write_text("operator-reviewed-test-model-v1\n", encoding="utf-8")
         self.pdf = self.input_dir / "APP149.pdf"
-        self.pdf.write_bytes(b"%PDF-1.4\n% offline contract fixture only\n")
+        synthetic = pymupdf.open()
+        page = synthetic.new_page()
+        page.insert_text((72, 72), "Offline synthetic contract fixture")
+        synthetic.save(self.pdf)
+        synthetic.close()
         self.sha = hashlib.sha256(self.pdf.read_bytes()).hexdigest()
         self.entry = {"source_id": "BD_PNAP_APP149", "version_id": "offline_test_v1",
                       "model_version": "operator-reviewed-test-model-v1",
@@ -76,6 +81,18 @@ class PhaseBShadowTests(unittest.TestCase):
         self.entry["source_id"] = "UNREGISTERED"
         self.write_catalog()
         with self.assertRaises(ContractGap):
+            self.fixture()
+
+    def test_pdf_page_bound_is_checked_before_dispatch(self):
+        many = pymupdf.open()
+        for _ in range(11):
+            many.new_page()
+        self.pdf.unlink()
+        many.save(self.pdf, incremental=False)
+        many.close()
+        self.entry["sha256"] = hashlib.sha256(self.pdf.read_bytes()).hexdigest()
+        self.write_catalog()
+        with self.assertRaisesRegex(ContractGap, "10-page preflight"):
             self.fixture()
 
     def test_manifest_page_table_and_chunk_provenance(self):
