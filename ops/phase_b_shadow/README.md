@@ -97,7 +97,7 @@ benchmark, table/page comparison against the existing extractor, model cache
 identity and product acceptance are separate gates. The PostgreSQL
 authentication/recovery HOLD remains in force before any DB-connected worker.
 
-## Next Staging acceptance gate (not authorized to run yet)
+The separate [Model Supply Gate](MODEL_SUPPLY_GATE.md) describes the official\nmodel sources, offline preparation, CPU-only packaging and approval checklist.\n\n## Next Staging acceptance gate (not authorized to run yet)
 
 **Trusted input:** a read-only Google Drive copy named APP149.pdf was re-fetched and
 hashed on 2026-11-04, 25,520 bytes, 5 unencrypted physical pages, SHA256
