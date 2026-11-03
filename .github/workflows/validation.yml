@@ -332,6 +332,13 @@ jobs:
           set -euo pipefail
           python test_multimodal_ingestion_contract_v2.py
 
+      - name: Phase B isolated shadow task and manifest contract (offline)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check 'celery[redis]==5.6.3'
+          python test_phase_b_shadow_v1.py
+
       - name: Source page provenance test
         shell: bash
         run: |
