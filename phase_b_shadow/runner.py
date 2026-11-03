@@ -10,7 +10,7 @@ from extract_document_v2 import sha256_file
 from phase_b_shadow import CONFIG_VERSION
 from phase_b_shadow.contract import ContractGap, load_fixture, task_id
 from phase_b_shadow.docling_adapter import build_manifest, convert_pdf
-from phase_b_shadow.model_inventory import inventory_model_bundle
+from phase_b_shadow.model_inventory import verify_model_bundle
 from route_document_v2 import assess_manifest
 
 
@@ -44,7 +44,7 @@ def run_fixture(fixture_id: str, expected_sha256: str, input_dir: Path,
         # A redelivered successful task must not reuse an old receipt if the
         # reviewed model artifacts have since changed or disappeared.
         if previous.get("status") == "READY_SHADOW" and (
-            inventory_model_bundle(model_dir)["model_bundle_sha256"] != fixture.model_bundle_sha256
+            verify_model_bundle(model_dir, fixture.model_bundle_sha256)["model_bundle_sha256"] != fixture.model_bundle_sha256
         ):
             raise ContractGap("model bundle SHA256 mismatch on duplicate receipt")
         if previous.get("status") == "READY_SHADOW" and (
@@ -64,9 +64,7 @@ def run_fixture(fixture_id: str, expected_sha256: str, input_dir: Path,
                 or not 0 < model_version_file.stat().st_size <= 256
                 or model_version_file.read_text(encoding="utf-8").strip() != fixture.model_version):
             raise ContractGap("reviewed model version does not match the mounted model directory")
-        model_inventory = inventory_model_bundle(model_dir)
-        if model_inventory["model_bundle_sha256"] != fixture.model_bundle_sha256:
-            raise ContractGap("reviewed offline model bundle SHA256 mismatch")
+        model_inventory = verify_model_bundle(model_dir, fixture.model_bundle_sha256)
         document = converter(source, model_dir)
         if sha256_file(source) != fixture.sha256:
             raise ContractGap("source changed during parsing")

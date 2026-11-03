@@ -243,6 +243,19 @@ class PhaseBShadowTests(unittest.TestCase):
                             self.output_dir, self.model_dir,
                             lambda *_: self.fail("must not rerun converter"), "2.146.0")
 
+    def test_offline_model_bundle_preflight_requires_reviewed_digest(self):
+        from phase_b_shadow.model_inventory import verify_model_bundle
+        accepted = self.entry["model_bundle_sha256"]
+        actual = verify_model_bundle(self.model_dir, accepted)
+        self.assertEqual(actual["model_bundle_sha256"], accepted)
+        with self.assertRaisesRegex(ContractGap, "SHA256 is invalid"):
+            verify_model_bundle(self.model_dir, "not-an-approved-sha")
+        with self.assertRaisesRegex(ContractGap, "SHA256 mismatch"):
+            verify_model_bundle(self.model_dir, "0" * 64)
+        (self.model_dir / "synthetic-weights.bin").write_bytes(b"changed after approval")
+        with self.assertRaisesRegex(ContractGap, "SHA256 mismatch"):
+            verify_model_bundle(self.model_dir, accepted)
+
     def test_model_bundle_identity_is_content_based(self):
         first = inventory_model_bundle(self.model_dir)
         self.assertEqual(first["file_count"], 2)

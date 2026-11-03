@@ -144,3 +144,56 @@ Once and only once the user separately approves the Staging runtime:
 
 **This runbook does not authorize any installation, download, Docker
 container start, external model execution or production change.**
+
+## 6. GitHub Actions preparation feasibility — reviewed 2026-11-04
+
+The current repository is **public** and its default branch is **main**.
+GitHub Actions `workflow_dispatch` requires the workflow definition to
+exist on the default branch; a new manually dispatched workflow added **only**
+to Draft PR #95 is **not directly runnable** from the Actions UI. Creating
+that file alone is not an accepted model-preparation process. Do not
+merge or add a dispatch workflow to main simply to work around this gate.
+
+Standard GitHub-hosted `ubuntu-24.04` runners have **14 GB SSD**
+(virtual CPU/RAM allocations depend on repository visibility); model
+dependencies, CPU-only Torch wheels, the build cache, and final artifacts
+must all fit that temporary disk. This has not been benchmarked. Any
+remote model download or Docker build can consume network and compute;
+neither is authorized by this Code-only PR.
+
+GitHub Action artifacts in a **public** repository are readable by
+anyone with repository read access. They are not an appropriate default
+destination for model weights before licensing, redistribution, retention
+and trusted delivery are reviewed. They also expire. Do not upload
+private PDFs, passwords, full PDF text, credentials or unreviewed
+weights. For the first MVP, prefer a separately authorized external
+preparation environment and a private, verified model transfer; keep
+GitHub as the code source, not the source of truth for the model binaries.
+If external preparation is unavailable, propose a narrowly scoped
+manual workflow after a separate explicit approval and source/license
+review; do not activate it now.
+
+The **existing** inventory tool has two read-only modes:
+
+```sh
+# Outside VPS, after independently approved model supply. No downloads occur.
+python -m phase_b_shadow.model_inventory /path/to/models > /private/model-inventory.json
+
+# After a human has reviewed and pinned that exact 64-char digest:
+python -m phase_b_shadow.model_inventory \
+  /path/to/models --expected-sha256 REVIEWED_64_CHAR_SHA256
+```
+
+The second form fails closed for altered, missing or unreviewed model
+assets. Run it against the final standalone model directory **after**
+copy/transfer as well, never against only the downloader's cache.
+Do not write the JSON inventory into the model directory itself
+(it would recursively change its own digest).
+
+Official references:
+- https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow
+- https://docs.github.com/en/actions/how-tos/write-workflows/choose-where-workflows-run/choose-the-runner-for-a-job
+- https://docs.github.com/en/actions/how-tos/manage-workflow-runs/download-workflow-artifacts
+
+**Status:** GitHub Actions model preparation is DESIGNED/FEASIBILITY-REVIEWED,
+not implemented or executed; real model byte delivery still HOLD.

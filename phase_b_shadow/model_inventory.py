@@ -63,11 +63,31 @@ def inventory_model_bundle(directory: Path) -> dict:
     }
 
 
+
+def verify_model_bundle(directory: Path, expected_digest: str) -> dict:
+    """Fail closed on any missing, altered or unexpected model asset.
+
+    Compare the same canonical digest the Worker uses; this is a read-only
+    standalone operator preflight, not approval of a model's provenance.
+    """
+    if (len(expected_digest) != 64
+            or any(ch not in "0123456789abcdef" for ch in expected_digest)):
+        raise ContractGap("reviewed model bundle SHA256 is invalid")
+    inventory = inventory_model_bundle(directory)
+    if inventory["model_bundle_sha256"] != expected_digest:
+        raise ContractGap("reviewed model bundle SHA256 mismatch")
+    return inventory
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Read-only Docling model bundle SHA256 inventory")
     parser.add_argument("directory", type=Path, help="Local, separately supplied offline model directory")
+    parser.add_argument("--expected-sha256", help="Reviewed bundle digest: fail if actual files differ")
     args = parser.parse_args()
-    print(json.dumps(inventory_model_bundle(args.directory), indent=2, sort_keys=True))
+    inventory = (verify_model_bundle(args.directory, args.expected_sha256)
+                 if args.expected_sha256 is not None
+                 else inventory_model_bundle(args.directory))
+    print(json.dumps(inventory, indent=2, sort_keys=True))
 
 
 if __name__ == "__main__":
