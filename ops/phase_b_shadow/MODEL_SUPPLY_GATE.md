@@ -197,3 +197,53 @@ Official references:
 
 **Status:** GitHub Actions model preparation is DESIGNED/FEASIBILITY-REVIEWED,
 not implemented or executed; real model byte delivery still HOLD.
+
+## 7. Candidate immutable upstream source identities — 2026-11-04
+
+**PUBLIC-METADATA-VERIFIED ONLY; candidate pins, NOT approval of supplied
+model bytes, selected downloader output or runtime compatibility.**
+
+The public Hugging Face repository history links identify these full commits,
+where the upstream repository browser showed the following files/licensing:
+
+| Purpose | Repository | Candidate full revision | Upstream license label |
+| --- | --- | --- | --- |
+| Layout Heron | `docling-project/docling-layout-heron` | `8f39ad3c0b4c58e9c2d2c84a38465abf757272d8` | Apache-2.0 |
+| TableFormer shared repository | `docling-project/docling-models` | `2199320848bb9a8a519d22e4b528185a4f9a6f64` | CDLA-Permissive-2.0 / Apache-2.0 |
+
+- Layout repo at the observed revision: `model.safetensors` (~172 MB
+  displayed), `config.json`, `preprocessor_config.json`, model card and
+  image. TableFormer shared repo displayed ~358 MB total. These are **Hub
+  UI estimates**, not verified downloaded byte counts, not an acceptance
+  memory/RAM figure.
+- Upstream commit references:
+  https://huggingface.co/docling-project/docling-layout-heron/commit/8f39ad3c0b4c58e9c2d2c84a38465abf757272d8
+  https://huggingface.co/docling-project/docling-models/commit/2199320848bb9a8a519d22e4b528185a4f9a6f64
+- The pinned Docling wheel's PyPI release page independently lists
+  `docling-2.146.0-py3-none-any.whl` SHA256
+  `0a513ade59476e49501f60f23fca8ae2064158e1731e726a55381d99fb21c015`
+  and attests a build from
+  `docling-project/docling@c622bcb97c6e24736bf81402cbe4ebc908a7bd9c`.
+  This pins the top-level package artifact provenance, **NOT** its
+  transitive Python wheels or the separate pretrained models.
+  Reference: https://pypi.org/project/docling/2.146.0/
+- The official CLI reference explicitly supports
+  `docling-tools models download layout tableformer --output-dir MODELS`;
+  the default selection and `--all` are larger. Reference:
+  https://docling-project.github.io/docling/reference/cli/
+- **Safety/compatibility HOLD:** the CLI's named download command does not
+  itself accept these pinned Hugging Face commit hashes. An operator must
+  prove the downloader's actual resolved revisions and paths match these
+  reviewed candidates, or use a separately reviewed immutable-revision
+  download and reproduce the exact artifacts-path layout. If revisions
+  differ, review the discrepancy instead of silently changing the catalog.
+- **Additional hold:** PyTorch's official installation instructions have
+  a separate Linux CPU package option. The existing Worker Dockerfile
+  has not been built with a CPU-only lock or vetted wheelhouse.
+  Reference: https://pytorch.org/get-started/locally/
+
+Next acceptance evidence, **not yet present**: resolved model source
+revisions from the actual preparation run, final local artifact path/size/
+SHA256 inventory, licensing and attribution review, verified canonical
+bundle digest and CPU-only image digest/package manifest. These must be
+recorded before anyone is authorized to start the Staging shadow worker.
