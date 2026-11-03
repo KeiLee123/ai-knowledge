@@ -56,7 +56,10 @@ def _table(item, page: dict, index: int) -> dict:
         col = getattr(cell, "start_col_offset_idx", None)
         if (not isinstance(row, int) or not isinstance(col, int) or not (0 <= row < rows_count)
                 or not (0 <= col < cols_count) or getattr(cell, "row_span", 1) != 1
-                or getattr(cell, "col_span", 1) != 1 or rows[row][col] is not None):
+                or getattr(cell, "col_span", 1) != 1
+                or getattr(cell, "end_row_offset_idx", None) != row + 1
+                or getattr(cell, "end_col_offset_idx", None) != col + 1
+                or rows[row][col] is not None):
             raise ContractGap("table span, offset or duplicate cell cannot be represented")
         value = getattr(cell, "text", None)
         if not isinstance(value, str):
@@ -80,6 +83,16 @@ def build_manifest(doc, fixture: Fixture, source: Path, parser_version: str, mod
         raise ContractGap("missing or excessive physical pages")
     if set(pages) != set(range(1, len(pages) + 1)):
         raise ContractGap("physical page sequence is incomplete")
+    # A contiguous Docling page dictionary can still omit the PDF's last page.
+    # Compare against the independently opened, SHA-pinned original bytes.
+    try:
+        import pymupdf
+        with pymupdf.open(source) as original_pdf:
+            source_page_count = len(original_pdf)
+    except Exception as exc:
+        raise ContractGap("source PDF page count could not be verified") from exc
+    if source_page_count != len(pages):
+        raise ContractGap("Docling page count differs from source PDF")
     units = {}
     for number, page in pages.items():
         size = getattr(page, "size", None)

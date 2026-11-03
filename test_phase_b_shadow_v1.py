@@ -25,7 +25,8 @@ def box(l=10, t=10, r=100, b=30, origin="TOPLEFT"):
 def document(table=True, table_span=1, page_no=1):
     items = [NS(label="paragraph", text="Verified source text", prov=[NS(page_no=page_no, bbox=box())])]
     if table:
-        cells = [NS(start_row_offset_idx=0, start_col_offset_idx=0, row_span=table_span,
+        cells = [NS(start_row_offset_idx=0, end_row_offset_idx=table_span,
+                    start_col_offset_idx=0, end_col_offset_idx=1, row_span=table_span,
                     col_span=1, text="17.5", bbox=box(12, 40, 80, 55))]
         items.append(NS(label="table", data=NS(num_rows=1, num_cols=1, table_cells=cells),
                         prov=[NS(page_no=1, bbox=box(10, 35, 100, 60))]))
@@ -124,6 +125,52 @@ class PhaseBShadowTests(unittest.TestCase):
         next(doc.iterate_items())[0].prov = []
         with self.assertRaises(ContractGap):
             build_manifest(doc, self.fixture(), self.pdf, "2.146.0", "test-model-v1")
+
+
+    def test_source_pdf_page_loss_is_not_accepted(self):
+        # A Docling result with page 1 only must not be accepted for a two-page PDF.
+        self.pdf.unlink()
+        actual = pymupdf.open()
+        actual.new_page()
+        actual.new_page()
+        actual.save(self.pdf)
+        actual.close()
+        self.entry["sha256"] = hashlib.sha256(self.pdf.read_bytes()).hexdigest()
+        self.write_catalog()
+        with patch.dict(os.environ, {"JASON_OS_ENV": "staging"}):
+            result = run_fixture(
+                "app149_small", self.entry["sha256"], self.input_dir,
+                self.output_dir, self.model_dir,
+                lambda *_: document(table=False), "2.146.0"
+            )
+        self.assertEqual(result["status"], "AUTO_HOLD_CONTRACT_GAP")
+        self.assertIn("page count differs", result["reason"])
+        self.assertFalse(list(self.output_dir.glob("*.manifest.json")))
+
+    def test_inconsistent_table_end_offsets_fail_closed(self):
+        for field, wrong_value in (("end_row_offset_idx", 2),
+                                   ("end_col_offset_idx", 0)):
+            with self.subTest(field=field):
+                doc = document()
+                cell = list(doc.iterate_items())[1][0].data.table_cells[0]
+                setattr(cell, field, wrong_value)
+                with self.assertRaisesRegex(ContractGap, "table span"):
+                    build_manifest(doc, self.fixture(), self.pdf, "2.146.0", "test-model-v1")
+
+    def test_catalog_rejects_oversized_or_symlink_input(self):
+        catalog = self.input_dir / "catalog.json"
+        catalog.write_text(" " * 65537, encoding="utf-8")
+        with self.assertRaisesRegex(ContractGap, "catalog"):
+            self.fixture()
+        catalog.unlink()
+        external = self.model_dir / "catalog.json"
+        external.write_text(json.dumps({"fixtures": {"app149_small": self.entry}}), encoding="utf-8")
+        try:
+            catalog.symlink_to(external)
+        except (OSError, NotImplementedError):
+            return  # Windows without symlink permission; Linux CI exercises this path
+        with self.assertRaisesRegex(ContractGap, "catalog"):
+            self.fixture()
 
     def test_runner_is_staging_only_atomic_and_duplicate_safe(self):
         calls = []

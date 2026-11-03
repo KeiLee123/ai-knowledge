@@ -81,3 +81,53 @@ exact PR head, a real small-PDF Docling run in isolated Staging, resource
 benchmark, table/page comparison against the existing extractor, model cache
 identity and product acceptance are separate gates. The PostgreSQL
 authentication/recovery HOLD remains in force before any DB-connected worker.
+
+## Next Staging acceptance gate (not authorized to run yet)
+
+**Trusted input:** a read-only Google Drive copy named APP149.pdf was re-fetched and
+hashed on 2026-11-04, 25,520 bytes, 5 unencrypted physical pages, SHA256
+`a5b4d5a1af5f4a32b43973db33d95436f9390e8e2da77747ee666015077bb1a8`.
+This verifies the reviewed source *bytes*, NOT Docling conversion or current
+legal/official version status. The catalog must use an independently reviewed
+`version_id`; never infer it from the file basename or date.
+
+Before any new VPS container/service installation, obtain separate deployment
+authorization. The operator then needs an isolated, non-Production handoff for
+the above exact five-page PDF, `catalog.json`, and Docling's entire **offline**
+model bundle. In a separately approved preparation environment, record the
+Docling package version, each model artifact's relative path/size/SHA256, and
+a canonical bundle inventory digest; review and preserve those values in the
+acceptance evidence. Mount the bundle read-only. **A matching
+`model-version.txt` alone is insufficient to authenticate model bytes.** The
+current code only enforces that marker; independent bundle-hash verification
+remains a deployment HOLD. Never let the runtime fetch missing models.
+
+For the approved one-job trial, the operator should:
+
+1. Rehash APP149.pdf inside the final fixture mount; check 25,520 bytes,
+   5 pages, and exact SHA256 before dispatch. Fail closed on any difference.
+2. Verify the staged model inventory against the reviewed offline inventory,
+   installed Docling 2.146.0, no missing/changed files, and no model downloads.
+3. Verify the isolated Compose configuration has **no published ports, DB
+   network, credentials, Docker/DB socket, Beat, or Writer access**, then start
+   only the new staging shadow Redis and single worker after authorization.
+4. Dispatch exactly one allowlisted `app149_small` job, collect task ID,
+   exit/error code, wall time, peak worker RSS/CPU and host memory pressure,
+   model/cache identity and stdout/stderr without secret or PDF-text leakage.
+   Initial limits: 1 vCPU/3 GiB worker, 0.25 vCPU/256 MiB Redis,
+   Celery concurrency=1 and 180s hard task limit.
+5. Read back the isolated manifest and receipt with SHA256. Require
+   `READY_SHADOW` with five physical pages, matching source hash,
+   stable item/page coordinates, no missing native-text pages, existing
+   Router/Chunk compatibility and no DB write. Compare page text/provenance
+   against the existing v2 extractor, recording any differences as HOLD.
+   APP149 alone **cannot** prove table-cell numerical quality or OCR accuracy.
+6. Exercise one bounded duplicate and one controlled worker-failure recovery
+   after the successful run; never infer exactly-once delivery.
+7. **STOP / HOLD** on any SHA/model mismatch, missing evidence, unexpected
+   network access, duplicate publication, OOM, excessive runtime, page loss,
+   wrong source version, or provenance mismatch. Stop/remove only the new
+   shadow containers; leave Frozen M8/M9, Staging DB and Production untouched.
+   Preserve incident evidence separately, then review an approved rollback.
+
+GitHub Unit/CI PASS is not a real Staging benchmark or Product Acceptance.

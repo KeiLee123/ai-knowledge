@@ -32,8 +32,10 @@ class Fixture:
 def load_fixture(catalog: Path, fixture_id: str, input_dir: Path) -> tuple[Fixture, Path]:
     if not IDENTIFIER.fullmatch(fixture_id):
         raise ContractGap("invalid fixture_id")
-    if catalog.resolve() != (input_dir / "catalog.json").resolve():
-        raise ContractGap("catalog must be inside the isolated input directory")
+    if (catalog.name != "catalog.json" or catalog.parent.resolve() != input_dir.resolve()
+            or catalog.is_symlink() or not catalog.is_file()
+            or not 0 < catalog.stat().st_size <= 65536):
+        raise ContractGap("fixture catalog is absent, redirected or too large")
     data = json.loads(catalog.read_text(encoding="utf-8"))
     if not isinstance(data, dict) or not isinstance(data.get("fixtures"), dict):
         raise ContractGap("invalid fixture catalog")
