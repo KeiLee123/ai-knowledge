@@ -1,8 +1,10 @@
 # Phase B model supply gate — offline preparation and acceptance v0.1
 
-**Status: DESIGN / CODE-ONLY. No model binaries acquired or distributed by this PR.
-No VPS download, Docker deployment, PostgreSQL access, source publication, Beat
-enablement, Production change, or PR merge authorized.**
+**Status: OFF-VPS BYTES HASHED / CPU PYTHON WHEEL CHECK PASS (2026-11-05).
+Models were downloaded to an ephemeral GitHub Runner, not retained or delivered
+to Staging. No weights were published as GitHub artifacts; no CPU Docker image
+was built. VPS deployment, PostgreSQL, Production, Beat, and PR merge remain
+NOT AUTHORIZED.**
 
 This note is for a separately authorized preparation environment, followed by
 a second and independent authorization for a bounded Staging runtime test.
@@ -135,15 +137,18 @@ Once and only once the user separately approves the Staging runtime:
 | --- | --- |
 | APP149 source bytes/SHA256 from Google Drive | VERIFIED at source, not VPS mount |
 | Phase B contract Unit/CI | PASS at exact PR head recorded in PR |
-| Verified model download repository revisions/license | HOLD |
-| Actual offline model asset inventory, digest and Staging mount | HOLD |
-| CPU-only image dependencies and size | HOLD |
+| Immutable HF source revision / downloaded bytes | 3 SHA-pinned repositories fetched, 20 files / 701,224,343 bytes SHA-verified (candidate evidence) |
+| Model licensing / private transfer / Staging model mount | HOLD (metadata only; binaries not retained in a secure destination) |
+| CPU-only dependency install and pip check | PASS in temporary Linux runner (Torch 2.9.1+cpu and Docling 2.146.0) |
+| Actual CPU-only Docker image build, size and digest | HOLD (no image built) |
 | Real Docling conversion + resources + provenance | NOT RUN |
 | Private Beta / Product Acceptance | NOT RUN |
 | PostgreSQL trust auth and backup restore for future Writer | HOLD |
 
-**This runbook does not authorize any installation, download, Docker
-container start, external model execution or production change.**
+**One explicitly approved off-VPS model download and Python CPU package
+feasibility test were executed on 2026-11-05. This approval does not cover
+another remote acquisition, permanent binary redistribution/transfer,
+VPS/Docker container start, model inference or Production change.**
 
 ## 6. GitHub Actions preparation feasibility — reviewed 2026-11-04
 
@@ -195,8 +200,11 @@ Official references:
 - https://docs.github.com/en/actions/how-tos/write-workflows/choose-where-workflows-run/choose-the-runner-for-a-job
 - https://docs.github.com/en/actions/how-tos/manage-workflow-runs/download-workflow-artifacts
 
-**Status:** GitHub Actions model preparation is DESIGNED/FEASIBILITY-REVIEWED,
-not implemented or executed; real model byte delivery still HOLD.
+**Status:** The branch-only workflow was executed once; actual model bytes
+were hashed on GitHub's temporary runner, without a permanent model-binary
+artifact. Metadata is in the referenced model evidence artifact. Private
+binary delivery remains HOLD; no workflow may be merged to a frozen layer
+without separate review.
 
 ## 7. Candidate immutable upstream source identities — 2026-11-04
 
@@ -278,3 +286,53 @@ download/CPU wheel feasibility run, NOT private delivery of weights, a new
 VPS container, offline Staging model mount, Database Writer, PR merge or
 Production. A failed remote download/build results in a documented HOLD,
 never a fallback to an unpinned model revision.
+
+## 9. Actual one-shot off-VPS evidence — 2026-11-05
+
+**Source:** [model supply workflow run #41873845270](https://github.com/KeiLee123/ai-knowledge/actions/runs/41873845270),
+commit `77f05ec9ef216db795b9a3c3b9ddcc4e3b3011fc`, both jobs **SUCCESS**.
+The matching [existing Validation #41873862969](https://github.com/KeiLee123/ai-knowledge/actions/runs/41873862969)
+also completed SUCCESS on that exact SHA.
+
+The ephemeral `model-byte-inventory` job used immutable `snapshot_download()`
+revisions and verified each completed local file byte-for-byte by SHA256.
+It saved **only** the public file inventory as a short-lived GitHub Action
+artifact (`phase-b-model-sha256-only`, artifact ID `13346166019`).
+The model weights themselves were not uploaded, copied to the VPS,
+transferred to private storage, or retained after the Runner completed.
+
+| Repo | Resolved full commit | Hugging Face card license metadata |
+| --- | --- | --- |
+| `docling-project/docling-layout-heron` | `8f39ad3c0b4c58e9c2d2c84a38465abf757272d8` | `apache-2.0` |
+| `docling-project/docling-layout-heron-onnx` | `40bde044036bb181c130ddf6c51792187268748f` | `apache-2.0` |
+| `docling-project/docling-models` | `fc0f2d45e2218ea24bce5045f58a389aed16dc23` | `cdla-permissive-2.0` |
+
+**Candidate model inventory:** 20 regular files, 701,224,343 bytes
+(approximately 668.7 MiB), canonical model bundle SHA256:
+
+`ddf0c219b5586defee118e03c6a8b6c2716d0117c1b6b51763f1601e90351ead`
+
+This digest includes all model directory bytes and a **candidate**
+`model-version.txt`. It identifies the completed temporary download,
+**not** a shipping bundle approved for Production/Staging. Any future copied
+bundle MUST be re-hashed after transfer; changing its version marker changes
+the digest. Model card license metadata does not replace legal attribution
+or redistribution approval.
+
+The `cpu-package-feasibility` job installed on Linux x86_64/Python 3.12.15:
+`torch==2.9.1+cpu`, `torchvision==0.24.1+cpu`, `docling==2.146.0`,
+`docling-core==2.106.0`, `docling-ibm-models==4.0.4`,
+`docling-parse==7.24.2`, `transformers==5.22.1`,
+`celery==5.6.3`. `pip check` PASS; `torch.version.cuda is None`,
+`torch.cuda.is_available() is False`. CPU metadata artifact:
+`phase-b-cpu-package-versions-only` (ID `13345542590`).
+No actual Docker image was built or measured, no model inference happened,
+and no APP149 PDF was present in these jobs.
+
+**Next release HOLDS:** independently approved private model delivery and
+post-transfer hash reconciliation, reproducible CPU-only Docker build/image
+size/digest, isolated Staging APP149 Docling runtime/time/peak RAM and page
+provenance, user Private Beta, PostgreSQL auth and verified backup restore
+for any future DB-connected Writer. The one-shot workflow is feature-branch
+only and must not be promoted/merged to long-lived branches as an ongoing
+automatic downloader without explicit review.
