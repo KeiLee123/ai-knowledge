@@ -253,6 +253,31 @@ def test_auto_currentness_refusal_and_fail_closed_missing_source():
     with_local_server(run)
 
 
+def test_question_first_evidence_panel_layout_security_and_ux():
+    """Guard actual UI flow, not a duplicate backend parser/retrieval suite."""
+    html = ui.PAGE_PATH.read_text(encoding="utf-8")
+    assert html.index('id="question"') < html.index('id="connectionSettings"')
+    assert html.index('id="connectionSettings"') < html.index('id="askButton"')
+    assert 'id="sourcePanel"' in html
+    assert 'id="quickExamples"' in html
+    assert 'data-example=' in html
+    assert 'sourcePanel.appendChild(doc)' in html
+    assert 'data.evidence.forEach(function (item)' in html
+    assert '官方原文證據 · 全部 ' in html
+    assert '排名不代表可信度' in html
+    assert '本次查詢未完成，未產生可驗證證據' in html
+    assert 'CURRENTNESS_UNVERIFIED_ABSTAIN' in html
+    assert '已找到來源片段 — 尚未生成 AI 答案' in html
+    # Authentication stays token-in-memory / local browser only.
+    assert 'id="token" type="password"' in html
+    assert 'document.getElementById("connectionSettings").open = true' in html
+    assert 'localStorage' not in html
+    assert 'innerHTML' not in html
+    assert '<iframe' not in html
+    assert 'https://' not in html
+    assert 'type="button" class="example"' in html
+
+
 def test_auto_is_default_in_browser_and_manual_filter_is_optional():
     html = ui.PAGE_PATH.read_text(encoding="utf-8")
     assert '<option value="AUTO_APPROVED" selected>' in html
