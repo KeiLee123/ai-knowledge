@@ -336,3 +336,51 @@ provenance, user Private Beta, PostgreSQL auth and verified backup restore
 for any future DB-connected Writer. The one-shot workflow is feature-branch
 only and must not be promoted/merged to long-lived branches as an ongoing
 automatic downloader without explicit review.
+
+## 10. External candidate CPU-only Docker image test (2026-11-05)
+
+- `Dockerfile.cpu-candidate` installs only `torch==2.9.1+cpu` and
+  `torchvision==0.24.1+cpu` from the official CPU PyTorch wheel index,
+  then installs `requirements-phase-b.txt`, checks `pip check` and
+  runs as nonroot UID 10001. This **candidate** does not replace the
+  currently deployed/non-deployed `Dockerfile` automatically.
+- Feature-only `.github/workflows/phase-b-cpu-image-once.yml` triggers
+  once upon introducing the workflow file. It runs a Linux x86_64 Docker
+  build on a GitHub-hosted, non-VPS runner, followed by a **network-disabled,
+  read-only filesystem, 3-GiB/1-CPU, nonroot** package-import probe.
+- The output is public **metadata-only JSON**: resolved base image
+  RepoDigest, local image config SHA256, uncompressed image size, Dockerfile
+  and requirements hashes, CPU package versions and import checks.
+  **No Docker image, wheel, model weight, private PDF or secret is
+  uploaded, pushed or made available for Staging execution.**
+- The current top-level Python package requirements are not a complete
+  transitive SHA256 wheel lock. Even if the build passes, mark it
+  `CANDIDATE_IMAGE_FEASIBILITY_PASS`, *not* reproducibly locked,
+  Staging accepted or ready for promotion. An independently approved
+  final image recipe/digest will still be required.
+
+### Private model transport boundary (HOLD pending destination approval)
+
+The **20 files / 701,224,343 bytes** candidate inventory from the prior
+ephemeral GitHub runner cannot by itself deliver model bytes. Once a
+private destination and the file redistribution terms are approved,
+prepare a standalone model bundle **outside GitHub and the VPS**, using
+the same three immutable repository commits. Confirm its canonical hash
+with the existing read-only validator before packaging:
+
+```sh
+# Operator only, separately authorized non-VPS preparation environment.
+python -m phase_b_shadow.model_inventory /private/work/models \
+  --expected-sha256 APPROVED_64_CHAR_SHA256
+
+# Save a private archive OUTSIDE the model source directory and Git repo.
+tar -C /private/work -cf /private/delivery/models.tar models
+sha256sum /private/delivery/models.tar > /private/delivery/models.tar.sha256
+```
+
+After any approved private transfer, verify the archive's SHA256, extract
+into an isolated location, then re-run `model_inventory
+--expected-sha256` on the final directory before any Docling worker
+is allowed access. Do not choose a public GitHub Actions Artifact,
+unreviewed Google Drive folder or VPS location as an implicit
+destination. Actual transfer and authorization remain HOLD.

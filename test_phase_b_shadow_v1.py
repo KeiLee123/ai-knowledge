@@ -433,6 +433,27 @@ class PhaseBShadowTests(unittest.TestCase):
         with self.assertRaisesRegex(ContractGap, "model bundle SHA256"):
             self.fixture()
 
+    def test_cpu_candidate_workflow_has_one_shot_no_publish_boundary(self):
+        root = Path(__file__).resolve().parent
+        dockerfile = (root / "ops/phase_b_shadow/Dockerfile.cpu-candidate").read_text(encoding="utf-8")
+        workflow = (root / ".github/workflows/phase-b-cpu-image-once.yml").read_text(encoding="utf-8")
+        parsed = yaml.safe_load(workflow)
+        triggers = parsed.get("on", parsed.get(True))
+        self.assertEqual(triggers["push"]["branches"], ["feature/phase-b-shadow-processing-mvp"])
+        self.assertEqual(triggers["push"]["paths"], [
+            ".github/workflows/phase-b-cpu-image-once.yml"
+        ])
+        self.assertEqual(parsed["permissions"], {"contents": "read"})
+        self.assertIn("'torch==2.9.1+cpu'", dockerfile)
+        self.assertIn("'torchvision==0.24.1+cpu'", dockerfile)
+        self.assertIn("python -m pip check", dockerfile)
+        self.assertIn("USER 10001:10001", dockerfile)
+        self.assertIn("--network none --read-only", workflow)
+        self.assertIn("--memory 3g --cpus 1", workflow)
+        self.assertIn("cpu-image-candidate.json", workflow)
+        self.assertNotIn("docker push", workflow.lower())
+        self.assertNotIn("docker save", workflow.lower())
+
     def test_celery_and_compose_isolation_contract(self):
         compose = yaml.safe_load((Path(__file__).parent / "ops/phase_b_shadow/compose.yaml").read_text(encoding="utf-8"))
         redis = compose["services"]["redis"]
