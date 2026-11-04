@@ -1,0 +1,56 @@
+name: jason-os-phase-b-shadow
+services:
+  redis:
+    image: redis:7.4-alpine
+    command: ["sh", "-ec", "exec redis-server --save '' --appendonly no --maxmemory 192mb --maxmemory-policy noeviction --requirepass \"$$(cat /run/secrets/redis_password)\""]
+    secrets: [redis_password]
+    networks: [phase_b_broker]
+    cpus: 0.25
+    mem_limit: 256m
+    pids_limit: 64
+    read_only: true
+    tmpfs: [/tmp]
+    restart: "no"
+  worker:
+    build:
+      context: ../..
+      dockerfile: ops/phase_b_shadow/Dockerfile
+    depends_on: [redis]
+    secrets: [redis_password]
+    environment:
+      JASON_OS_ENV: staging
+      PHASE_B_REDIS_PASSWORD_FILE: /run/secrets/redis_password
+      PHASE_B_INPUT_DIR: /fixtures
+      PHASE_B_OUTPUT_DIR: /artifacts
+      PHASE_B_MODEL_DIR: /models
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      CUDA_VISIBLE_DEVICES: ""
+    volumes:
+      - type: bind
+        source: ${PHASE_B_FIXTURE_DIR:?}
+        target: /fixtures
+        read_only: true
+      - type: bind
+        source: /tmp/jason-os-phase-b-shadow/artifacts
+        target: /artifacts
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${PHASE_B_MODEL_DIR:?}
+        target: /models
+        read_only: true
+    networks: [phase_b_broker]
+    cpus: 1.0
+    mem_limit: 3g
+    pids_limit: 128
+    read_only: true
+    tmpfs:
+      - "/tmp:rw,size=256m"
+    restart: "no"
+networks:
+  phase_b_broker:
+    internal: true
+secrets:
+  redis_password:
+    file: ${PHASE_B_REDIS_PASSWORD_FILE:?}

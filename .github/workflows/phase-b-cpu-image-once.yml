@@ -1,0 +1,131 @@
+name: Phase B CPU Docker image feasibility (one-shot)
+# Feature-only, push-filtered ONE-TIME proof, with NO image push, weights or PDFs.
+on:
+  push:
+    branches:
+      - feature/phase-b-shadow-processing-mvp
+    paths:
+      - .github/workflows/phase-b-cpu-image-once.yml
+permissions:
+  contents: read
+jobs:
+  image-feasibility:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      DOCKER_BUILDKIT: "1"
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      PIP_NO_CACHE_DIR: "1"
+      IMAGE: jason-os-phase-b-cpu-candidate:preflight
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pull and record external Linux base
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker pull --quiet --platform linux/amd64 python:3.12-slim >/dev/null
+          docker image inspect python:3.12-slim --format '{{json .RepoDigests}}'
+          df -h .
+      - name: Build candidate CPU image, never upload or push
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker build --pull --platform linux/amd64 --progress=plain \
+            -f ops/phase_b_shadow/Dockerfile.cpu-candidate \
+            -t "$IMAGE" .
+          df -h .
+      - name: Network-isolated read-only import and CPU sanity probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/phase-b-image-evidence"
+          docker run --rm -i --network none --read-only \
+            --tmpfs /tmp:rw,size=256m --memory 3g --cpus 1 \
+            --pids-limit 128 --entrypoint python "$IMAGE" - \
+            > "$RUNNER_TEMP/phase-b-image-evidence/runtime-probe.json" <<'PY'
+          import importlib.metadata as md
+          import json
+          import os
+          import torch
+          import torchvision
+          import pymupdf
+          from docling.datamodel.pipeline_options import PdfPipelineOptions
+          from phase_b_shadow.docling_adapter import convert_pdf
+          from phase_b_shadow.runner import run_fixture
+          assert torch.version.cuda is None, "CUDA-enabled torch is prohibited"
+          assert torch.__version__.startswith("2.9.1+cpu"), "torch CPU pin changed"
+          assert torchvision.__version__.startswith("0.24.1+cpu"), "torchvision CPU pin changed"
+          assert not torch.cuda.is_available(), "GPU must be unavailable"
+          assert os.environ["HF_HUB_OFFLINE"] == "1"
+          assert os.environ["TRANSFORMERS_OFFLINE"] == "1"
+          assert os.geteuid() == 10001, "worker must be nonroot"
+          config = PdfPipelineOptions()
+          assert not config.enable_remote_services
+          assert not config.allow_external_plugins
+          names = ["torch", "torchvision", "docling", "docling-core", "docling-ibm-models", "docling-parse", "celery"]
+          print(json.dumps({
+            "status": "CPU_IMAGE_IMPORT_PROBE_PASS_NO_MODEL_INFERENCE",
+            "packages": {name: md.version(name) for name in names},
+            "torch_cuda_version": torch.version.cuda,
+            "gpu_available": torch.cuda.is_available(),
+            "worker_uid": os.geteuid(),
+            "model_files_present": False,
+            "actual_pdf_parsing_performed": False,
+            "database_connection_performed": False,
+          }, sort_keys=True))
+          PY
+          python -m json.tool "$RUNNER_TEMP/phase-b-image-evidence/runtime-probe.json" >/dev/null
+          cat "$RUNNER_TEMP/phase-b-image-evidence/runtime-probe.json"
+      - name: Save PUBLIC image metadata only, not image layers
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          import subprocess
+          from datetime import datetime, timezone
+          from pathlib import Path
+          image = os.environ["IMAGE"]
+          data = json.loads(subprocess.check_output(["docker", "image", "inspect", image], text=True))[0]
+          base = json.loads(subprocess.check_output(["docker", "image", "inspect", "python:3.12-slim"], text=True))[0]
+          path = Path(os.environ["RUNNER_TEMP"]) / "phase-b-image-evidence"
+          import_probe = json.loads((path / "runtime-probe.json").read_text(encoding="utf-8"))
+          def sha(path):
+              return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+          report = {
+              "status": "CPU_IMAGE_CANDIDATE_BUILD_AND_IMPORT_PASS_NOT_STAGING",
+              "built_at_utc": datetime.now(timezone.utc).isoformat(),
+              "image_id_local_config_sha256": data["Id"],
+              "image_size_bytes_uncompressed": data["Size"],
+              "base_image_repodigests": base.get("RepoDigests", []),
+              "base_image_local_id": base["Id"],
+              "dockerfile_sha256": sha("ops/phase_b_shadow/Dockerfile.cpu-candidate"),
+              "requirements_phase_b_sha256": sha("requirements-phase-b.txt"),
+              "requirements_base_sha256": sha("requirements.txt"),
+              "runner_os": os.environ.get("RUNNER_OS"),
+              "runtime_import_probe": import_probe,
+              "image_pushed_or_preserved": False,
+              "reproducible_locked_dependency_tree_verified": False,
+              "staging_runtime_performed": False,
+              "model_bundle_present": False,
+              "pdf_conversion_performed": False,
+          }
+          (path / "cpu-image-candidate.json").write_text(json.dumps(report, indent=2, sort_keys=True)+"\n", encoding="utf-8")
+          print("CPU_IMAGE_SUMMARY="+json.dumps({
+              "image_id": data["Id"], "image_bytes": data["Size"],
+              "base": base.get("RepoDigests", []),
+              "status": report["status"]
+          }, sort_keys=True))
+          PY
+          df -h .
+          docker system df
+      - name: Upload metadata JSON only (NO IMAGE, WHEELS, WEIGHTS OR PDFs)
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase-b-cpu-image-metadata-only
+          path: ${{ runner.temp }}/phase-b-image-evidence/*.json
+          if-no-files-found: error
+          retention-days: 3
