@@ -110,3 +110,85 @@ The GitHub Actions metadata ZIPs are ephemeral (three-day retention);
 durable non-sensitive evidence is this file, the PR discussion and Google
 Drive Knowledge Brain Development State. No original PDF text or model
 weights were committed.
+
+
+
+## 2026-11-05 — Pinned PDF visual inspection + dual-architecture model SHA audit
+
+**Status: EXPERIMENT OBSERVED / PRODUCTION & VPS STAGING STILL HOLD.**
+
+Reused an existing approved official APP149.pdf from connected Knowledge
+Brain Google Drive (Drive file ID
+`1D8e2EWeR9ocs8dXzQPjEtmrTc8HwOBPu`), downloaded complete raw
+25,520-byte PDF and independently recalculated SHA256
+`a5b4d5a1af5f4a32b43973db33d95436f9390e8e2da77747ee666015077bb1a8`.
+Thus the PDF rendered here was byte-for-byte the fixture in GitHub Actions.
+Rendered five pages at 140 dpi and inspected visual layout; no OCR needed.
+
+Observed by page (not a certified specialist gold annotation):
+- Page 1: official three-column page header and continuous narrative;
+  **no conventional numerical data table**. Four vector drawing paths.
+- Pages 2–3: prose; zero vector paths.
+- Page 4, Appendix A: fillable-looking paper form for change of authorized
+  signatory, two rows of three MW submission-number input groups, signature
+  lines and blank fields; 102 vector paths.
+- Page 5, Appendix B: related temporary AS notification form, two rows
+  of three boxed MW input groups, signature and personal-information
+  blank fields; 102 vector paths.
+- Therefore **three x86 TableItems are not evidence of correct data-table
+  extraction**. Page 1 may be page-header misclassification; pages 4–5
+  are forms with tabular-looking field boxes rather than demonstrated
+  business data tables. Conversely zero ARM TableItems is not proof
+  of form-layout preservation. Our original cross-architecture
+  table-count-only quality criterion was insufficient.
+
+**Independent model fingerprint test**: kept the original exact-SHA
+APP149 conversion with one extra **post-conversion, read-only**
+`~/.cache/docling/models` and `~/.cache/huggingface/hub` public-model
+cache hash inventory in the existing one-shot feature workflow.
+[Both native GitHub job runs #41886453033](https://github.com/KeiLee123/ai-knowledge/actions/runs/41886453033)
+COMPLETED SUCCESS on code head
+`ab7caa503cf6508a33be07710b7033265a3fc311`. The same-head
+[Validation #41886465245](https://github.com/KeiLee123/ai-knowledge/actions/runs/41886465245)
+also COMPLETED SUCCESS. Downloaded both metadata-only ZIP artifacts and
+independently compared every entry. Both environments reported ten
+model-related cache files under Hugging Face cache, total
+**529,890,792 bytes per platform**; **10 of 10 same relative paths,
+file sizes, model revisions and SHA256 hashes**. Compared cached assets
+include the Layout Heron model and TableFormer fast/accurate weights
+and configs; raw weights were *not* uploaded. The Docling cache
+directory contained no inventory matches on either run; that is
+consistent but cannot prove every installed-package resource or
+inference backend is byte-identical.
+
+Matched model-cache bytes **rule out a mismatch among these ten
+downloaded model assets as the cause** of observed `TableItem` output
+variation; they do **not** prove identical PyTorch/CPU kernels,
+transitive dependency implementations, postprocessing numerical
+behavior, or every model artifact outside these cache roots.
+x86 Torch 2.9.1+cpu and ARM PyPI Torch 2.9.1 differ by wheel/CPU
+architecture. Do not assert the *root cause* has been proven.
+
+As a confirmation of prior results, this model audit again returned
+`docling_conversion_status=success` on all five pages for both
+platforms, yet x86 `document.tables=3`, ARM `document.tables=0`
+with both marked `MECHANICAL_PILOT_PASS_LIMITED`. The report
+must not be used as a semantic quality certification.
+
+**Updated acceptance contract:** For APP149 and other official
+blank-forms/notice templates, replace any standalone "number of
+TableItems == expected" verdict with an independent form-layout
+evaluation: preserve six MW submission-number fields per appendix,
+field-label relationships, page addressability, and signature areas.
+Do not automatically mark either parser as superior without
+representative form-structure evaluation. Routine prose and structured
+forms may require different adapters/quality guards.
+Existing Document v2 remains the Beta path and all
+frozen/Production/DB/timer boundaries remain untouched.
+
+**Next** if Docling remains a future candidate: investigate the
+architecture-dependent model inference / postprocessing under controlled
+equal-model/equal-input conditions, and validate a form-field mapping
+against the rendered pages. This is an optional, narrowly scoped
+quality R&D gate, not a reason to install Celery/Redis/model vault
+or touch VPS now. PR #96 and PR #95 remain separate Drafts.
