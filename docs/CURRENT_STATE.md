@@ -73,3 +73,21 @@ PostgreSQL `trust` authentication and backup/restore remain separate
 release HOLDs. Read the Google Drive Migration Contract and Beta-First
 Product Contract for canonical decisions. Frozen Retrieval and M8/M9
 are unchanged.
+
+## 2026-11-05 — Phase B Off-VPS CPU Image Gate (GitHub-only, NOT VPS verified)
+
+[Draft PR #95](https://github.com/KeiLee123/ai-knowledge/pull/95)
+built a real CPU-only **candidate** Docker image outside the VPS:
+[GitHub Actions #41876179138](https://github.com/KeiLee123/ai-knowledge/actions/runs/41876179138)
+SUCCESS at commit `9f3aca8f4aa53241f55c94efee01786d917ed7e4`.
+Uncompressed local size 1,867,147,090 bytes, nonroot UID 10001,
+network-disabled read-only import PASS with 1 CPU / 3 GiB. Python
+Docling 2.146.0 + CPU Torch imports pass; no inference. The image
+was **not** pushed, retained, privately delivered or deployed. Existing
+Validation #41876196709 SUCCESS (25 Phase B offline test methods)
+at that same code commit. Prior immutable-source candidate model
+inventory: 20 files / 701,224,343 bytes, but **no private binary
+delivery/rehash**. Staging runtime, App149 provenance, Product Private
+Beta and DB trust-auth/backup restore remain HOLD. Frozen Retrieval,
+Production, DB and M8/M9 unchanged. Consult Issue #94 and the Phase B
+Model Supply Gate; do not infer any live VPS state.

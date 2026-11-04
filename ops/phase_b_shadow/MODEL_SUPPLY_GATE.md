@@ -1,10 +1,11 @@
 # Phase B model supply gate — offline preparation and acceptance v0.1
 
-**Status: OFF-VPS BYTES HASHED / CPU PYTHON WHEEL CHECK PASS (2026-11-05).
-Models were downloaded to an ephemeral GitHub Runner, not retained or delivered
-to Staging. No weights were published as GitHub artifacts; no CPU Docker image
-was built. VPS deployment, PostgreSQL, Production, Beat, and PR merge remain
-NOT AUTHORIZED.**
+**Status: OFF-VPS MODEL HASH + CPU-ONLY CANDIDATE IMAGE BUILD PASS (2026-11-05).
+The candidate image was built and import-tested in an isolated, ephemeral
+GitHub-hosted runner; it was NOT pushed, retained, deployed or used for
+Docling model inference. The 701 MB model bundle was hashed in a separate
+temporary run, NOT transferred to private storage. VPS deployment,
+PostgreSQL, Production, Beat and PR merge remain NOT AUTHORIZED.**
 
 This note is for a separately authorized preparation environment, followed by
 a second and independent authorization for a bounded Staging runtime test.
@@ -140,7 +141,8 @@ Once and only once the user separately approves the Staging runtime:
 | Immutable HF source revision / downloaded bytes | 3 SHA-pinned repositories fetched, 20 files / 701,224,343 bytes SHA-verified (candidate evidence) |
 | Model licensing / private transfer / Staging model mount | HOLD (metadata only; binaries not retained in a secure destination) |
 | CPU-only dependency install and pip check | PASS in temporary Linux runner (Torch 2.9.1+cpu and Docling 2.146.0) |
-| Actual CPU-only Docker image build, size and digest | HOLD (no image built) |
+| Temporary CPU-only Docker candidate build + networkless import | PASS: external run #41876179138, image 1,867,147,090 bytes, 1 CPU/3 GiB import probe |
+| Final reproducible image lock, private image delivery and Staging deployment | HOLD: candidate base/transitive deps not fully locked, image not retained or shipped |
 | Real Docling conversion + resources + provenance | NOT RUN |
 | Private Beta / Product Acceptance | NOT RUN |
 | PostgreSQL trust auth and backup restore for future Writer | HOLD |
@@ -384,3 +386,55 @@ into an isolated location, then re-run `model_inventory
 is allowed access. Do not choose a public GitHub Actions Artifact,
 unreviewed Google Drive folder or VPS location as an implicit
 destination. Actual transfer and authorization remain HOLD.
+
+## 11. Observed CPU-only candidate image evidence — 2026-11-05
+
+**Actual, not mocked:** [GitHub Actions #41876179138](https://github.com/KeiLee123/ai-knowledge/actions/runs/41876179138)
+completed **SUCCESS** on commit `9f3aca8f4aa53241f55c94efee01786d917ed7e4`.
+The existing [Validation #41876196709](https://github.com/KeiLee123/ai-knowledge/actions/runs/41876196709)
+also completed **SUCCESS** on the exact commit (25 Phase B offline test methods).
+
+The Linux x86_64 Docker build used
+`ops/phase_b_shadow/Dockerfile.cpu-candidate`, based on
+`python:3.12-slim`, with the explicit CPU PyTorch wheel index and
+`torch==2.9.1+cpu`, `torchvision==0.24.1+cpu`.
+`pip check` passed during actual image creation.
+
+**Local candidate image metrics (not Registry digest):**
+
+| Metric | Verified value |
+| --- | --- |
+| Uncompressed local Docker image size | 1,867,147,090 bytes (about 1.87 GB, 1.74 GiB) |
+| Local image config SHA256 | `sha256:f54688a839bcd3187559ca2b56d3668c7a41640ce3e972ac7118cbd1d4cc9dff` |
+| Base image RepoDigest observed | `python@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30` |
+| Candidate Dockerfile SHA256 | `640231e67f0dae13022117539e7cdccef8763587f4b1fea0c374000f2d7b7cc5` |
+| Image networkless/readonly import | PASS with `--network none --read-only --memory 3g --cpus 1` |
+| Nonroot worker UID | 10001 |
+| `torch.version.cuda` / `torch.cuda.is_available()` | null / false |
+| In-image Docling version | 2.146.0 |
+| In-image Celery version | 5.6.3 |
+| Model binary, APP149 input, actual Docling inference | NONE / NOT RUN |
+| Image pushed/retained for private delivery | NO |
+
+Public metadata-only evidence is in Action Artifact
+`phase-b-cpu-image-metadata-only` (artifact ID `13345839483`,
+retention 3 days). It contains `cpu-image-candidate.json` and
+`runtime-probe.json` but no model weights, Docker layers, PDF files or
+credentials.
+
+**This is a candidate-build and import PASS, not a reproducibly
+locked production image:** no complete transitive dependency hash lock,
+no immutable base digest hardcoded into the candidate Dockerfile,
+and no distribution/Registry digest because no image was pushed.
+The 3-GiB limit applies to an import-only test, not Layout/TableFormer
+inference, document conversion, peak RSS or CPU timing.
+
+**Next single gate:** explicitly approve a specific *private* long-term
+destination for the model weight bundle (including access controls,
+redistribution review and retention). Then in a separately authorized
+preparation environment, re-acquire immutable model bytes, make a
+private bundle, rehash after transfer, and prepare a reproducibly
+locked image distribution without touching the VPS.
+Only after that gate should the operator request a separate isolated
+Staging APP149 deployment/benchmark approval. Do not automatically
+promote this one-shot workflow into `staging` or `main`.
