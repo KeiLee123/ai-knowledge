@@ -368,6 +368,12 @@ jobs:
           set -euo pipefail
           python test_visual_retrieval_prompt_v2.py
 
+      - name: M11 automated quality probe offline test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_m11_automated_quality_probe_v1.py
+
       - name: SR-G review fallback regression test
         shell: bash
         run: |
