@@ -9,6 +9,7 @@ on:
       - feature/direct-docling-mvp-pilot
     paths:
       - .github/workflows/phase-b-direct-docling-once.yml
+      - ops/phase_b_direct_docling_pilot.py
 
 permissions:
   contents: read
