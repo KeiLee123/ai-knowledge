@@ -75,7 +75,14 @@ docker compose -f ops/phase_b_shadow/compose.yaml run --rm --no-deps worker \
 ```
 
 The artifact directory holds one manifest and result receipt named by the
-deterministic task ID. A duplicate task returns the previous receipt. An active
+deterministic task ID.
+The manifest is first written to a private candidate filename; the existing
+Router and Chunk Builder must both succeed and produce at least one grounded
+chunk before it is atomically published as `*.manifest.json`. Any failed
+chunk compatibility check yields HOLD without a published manifest. A hard
+worker kill still requires manual reconciliation of the preserved task lock;
+a successful shadow receipt is not a canonical DB/Drive approval.
+ A duplicate task returns the previous receipt. An active
 or crashed lock is held for manual reconciliation. Redis is a transient broker,
 not a durable job ledger; Celery may redeliver, so no exactly-once claim is made.
 No Beat service is defined. The Compose network is internal, no port is

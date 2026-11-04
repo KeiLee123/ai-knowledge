@@ -28,13 +28,16 @@ def run_fixture(fixture_id: str, expected_sha256: str, input_dir: Path,
                 parser_version: str | None = None) -> dict:
     if os.environ.get("JASON_OS_ENV") != "staging":
         raise ContractGap("shadow runner requires explicit staging identity")
-    if not input_dir.is_dir() or not output_dir.is_dir() or input_dir.resolve() == output_dir.resolve():
-        raise ContractGap("isolated input and output directories are required")
+    if (input_dir.is_symlink() or output_dir.is_symlink()
+            or not input_dir.is_dir() or not output_dir.is_dir()
+            or input_dir.resolve() == output_dir.resolve()):
+        raise ContractGap("isolated non-symlink input and output directories are required")
     fixture, source = load_fixture(input_dir / "catalog.json", fixture_id, input_dir)
     if expected_sha256 != fixture.sha256:
         raise ContractGap("task SHA256 differs from the allowlisted fixture")
     key = task_id(fixture)
     artifact = output_dir / f"{key}.manifest.json"
+    candidate = output_dir / f".{key}.candidate.json"
     receipt = output_dir / f"{key}.result.json"
     lock = output_dir / f"{key}.lock"
     if receipt.exists():
@@ -73,10 +76,15 @@ def run_fixture(fixture_id: str, expected_sha256: str, input_dir: Path,
         route = assess_manifest(manifest, allow_partial=False)
         if route["source"]["sha256"] != fixture.sha256:
             raise ContractGap("router source SHA256 mismatch")
-        _atomic_json(artifact, manifest)
-        chunks = build_output(artifact, manifest, target_chars=1800, overlap_chars=250)
+        # The chunk contract must pass before a manifest is published at
+        # its final, discoverable path. A failed build only leaves a HOLD receipt.
+        _atomic_json(candidate, manifest)
+        chunks = build_output(candidate, manifest, target_chars=1800, overlap_chars=250)
         if chunks["source_manifest"]["document_sha256"] != fixture.sha256:
             raise ContractGap("chunk builder source SHA256 mismatch")
+        if not chunks["chunks"]:
+            raise ContractGap("chunk builder produced no grounded chunks")
+        os.replace(candidate, artifact)
         result = {"task_id": key, "fixture_id": fixture_id, "source_sha256": fixture.sha256,
                   "status": "READY_SHADOW", "manifest": artifact.name,
                   "manifest_sha256": sha256_file(artifact), "model_version": fixture.model_version,
@@ -102,4 +110,9 @@ def run_fixture(fixture_id: str, expected_sha256: str, input_dir: Path,
         _atomic_json(receipt, result)
         return result
     finally:
+        # Python exceptions (including chunk/route failures) cannot leave an
+        # unpublished candidate behind. On SIGKILL the lock remains to HOLD
+        # the next run for manual reconciliation, as documented.
+        candidate.unlink(missing_ok=True)
+        candidate.with_suffix(candidate.suffix + ".tmp").unlink(missing_ok=True)
         lock.unlink(missing_ok=True)

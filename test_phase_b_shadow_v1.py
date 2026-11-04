@@ -205,6 +205,37 @@ class PhaseBShadowTests(unittest.TestCase):
                 run_fixture("app149_small", self.sha, self.input_dir, self.output_dir,
                             self.model_dir, fake_converter, "2.146.0")
 
+    def test_chunk_gate_failure_never_publishes_manifest(self):
+        from phase_b_shadow import runner
+        key = task_id(self.fixture())
+        for raised, expected in (
+            (ContractGap("chunk compatibility gap"), "AUTO_HOLD_CONTRACT_GAP"),
+            (RuntimeError("chunk crashed"), "AUTO_HOLD_RUNTIME_ERROR"),
+        ):
+            with self.subTest(reason=type(raised).__name__):
+                with patch.dict(os.environ, {"JASON_OS_ENV": "staging"}), \
+                        patch.object(runner, "build_output", side_effect=raised):
+                    result = run_fixture("app149_small", self.sha, self.input_dir,
+                                         self.output_dir, self.model_dir,
+                                         lambda *_: document(), "2.146.0")
+                self.assertEqual(result["status"], expected)
+                self.assertFalse(list(self.output_dir.glob("*.manifest.json")))
+                self.assertFalse(list(self.output_dir.glob(".*.candidate.json")))
+                self.assertFalse(list(self.output_dir.glob(".*.candidate.json.tmp")))
+                self.assertFalse(list(self.output_dir.glob("*.lock")))
+                # Each scenario starts with no receipt to test actual work, not
+                # the duplicate HOLD short-circuit.
+                (self.output_dir / f"{key}.result.json").unlink()
+
+    def test_shadow_output_directory_symlink_is_rejected(self):
+        redirect = Path(self.temp.name) / "redirect"
+        redirect.symlink_to(self.output_dir, target_is_directory=True)
+        with patch.dict(os.environ, {"JASON_OS_ENV": "staging"}):
+            with self.assertRaisesRegex(ContractGap, "non-symlink"):
+                run_fixture("app149_small", self.sha, self.input_dir,
+                            redirect, self.model_dir,
+                            lambda *_: self.fail("must not convert"), "2.146.0")
+
     def test_existing_lock_and_contract_gap_fail_closed(self):
         fixture = self.fixture()
         lock = self.output_dir / f"{task_id(fixture)}.lock"
