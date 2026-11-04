@@ -255,8 +255,8 @@ class PhaseBShadowTests(unittest.TestCase):
             if path.name.endswith(".result.json"):
                 raise OSError("test-only receipt disk error")
             return original_writer(path, data)
-        with patch.dict(os.environ, {"JASON_OS_ENV": "staging"}), \\
-                patch.object(runner, "_atomic_json", side_effect=fail_receipt):
+        with (patch.dict(os.environ, {"JASON_OS_ENV": "staging"}),
+              patch.object(runner, "_atomic_json", side_effect=fail_receipt)):
             with self.assertRaisesRegex(OSError, "receipt disk error"):
                 run_fixture("app149_small", self.sha, self.input_dir,
                             self.output_dir, self.model_dir,
