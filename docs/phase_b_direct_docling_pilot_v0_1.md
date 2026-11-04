@@ -39,3 +39,74 @@ Official sources:
 https://github.com/docling-project/docling
 https://docling-project.github.io/docling/usage/advanced_options/
 https://docling-project.github.io/docling/reference/pipeline_options/
+
+
+
+## 2026-11-05 — ARM64 direct-parser experiment: decision / HOLD
+
+Operator-provided VPS read-only preflight: 2 vCPU **aarch64** ARM64, Python
+3.12.3; 11 GiB RAM total, ~8.1 GiB available at that check, **no swap**,
+81 GiB free disk; Production checkout
+`daacbb4557e17790fdef18e492d5b83f4fcf7a23`, Staging checkout
+`3f1ac00590c8f6dc1e73cc581d4b1aa295498bcd`. Host capacity is a
+plausible first signal but does not establish Docker cgroup headroom,
+multi-service interference or real VPS parser behavior.
+
+Real native x86_64 and ARM64 GitHub Actions pipeline, both processing the
+**same** pinned 25,520-byte BD APP149 PDF with the same SHA256, completed
+mechanical PASS on exact feature HEAD
+`61133fcc12201cf0613032016f35fefb471e9c48`:
+https://github.com/KeiLee123/ai-knowledge/actions/runs/41883338734 .
+Same-head repo Validation also PASS:
+https://github.com/KeiLee123/ai-knowledge/actions/runs/41883328362 .
+
+Critical cross-architecture difference in metadata-only reports:
+
+| Field | x86_64 | ARM64 |
+|---|---:|---:|
+| Docling pages | 5/5 | 5/5 |
+| Page/provenance HOLD items | 0 | 0 |
+| Direct `doc.tables` count | **3** | **0** |
+| `TableItem` class count | **3** | **0** |
+| Earlier `item.label == table` count | **3** | **0** |
+| Non-table text characters in earlier paired run | 10,057 | 10,179 |
+| Peak Python process RSS in earlier paired run | ~1.822 GiB | ~1.646 GiB |
+| PyTorch version | 2.9.1+cpu (CPU index) | 2.9.1 (PyPI ARM64) |
+
+A targeted second **metadata-only** diagnostic inspected the actual Docling
+document table collection, item classes and labels (not merely the report
+counter) on both architectures:
+https://github.com/KeiLee123/ai-knowledge/actions/runs/41884246605 .
+Again both conversion status SUCCESS, both Docling 2.146.0,
+docling-core 2.106.0, docling-ibm-models 4.0.4. x86_64 returned 3 actual
+TableItems, ARM64 returned 0; therefore the discrepancy is **not** caused
+solely by a typo in the pilot's `table_count` condition. This does not
+establish which platform's table detection is correct; visually verified
+ground truth and model asset fingerprints were not collected.
+
+**Separate acceptance gates:**
+- Official Docling on ARM64, off-VPS, pinned PDF, bounded 5 pages:
+  **RUNTIME_MECHANICAL_PASS_LIMITED**.
+- Cross-architecture table content / layout equivalence:
+  **AUTO_HOLD / NOT VERIFIED**.
+- VPS Staging Docling install/inference, model integrity and 3-GiB
+  container headroom: **NOT VERIFIED**.
+- Existing ingestion/quality-gate compatibility, DB integration, official
+  edition currentness, semantic/numerical accuracy, Beta and Production:
+  **NOT VERIFIED / NO PROMOTION**.
+
+**Decision: Do not deploy or connect ARM64 Docling to Knowledge Brain
+ingestion on the present evidence.** Prefer the existing vetted document
+pipeline for Beta. Keep Docling as a *replaceable optional* parser candidate
+and PR #96 as Draft. PR #95 remains separate Draft. There is no need to add
+Celery, Redis, model vault or VPS setup to investigate this difference.
+If Docling is later resumed, the **one** justified quality gate is a
+bounded human-verified source-page table-layout comparison plus an
+x86/ARM model-file/version identity check; make that a prerequisite before
+any Staging parser adoption. CI green for mechanical conversion must never
+be construed as table quality PASS.
+
+The GitHub Actions metadata ZIPs are ephemeral (three-day retention);
+durable non-sensitive evidence is this file, the PR discussion and Google
+Drive Knowledge Brain Development State. No original PDF text or model
+weights were committed.
