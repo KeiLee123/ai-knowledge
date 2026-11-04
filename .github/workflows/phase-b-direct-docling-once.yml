@@ -127,11 +127,66 @@ jobs:
           print("DIRECT_DOCLING_REAL_PUBLIC_DOCUMENT_PASS_LIMITED")
           PY
 
+      - name: Record public model cache SHA256 inventory (no model bytes)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          from hashlib import sha256
+          import json
+          import os
+
+          # Only model caches from this short-lived, empty GitHub runner.
+          roots = [
+              ("docling", Path.home() / ".cache" / "docling" / "models"),
+              ("huggingface", Path(os.environ.get("HF_HOME", str(Path.home() / ".cache" / "huggingface"))) / "hub"),
+          ]
+          allowed = {".safetensors", ".onnx", ".pt", ".pth", ".bin", ".ckpt", ".json", ".yaml", ".yml"}
+          result = {"status": "MODEL_CACHE_INVENTORY_PASS", "files": [],
+                    "roots_seen": [], "hash_algorithm": "sha256", "model_files_only": True}
+          seen = set()
+          total_bytes = 0
+          for group, root in roots:
+              if not root.exists():
+                  continue
+              result["roots_seen"].append(group)
+              root_real = root.resolve()
+              for path in sorted(root.rglob("*")):
+                  if not path.is_file() or path.suffix.lower() not in allowed:
+                      continue
+                  if not path.resolve().is_relative_to(root_real):
+                      raise RuntimeError("model cache symlink escapes verified root")
+                  logical = group + "/" + path.relative_to(root).as_posix()
+                  if logical in seen:
+                      raise RuntimeError("duplicate logical model cache file")
+                  seen.add(logical)
+                  size = path.stat().st_size
+                  total_bytes += size
+                  if len(seen) > 256 or total_bytes > 4_000_000_000:
+                      raise RuntimeError("model cache inventory bound exceeded")
+                  digest = sha256()
+                  with path.open("rb") as stream:
+                      while chunk := stream.read(1024 * 1024):
+                          digest.update(chunk)
+                  result["files"].append({"path": logical, "bytes": size,
+                                          "sha256": digest.hexdigest()})
+          result["file_count"] = len(result["files"])
+          result["total_bytes"] = total_bytes
+          if not result["files"]:
+              raise RuntimeError("no cached Docling models detected: inventory incomplete")
+          output = Path("/tmp/phase-b-direct-docling-output/model-inventory.json")
+          output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          print("DOCLING_MODEL_INVENTORY_SHA256_PASS", result["file_count"], "files")
+          PY
+
       - name: Publish tiny metadata JSON only (no PDFs, text or weights)
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: phase-b-direct-docling-${{ matrix.arch }}-public-metadata-only
-          path: /tmp/phase-b-direct-docling-output/report.json
+          path: |
+            /tmp/phase-b-direct-docling-output/report.json
+            /tmp/phase-b-direct-docling-output/model-inventory.json
           if-no-files-found: ignore
           retention-days: 3
