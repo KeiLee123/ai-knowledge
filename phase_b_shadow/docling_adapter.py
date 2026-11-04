@@ -10,7 +10,7 @@ from pathlib import Path
 
 from extract_document_v2 import SCHEMA_VERSION, normalize_text
 from phase_b_shadow import CONFIG_VERSION
-from phase_b_shadow.contract import ContractGap, Fixture
+from phase_b_shadow.contract import ContractGap, Fixture, MAX_PDF_BYTES, MAX_PDF_PAGES
 
 TEXT_LABELS = {"text", "paragraph", "title", "section_header", "list_item", "caption", "footnote", "page_header", "page_footer", "code", "formula"}
 
@@ -172,7 +172,9 @@ def convert_pdf(source: Path, model_dir: Path):
                                  accelerator_options=AcceleratorOptions(num_threads=1, device=AcceleratorDevice.CPU))
     try:
         result = DocumentConverter(allowed_formats=[InputFormat.PDF],
-                                   format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=options)}).convert(source)
+                                   format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=options)}).convert(
+                                       source, max_num_pages=MAX_PDF_PAGES,
+                                       max_file_size=MAX_PDF_BYTES)
     except OSError:
         raise
     except Exception as exc:

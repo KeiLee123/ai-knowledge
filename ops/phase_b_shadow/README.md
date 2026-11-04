@@ -162,3 +162,11 @@ For the approved one-job trial, the operator should:
    Preserve incident evidence separately, then review an approved rollback.
 
 GitHub Unit/CI PASS is not a real Staging benchmark or Product Acceptance.
+
+The pinned Docling v2.146.0 `DocumentConverter.convert()` accepts
+`max_num_pages` and `max_file_size`. The adapter now passes the same
+10-page/5-MiB bounds enforced by the local SHA-pinned Fixture preflight,
+providing a second parser-side limit if the source changes before conversion.
+The API signature and status enum were reviewed against the v2.146.0
+repository source; the offline shim regression verifies call configuration,
+not real model behavior or CPU/RAM fit.

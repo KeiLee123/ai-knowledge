@@ -130,6 +130,63 @@ class PhaseBShadowTests(unittest.TestCase):
             build_manifest(doc, self.fixture(), self.pdf, "2.146.0", "test-model-v1")
 
 
+    def test_pinned_docling_converter_contract_applies_independent_pdf_bounds(self):
+        # Lightweight API shim tests the exact 2.146.0 convert() keyword contract
+        # without installing weights, invoking a model, or performing network I/O.
+        import sys
+        from types import ModuleType
+
+        captured = {}
+        def api_module(name, **attrs):
+            module = ModuleType(name)
+            for key, value in attrs.items():
+                setattr(module, key, value)
+            return module
+
+        class FakeConverter:
+            def __init__(self, **kwargs):
+                captured["constructor"] = kwargs
+
+            def convert(self, path, **kwargs):
+                captured["source"] = path
+                captured["bounds"] = kwargs
+                return NS(status=NS(value="success"), document="model-free-ok")
+
+        modules = {
+            "docling": api_module("docling"),
+            "docling.datamodel": api_module("docling.datamodel"),
+            "docling.datamodel.base_models": api_module(
+                "docling.datamodel.base_models", InputFormat=NS(PDF="pdf")
+            ),
+            "docling.datamodel.pipeline_options": api_module(
+                "docling.datamodel.pipeline_options", PdfPipelineOptions=lambda **kw: NS(**kw)
+            ),
+            "docling.datamodel.accelerator_options": api_module(
+                "docling.datamodel.accelerator_options",
+                AcceleratorOptions=lambda **kw: NS(**kw),
+                AcceleratorDevice=NS(CPU="cpu")
+            ),
+            "docling.document_converter": api_module(
+                "docling.document_converter", DocumentConverter=FakeConverter,
+                PdfFormatOption=lambda pipeline_options: NS(pipeline_options=pipeline_options)
+            )
+        }
+        from phase_b_shadow.docling_adapter import convert_pdf
+        from phase_b_shadow.contract import MAX_PDF_BYTES, MAX_PDF_PAGES
+        with patch.dict(sys.modules, modules):
+            self.assertEqual(convert_pdf(self.pdf, self.model_dir), "model-free-ok")
+        self.assertEqual(captured["source"], self.pdf)
+        self.assertEqual(captured["bounds"], {
+            "max_num_pages": MAX_PDF_PAGES, "max_file_size": MAX_PDF_BYTES
+        })
+        options = captured["constructor"]["format_options"]["pdf"].pipeline_options
+        self.assertFalse(options.do_ocr)
+        self.assertTrue(options.do_table_structure)
+        self.assertFalse(options.enable_remote_services)
+        self.assertFalse(options.allow_external_plugins)
+        self.assertEqual(options.artifacts_path, self.model_dir)
+        self.assertEqual(options.accelerator_options.device, "cpu")
+
     def test_source_pdf_page_loss_is_not_accepted(self):
         # A Docling result with page 1 only must not be accepted for a two-page PDF.
         self.pdf.unlink()

@@ -13,6 +13,7 @@ import yaml
 IDENTIFIER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 MAX_PDF_BYTES = 5 * 1024 * 1024
+MAX_PDF_PAGES = 10
 
 
 class ContractGap(ValueError):
@@ -73,8 +74,8 @@ def load_fixture(catalog: Path, fixture_id: str, input_dir: Path) -> tuple[Fixtu
     try:
         import pymupdf
         with pymupdf.open(path) as pdf:
-            if pdf.is_encrypted or not (1 <= len(pdf) <= 10):
-                raise ContractGap("PDF is encrypted or exceeds the 10-page preflight bound")
+            if pdf.is_encrypted or not (1 <= len(pdf) <= MAX_PDF_PAGES):
+                raise ContractGap(f"PDF is encrypted or exceeds the {MAX_PDF_PAGES}-page preflight bound")
     except ContractGap:
         raise
     except Exception as exc:
