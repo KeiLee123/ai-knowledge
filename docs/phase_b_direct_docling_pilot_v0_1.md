@@ -192,3 +192,60 @@ equal-model/equal-input conditions, and validate a form-field mapping
 against the rendered pages. This is an optional, narrowly scoped
 quality R&D gate, not a reason to install Celery/Redis/model vault
 or touch VPS now. PR #96 and PR #95 remain separate Drafts.
+
+
+## 2026-11-05 — APP149 Appendix A/B form-anchor pilot: bounded observation
+
+GitHub **code HEAD** `a58dbb122fd9de53bf0b7f8e2703d2576277b7a9` uses
+two additive read-only files:
+- `ops/phase_b_app149_form_probe.py`: PDF-native gold checks on pinned
+  Appendices A/B: exactly six printed "MW" anchors in two rows x three
+  columns, page-specific reference x/y coordinates (tolerance 1.5 PDF
+  points), three signature labels and at least 100 vector paths.
+  This checks the *paper form source*, not interpretation accuracy.
+- `ops/phase_b_direct_docling_pilot.py`: during existing official Docling
+  conversion, records per-page MW and signature text token counts,
+  candidate item bboxes and how many of the six known native anchor
+  points are inside MW-bearing item regions. It publishes **counts and
+  coverage only**; no document contents or model weights.
+
+Exact-code-head [dual-native real-public-PDF run #41891835929](https://github.com/KeiLee123/ai-knowledge/actions/runs/41891835929)
+**COMPLETED SUCCESS** in GitHub Actions x86_64 and ARM64.
+[Same-head Validation #41891845833](https://github.com/KeiLee123/ai-knowledge/actions/runs/41891845833)
+also **COMPLETED SUCCESS**. Downloaded and independently checked the
+sanitized JSON artifacts, x86 artifact #13353217991 and ARM artifact
+#13354336441 (ephemeral three-day retention), both reports showed
+`MECHANICAL_PILOT_PASS_LIMITED` plus separate
+`AUTO_HOLD_FORM_FIELD_RELATIONSHIPS_NOT_CERTIFIED`.
+
+| Per page | Source p4 / p5 | x86_64 p4 / p5 | ARM64 p4 / p5 |
+|---|---|---|---|
+| Printed MW anchors | 6 / 6 | — | — |
+| Native reference shape 2 x 3 | yes / yes | — | — |
+| MW tokens in Docling | — | 6 / 6 | 6 / 6 |
+| Printed MW positions covered by MW-bearing Docling element bboxes | — | 6 / 6 | 6 / 6 |
+| MW-bearing Docling **items** | — | 1 / 1 | 6 / 6 |
+| Signature labels | 3 / 3 | 3 / 3 | 3 / 3 |
+| `docling.document.tables` (whole PDF) | not a ground-truth data-table target | 3 | 0 |
+
+Nuance: **x86 groups the six MW anchors into a single element per page**
+(the earlier TableItem interpretation), whereas **ARM has six MW-bearing
+elements per page**. So raw TableItem count is not a suitable
+cross-platform quality KPI for these public paper forms. Identical
+source PDF, previously matched 10/10 cached model SHA256 files, and
+this new per-anchor evidence do **not** prove the exact reason for
+different layout grouping. Nor does rough item-box coverage prove
+the printed blank boxes remain individually addressable, signature
+roles are correctly associated, or all reading order is valid.
+
+**Acceptance decision**: pinned-source paper-layout reference
+`PASS`; both native official Docling 5-page conversion and public
+MW text-anchor/provenance-region coverage `PASS_LIMITED`; **both
+platforms' semantic form-field mapping `AUTO_HOLD_NOT_CERTIFIED`**.
+No requirement to make ARM return three TableItems. This probe is
+experimental and deliberately leaves the trusted Document v2 routing,
+VPS Staging, DB Writer, Frozen v1.3, Source Registry, M8/M9, Anki,
+Google Drive Current and Production unchanged. PR #96 remains Draft;
+PR #95 remains a separate Draft. The next decision is whether the Beta
+actually needs field-level form understanding; if not, do not spend
+additional engineering on this optional Docling R&D gate.
