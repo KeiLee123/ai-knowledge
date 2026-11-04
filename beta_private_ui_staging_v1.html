@@ -299,6 +299,9 @@
         askState.textContent = err.message;
         results.replaceChildren(element("div", "sectionlabel", "02 / 查詢結果"),
           element("p", "note", "本次查詢未完成，未產生可驗證證據。請檢查私人連線或 Staging 狀態。"));
+        document.getElementById("sourcePanel").replaceChildren(
+          element("div", "sectionlabel", "官方來源核對"),
+          element("p", "note", "本次查詢失敗，沒有可顯示的來源。"));
       } finally {
         button.disabled = false;
       }
