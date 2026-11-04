@@ -247,3 +247,34 @@ revisions from the actual preparation run, final local artifact path/size/
 SHA256 inventory, licensing and attribution review, verified canonical
 bundle digest and CPU-only image digest/package manifest. These must be
 recorded before anyone is authorized to start the Staging shadow worker.
+
+## 8. One-shot external model supply evidence (separately authorized 2026-11-05)
+
+A single `push`-triggered workflow on this Feature Branch is intentionally
+limited to **the workflow file itself** via `paths`, so routine PR changes
+will not repeat downloads. This is a GitHub-hosted, non-VPS environment,
+not `workflow_dispatch`, not a Production release, and not a new scheduler.
+
+`ops/phase_b_shadow/prepare_model_supply.py` obtains **actual bytes** from
+three immutable Hugging Face commits selected from the pinned Docling
+v2.146.0 downloader and calculates the existing canonical bundle digest.
+The extra Layout Heron ONNX repo is required by the downloader even though
+the default Layout engine is Transformers. TableFormer uses tag `v2.3.0`
+in the Docling source; the observed immutable commit behind that tag is
+`fc0f2d45e2218ea24bce5045f58a389aed16dc23`. This supersedes the
+earlier *candidate main-branch* TableFormer SHA
+`2199320848bb9a8a519d22e4b528185a4f9a6f64` for this v2.146.0
+preparation trial. Third ONNX commit:
+`40bde044036bb181c130ddf6c51792187268748f`.
+
+The workflow NEVER uploads model weights or PDFs. It uploads at most two
+short-lived publicly readable **metadata-only** artifacts (file SHA256
+inventory and CPU package versions, retention 3 days). It includes a
+separate bounded CPU-only PyTorch/Docling 2.146.0 dependency feasibility
+job; this is **not** a final Docker image or validated CPU/RAM runtime.
+
+**Approval boundary:** The operator has authorized this one-shot external
+download/CPU wheel feasibility run, NOT private delivery of weights, a new
+VPS container, offline Staging model mount, Database Writer, PR merge or
+Production. A failed remote download/build results in a documented HOLD,
+never a fallback to an unpinned model revision.
