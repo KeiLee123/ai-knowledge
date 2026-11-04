@@ -45,6 +45,7 @@ def parse(pdf: Path, source: dict) -> dict:
     from docling.datamodel.base_models import InputFormat
     from docling.datamodel.pipeline_options import PdfPipelineOptions
     from docling.document_converter import DocumentConverter, PdfFormatOption
+    from phase_b_app149_form_probe import form_reference, add_docling_item, finish
 
     options = PdfPipelineOptions(
         document_timeout=120, do_ocr=False, do_table_structure=True,
@@ -66,6 +67,7 @@ def parse(pdf: Path, source: dict) -> dict:
     per_page = {str(n): {"text_chars": 0, "table_count": 0, "item_count": 0}
                 for n in range(1, SOURCE_PAGES + 1)}
     ambiguous = 0
+    form_metrics = form_reference(pdf)
     labels = {}
     item_classes = {}
     table_collection_count = len(getattr(doc, "tables", []) or []) if doc is not None else 0
@@ -88,12 +90,17 @@ def parse(pdf: Path, source: dict) -> dict:
                 continue
             row = per_page[str(number)]
             row["item_count"] += 1
+            # APP149 SHA-pinned reference pages are A4 (842 PDF points high).
+            add_docling_item(form_metrics, number, item, provenance[0], 842.0)
             if item_label == "table":
                 row["table_count"] += 1
             else:
                 row["text_chars"] += len(getattr(item, "text", "") or "")
 
-    complete = (status == "success" and page_numbers == list(range(1, SOURCE_PAGES + 1))
+    form_probe = finish(form_metrics)
+    reference_ok = all(m["reference_source_form_pass"]
+                       for m in form_probe["by_page"].values())
+    complete = (reference_ok and status == "success" and page_numbers == list(range(1, SOURCE_PAGES + 1))
                 and ambiguous == 0 and all(v["text_chars"] > 0 for v in per_page.values()))
     return {
         "status": "MECHANICAL_PILOT_PASS_LIMITED" if complete else "AUTO_HOLD_INCOMPLETE_EVIDENCE",
@@ -103,6 +110,7 @@ def parse(pdf: Path, source: dict) -> dict:
         "docling_core_version": importlib.metadata.version("docling-core"),
         "docling_ibm_models_version": importlib.metadata.version("docling-ibm-models"),
         "docling_table_collection_count": table_collection_count,
+        "app149_form_layout_probe": form_probe,
         "docling_item_label_counts": labels,
         "docling_item_class_counts": item_classes,
         "processing_seconds": duration,
