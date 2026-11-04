@@ -40,7 +40,8 @@ jobs:
           python -m pip install --disable-pip-version-check \
             --index-url https://download.pytorch.org/whl/cpu \
             'torch==2.9.1+cpu' 'torchvision==0.24.1+cpu'
-          python -m pip install --disable-pip-version-check 'docling==2.146.0'
+          # Pilot preflight uses PyMuPDF to verify five physical PDF pages.
+          python -m pip install --disable-pip-version-check 'docling==2.146.0' 'PyMuPDF==1.28.2'
           python -m pip check
           python -m py_compile ops/phase_b_direct_docling_pilot.py
           python - <<'PY'
