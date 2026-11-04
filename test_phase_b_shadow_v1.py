@@ -236,6 +236,53 @@ class PhaseBShadowTests(unittest.TestCase):
                             redirect, self.model_dir,
                             lambda *_: self.fail("must not convert"), "2.146.0")
 
+    def test_unreceipted_manifest_holds_before_reprocessing(self):
+        key = task_id(self.fixture())
+        artifact = self.output_dir / f"{key}.manifest.json"
+        artifact.write_text("orphaned publication", encoding="utf-8")
+        with patch.dict(os.environ, {"JASON_OS_ENV": "staging"}):
+            with self.assertRaisesRegex(ContractGap, "orphan published manifest"):
+                run_fixture("app149_small", self.sha, self.input_dir,
+                            self.output_dir, self.model_dir,
+                            lambda *_: self.fail("orphan must never be reprocessed"), "2.146.0")
+        self.assertTrue(artifact.exists())
+
+    def test_failed_ready_receipt_keeps_lock_for_reconciliation(self):
+        from phase_b_shadow import runner
+        original_writer = runner._atomic_json
+        key = task_id(self.fixture())
+        def fail_receipt(path, data):
+            if path.name.endswith(".result.json"):
+                raise OSError("test-only receipt disk error")
+            return original_writer(path, data)
+        with patch.dict(os.environ, {"JASON_OS_ENV": "staging"}), \\
+                patch.object(runner, "_atomic_json", side_effect=fail_receipt):
+            with self.assertRaisesRegex(OSError, "receipt disk error"):
+                run_fixture("app149_small", self.sha, self.input_dir,
+                            self.output_dir, self.model_dir,
+                            lambda *_: document(), "2.146.0")
+        self.assertTrue((self.output_dir / f"{key}.manifest.json").exists())
+        self.assertTrue((self.output_dir / f"{key}.lock").exists())
+        self.assertFalse((self.output_dir / f"{key}.result.json").exists())
+        with patch.dict(os.environ, {"JASON_OS_ENV": "staging"}):
+            with self.assertRaisesRegex(ContractGap, "manual reconciliation"):
+                run_fixture("app149_small", self.sha, self.input_dir,
+                            self.output_dir, self.model_dir,
+                            lambda *_: self.fail("lock must prevent reprocessing"), "2.146.0")
+
+    def test_hold_receipt_cannot_certify_published_manifest(self):
+        key = task_id(self.fixture())
+        (self.output_dir / f"{key}.manifest.json").write_text("unreviewed", encoding="utf-8")
+        (self.output_dir / f"{key}.result.json").write_text(json.dumps({
+            "task_id": key, "source_sha256": self.sha,
+            "status": "AUTO_HOLD_CONTRACT_GAP", "reason": "synthetic"
+        }), encoding="utf-8")
+        with patch.dict(os.environ, {"JASON_OS_ENV": "staging"}):
+            with self.assertRaisesRegex(ContractGap, "HOLD receipt coexists"):
+                run_fixture("app149_small", self.sha, self.input_dir,
+                            self.output_dir, self.model_dir,
+                            lambda *_: self.fail("HOLD cannot be reused"), "2.146.0")
+
     def test_existing_lock_and_contract_gap_fail_closed(self):
         fixture = self.fixture()
         lock = self.output_dir / f"{task_id(fixture)}.lock"

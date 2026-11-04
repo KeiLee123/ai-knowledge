@@ -82,8 +82,13 @@ chunk before it is atomically published as `*.manifest.json`. Any failed
 chunk compatibility check yields HOLD without a published manifest. A hard
 worker kill still requires manual reconciliation of the preserved task lock;
 a successful shadow receipt is not a canonical DB/Drive approval.
- A duplicate task returns the previous receipt. An active
-or crashed lock is held for manual reconciliation. Redis is a transient broker,
+ A duplicate task returns the previous receipt only after rechecking the
+matching source/model identity and manifest hash. A published manifest without
+a valid READY receipt, a HOLD receipt coexisting with a published manifest, or
+a surviving task lock triggers manual reconciliation before any replay.
+If writing the READY receipt fails after publishing the manifest, the task
+lock is deliberately preserved instead of automatically retrying the parse.
+Redis is a transient broker,
 not a durable job ledger; Celery may redeliver, so no exactly-once claim is made.
 No Beat service is defined. The Compose network is internal, no port is
 published, and no DB or Docker socket is mounted.

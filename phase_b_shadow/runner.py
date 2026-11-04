@@ -40,23 +40,36 @@ def run_fixture(fixture_id: str, expected_sha256: str, input_dir: Path,
     candidate = output_dir / f".{key}.candidate.json"
     receipt = output_dir / f"{key}.result.json"
     lock = output_dir / f"{key}.lock"
+    candidate_temp = candidate.with_suffix(candidate.suffix + ".tmp")
+    if lock.exists():
+        raise ContractGap("task already active or crashed; manual reconciliation required")
+    if candidate.exists() or candidate_temp.exists():
+        raise ContractGap("unreconciled candidate manifest; manual reconciliation required")
     if receipt.exists():
+        if receipt.is_symlink():
+            raise ContractGap("existing receipt is redirected")
         previous = json.loads(receipt.read_text(encoding="utf-8"))
         if previous.get("task_id") != key or previous.get("source_sha256") != fixture.sha256:
             raise ContractGap("existing receipt identity mismatch")
-        # A redelivered successful task must not reuse an old receipt if the
-        # reviewed model artifacts have since changed or disappeared.
-        if previous.get("status") == "READY_SHADOW":
+        status = previous.get("status")
+        if status not in ("READY_SHADOW", "AUTO_HOLD_CONTRACT_GAP", "AUTO_HOLD_RUNTIME_ERROR"):
+            raise ContractGap("existing receipt has unknown status")
+        if status == "READY_SHADOW":
             verify_model_bundle(model_dir, fixture.model_bundle_sha256)
-        if previous.get("status") == "READY_SHADOW" and (
-            not artifact.is_file() or sha256_file(artifact) != previous.get("manifest_sha256")
-        ):
-            raise ContractGap("existing manifest is missing or changed")
+            if (artifact.is_symlink() or not artifact.is_file()
+                    or sha256_file(artifact) != previous.get("manifest_sha256")):
+                raise ContractGap("existing manifest is missing or changed")
+        elif artifact.exists() or artifact.is_symlink():
+            raise ContractGap("HOLD receipt coexists with a published manifest")
         return {**previous, "duplicate": True}
+    if artifact.exists() or artifact.is_symlink():
+        raise ContractGap("orphan published manifest without receipt; manual reconciliation required")
     try:
         descriptor = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
     except FileExistsError as exc:
         raise ContractGap("task already active or crashed; manual reconciliation required") from exc
+    manifest_published = False
+    ready_receipt_committed = False
     try:
         with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
             stream.write(key + "\n")
@@ -85,6 +98,7 @@ def run_fixture(fixture_id: str, expected_sha256: str, input_dir: Path,
         if not chunks["chunks"]:
             raise ContractGap("chunk builder produced no grounded chunks")
         os.replace(candidate, artifact)
+        manifest_published = True
         result = {"task_id": key, "fixture_id": fixture_id, "source_sha256": fixture.sha256,
                   "status": "READY_SHADOW", "manifest": artifact.name,
                   "manifest_sha256": sha256_file(artifact), "model_version": fixture.model_version,
@@ -94,6 +108,7 @@ def run_fixture(fixture_id: str, expected_sha256: str, input_dir: Path,
                   "chunk_count": len(chunks["chunks"]), "duplicate": False,
                   "database_write_performed": False}
         _atomic_json(receipt, result)
+        ready_receipt_committed = True
         return result
     except ContractGap as exc:
         result = {"task_id": key, "fixture_id": fixture_id, "source_sha256": fixture.sha256,
@@ -114,5 +129,9 @@ def run_fixture(fixture_id: str, expected_sha256: str, input_dir: Path,
         # unpublished candidate behind. On SIGKILL the lock remains to HOLD
         # the next run for manual reconciliation, as documented.
         candidate.unlink(missing_ok=True)
-        candidate.with_suffix(candidate.suffix + ".tmp").unlink(missing_ok=True)
-        lock.unlink(missing_ok=True)
+        candidate_temp.unlink(missing_ok=True)
+        # Keep the lock for manual reconciliation if a manifest was already
+        # published but its READY receipt could not be committed. Pre-publication
+        # transient I/O errors remain eligible for bounded Celery retries.
+        if not manifest_published or ready_receipt_committed:
+            lock.unlink(missing_ok=True)
