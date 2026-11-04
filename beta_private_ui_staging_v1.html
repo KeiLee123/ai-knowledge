@@ -195,7 +195,11 @@
 
     async function postJSON(path, data) {
       var token = document.getElementById("token").value.trim();
-      if (!token) throw new Error("請先輸入 Session Token。");
+      if (!token) {
+        document.getElementById("connectionSettings").open = true;
+        document.getElementById("token").focus();
+        throw new Error("請先在「私人連線設定」輸入 Session Token。");
+      }
       var response = await fetch(path, {
         method: "POST",
         cache: "no-store",
@@ -214,12 +218,15 @@
       results.replaceChildren(element("div", "sectionlabel", "02 / 查詢結果"));
       var refused = data.status === "CURRENTNESS_UNVERIFIED_ABSTAIN";
       var status = element("div", "status" + (refused ? " refused" : ""));
-      status.appendChild(element("strong", "", refused ? "來源現行適用性未確認 — 已拒答" : "已找到原始證據 — 待人工覆核"));
+      status.appendChild(element("strong", "", refused ? "現行法律適用性未核實 — 已拒答" : "已找到來源片段 — 尚未生成 AI 答案"));
       status.appendChild(element("p", "", data.message));
       results.appendChild(status);
 
       var coverage = data.coverage;
-      results.appendChild(element("p", "note", "已搜尋 " + data.sources.length + " 份核准文件；取回 " + coverage.retrieved_unique_chunks + " / " + coverage.indexed_chunks + " 個片段。完整性不代表法律效力或語義正確。"));
+      results.appendChild(element("p", "note", "已搜尋 " + data.sources.length + " 份核准文件；取回 " + coverage.retrieved_unique_chunks + " / " + coverage.indexed_chunks + " 個片段。所有片段列於下方，排名不代表可信度。"));
+      if (refused) results.appendChild(element("p", "note", "下列原文只供歷史資料核對，不能用於確認現行法例或法定期限。"));
+      var sourcePanel = document.getElementById("sourcePanel");
+      sourcePanel.replaceChildren(element("div", "sectionlabel", "官方來源核對"), element("h2", "", "本次搜尋的官方文件"));
       data.sources.forEach(function (source) {
         var doc = element("div", "docbox");
         doc.appendChild(element("div", "name", source.title));
@@ -230,9 +237,10 @@
         link.rel = "noopener noreferrer";
         doc.appendChild(link);
         doc.appendChild(element("p", "small", "本文件取回 " + source.coverage.retrieved_unique_chunks + " / " + source.coverage.indexed_chunks + " 個已索引片段"));
-        results.appendChild(doc);
+        doc.appendChild(element("p", "source-review", "官方來源已核對身份；現行適用性仍未獨立確認。"));
+        sourcePanel.appendChild(doc);
       });
-      results.appendChild(element("h2", "", "Evidence / 跨文件排序原文片段"));
+      results.appendChild(element("h2", "", "官方原文證據 · 全部 " + data.evidence.length + " 筆"));
 
       data.evidence.forEach(function (item) {
         var card = element("article", "evidence");
@@ -259,6 +267,14 @@
       document.getElementById("feedbackPanel").classList.add("show");
       document.getElementById("feedbackStatus").textContent = "";
     }
+
+    document.querySelectorAll("#quickExamples [data-example]").forEach(function(button) {
+      button.addEventListener("click", function() {
+        var field = document.getElementById("question");
+        field.value = button.getAttribute("data-example");
+        field.focus();
+      });
+    });
 
     askForm.addEventListener("submit", async function(event) {
       event.preventDefault();
