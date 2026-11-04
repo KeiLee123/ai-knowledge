@@ -1,6 +1,7 @@
 name: Phase B direct official Docling public APP149 pilot (one-shot)
 
-# Feature-only: when introduced, perform one real off-VPS parse.
+# Feature-only: native x86_64 / aarch64 off-VPS APP149 test matrix.
+# This is a one-shot experiment, not a deployment workflow.
 # No recurring schedule, main/staging deployment, secrets or model artifacts.
 on:
   push:
@@ -14,7 +15,21 @@ permissions:
 
 jobs:
   public-app149:
-    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+            torch_spec: "torch==2.9.1+cpu"
+            vision_spec: "torchvision==0.24.1+cpu"
+            wheel_index: "https://download.pytorch.org/whl/cpu"
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+            torch_spec: "torch==2.9.1"
+            vision_spec: "torchvision==0.24.1"
+            wheel_index: "https://pypi.org/simple"
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 35
     env:
       PIP_NO_CACHE_DIR: "1"
@@ -38,15 +53,17 @@ jobs:
         run: |
           set -euo pipefail
           python -m pip install --disable-pip-version-check \
-            --index-url https://download.pytorch.org/whl/cpu \
-            'torch==2.9.1+cpu' 'torchvision==0.24.1+cpu'
+            --index-url "${{ matrix.wheel_index }}" \
+            "${{ matrix.torch_spec }}" "${{ matrix.vision_spec }}"
           # Pilot preflight uses PyMuPDF to verify five physical PDF pages.
           python -m pip install --disable-pip-version-check 'docling==2.146.0' 'PyMuPDF==1.28.2'
           python -m pip check
           python -m py_compile ops/phase_b_direct_docling_pilot.py
           python - <<'PY'
           import torch
+          import platform
           import importlib.metadata as md
+          assert platform.machine() == "${{ matrix.arch }}", platform.machine()
           assert torch.version.cuda is None
           assert not torch.cuda.is_available()
           assert md.version("docling") == "2.146.0"
@@ -113,7 +130,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: phase-b-direct-docling-public-metadata-only
+          name: phase-b-direct-docling-${{ matrix.arch }}-public-metadata-only
           path: /tmp/phase-b-direct-docling-output/report.json
           if-no-files-found: ignore
           retention-days: 3
