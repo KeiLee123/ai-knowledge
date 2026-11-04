@@ -66,9 +66,18 @@ def parse(pdf: Path, source: dict) -> dict:
     per_page = {str(n): {"text_chars": 0, "table_count": 0, "item_count": 0}
                 for n in range(1, SOURCE_PAGES + 1)}
     ambiguous = 0
+    labels = {}
+    item_classes = {}
+    table_collection_count = len(getattr(doc, "tables", []) or []) if doc is not None else 0
     if doc is not None:
         for raw in doc.iterate_items():
             item = raw[0] if isinstance(raw, tuple) else raw
+            kind = type(item).__name__
+            item_classes[kind] = item_classes.get(kind, 0) + 1
+            item_label = getattr(getattr(item, "label", None), "value",
+                                 getattr(item, "label", None))
+            label_key = str(item_label)
+            labels[label_key] = labels.get(label_key, 0) + 1
             provenance = getattr(item, "prov", None)
             if not isinstance(provenance, list) or len(provenance) != 1:
                 ambiguous += 1
@@ -79,8 +88,7 @@ def parse(pdf: Path, source: dict) -> dict:
                 continue
             row = per_page[str(number)]
             row["item_count"] += 1
-            label = getattr(getattr(item, "label", None), "value", getattr(item, "label", None))
-            if label == "table":
+            if item_label == "table":
                 row["table_count"] += 1
             else:
                 row["text_chars"] += len(getattr(item, "text", "") or "")
@@ -91,6 +99,12 @@ def parse(pdf: Path, source: dict) -> dict:
         "status": "MECHANICAL_PILOT_PASS_LIMITED" if complete else "AUTO_HOLD_INCOMPLETE_EVIDENCE",
         "docling_conversion_status": status,
         "docling_version": importlib.metadata.version("docling"),
+        "torch_version": importlib.metadata.version("torch"),
+        "docling_core_version": importlib.metadata.version("docling-core"),
+        "docling_ibm_models_version": importlib.metadata.version("docling-ibm-models"),
+        "docling_table_collection_count": table_collection_count,
+        "docling_item_label_counts": labels,
+        "docling_item_class_counts": item_classes,
         "processing_seconds": duration,
         "peak_process_rss_kib_linux": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
         "docling_page_numbers": page_numbers,
