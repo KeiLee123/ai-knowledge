@@ -68,6 +68,16 @@
     .feedback { display:none }
     .feedback.show { display:block }
     .outcome { color:var(--teal); font-size:13px; margin-top:10px; white-space:pre-wrap }
+    .connection { padding:13px 14px; border:1px solid var(--line); border-radius:10px;
+      margin-bottom:18px; background:#f9fbfc }
+    .connection summary { color:var(--ink); font-size:13px; font-weight:700 }
+    .connection .field { margin:14px 0 0 }
+    .query-examples { display:flex; flex-wrap:wrap; gap:8px; margin-top:11px }
+    .example { border:1px solid var(--line); border-radius:9px; padding:7px 10px;
+      background:#f8fbfd; color:var(--blue); font:inherit; font-size:12px; cursor:pointer }
+    .example:hover,.example:focus-visible { border-color:var(--blue); background:#eff7fb }
+    .status { background:#f2f6f8; border-color:#cddce4 }
+    .source-review { font-size:12px; color:var(--mute); line-height:1.6 }
     .busy { font-size:13px; color:var(--blue); min-height:22px; margin-top:10px }
     footer { margin-top:25px; font-size:12px; color:var(--mute); line-height:1.7 }
     @media (max-width:820px) { .layout{grid-template-columns:1fr} .container{padding:24px 15px 40px}
@@ -81,43 +91,59 @@
     <div class="env">STAGING · LOCAL ONLY</div>
   </header>
   <div class="container">
-    <h1>Ask the evidence.</h1>
-    <p class="lead">香港建築專業知識庫 · 私人測試版。先核對官方文件，再決定下一步。這個版本只顯示原文證據，尚不產生 AI 解釋或法律意見。</p>
+    <h1>你想了解甚麼建築專業問題？</h1>
+    <p class="lead">直接提問，系統會在已核准的 APP145／APP149 尋找官方原文。此版本是證據檢索工具，不提供 AI 綜合答案，也不保證文件現行有效。</p>
     <div class="layout">
       <main>
         <section class="panel">
           <div class="sectionlabel">01 / 問題查詢</div>
           <form id="askForm">
             <div class="field">
-              <label for="token">私人 Session Token</label>
-              <input id="token" type="password" autocomplete="off" required placeholder="從 VPS 啟動畫面複製">
-              <p class="hint">只保存在本頁記憶體；不寫入網址、瀏覽器儲存或查詢紀錄。</p>
+              <label for="question">請直接輸入問題</label>
+              <textarea id="question" required minlength="5" maxlength="1200" placeholder="例如：臨時認可簽署人可以簽署監督計劃及指定表格嗎？"></textarea>
+              <p class="hint">可用中文或英文提問。排名只代表檢索排序，不是答案信心分數。</p>
+              <div class="query-examples" id="quickExamples" aria-label="範例問題">
+                <button type="button" class="example" data-example="根據 APP145 第9段，建築施工與消防裝置分別由哪個機關執法？">消防執法分工</button>
+                <button type="button" class="example" data-example="APP149 所述認可簽署人暫時缺席的通知及暫代條件是甚麼？">AS 暫時缺席</button>
+                <button type="button" class="example" data-example="截至目前，APP149 所述的法定期限是否仍然適用？">現行適用性（拒答示例）</button>
+              </div>
             </div>
-            <div class="field">
+            <details class="connection" id="connectionSettings">
+              <summary>私人連線設定 · 首次查詢需輸入 Token</summary>
+              <div class="field">
+                <label for="token">Session Token</label>
+                <input id="token" type="password" autocomplete="off" placeholder="從 VPS 啟動畫面複製">
+                <p class="hint">只保存在本頁記憶體；不寫入網址或瀏覽器儲存。請勿分享。</p>
+              </div>
+            </details>
+            <details class="field" id="sourceFilter">
+              <summary>進階選項：限制搜尋文件（不必選）</summary>
               <label for="source">官方文件範圍</label>
               <select id="source">
-                <option value="BD_PNAP_APP149">BD APP149 — Temporary Authorized Signatory</option>
-                <option value="BD_PNAP_APP145">BD APP145 — Fire Safety (Buildings) Ordinance</option>
+                <option value="AUTO_APPROVED" selected>自動搜尋所有已核准文件（APP145 + APP149）</option>
+                <option value="BD_PNAP_APP149">只搜尋 BD APP149</option>
+                <option value="BD_PNAP_APP145">只搜尋 BD APP145</option>
               </select>
-            </div>
-            <div class="field">
-              <label for="question">你的專業問題</label>
-              <textarea id="question" required minlength="5" maxlength="1200" placeholder="例如：臨時認可簽署人可以簽署監督計劃及指定表格嗎？"></textarea>
-            </div>
-            <button class="btn" id="askButton" type="submit">檢索官方證據</button>
+            </details>
+            <button class="btn" id="askButton" type="submit">搜尋官方證據</button>
             <div class="busy" id="askState" role="status" aria-live="polite"></div>
           </form>
         </section>
         <section class="panel" aria-live="polite" id="results">
           <div class="sectionlabel">02 / 查詢結果</div>
-          <p class="note">輸入問題後，這裡會顯示來源文件、可點擊的官方頁碼及完整證據片段。</p>
+          <p class="note">查詢結果會列出所有檢索片段，不隱藏低排名來源；右側提供官方 PDF 核對連結與版本狀態。</p>
         </section>
       </main>
       <aside>
+        <section class="panel" id="sourcePanel" aria-live="polite">
+          <div class="sectionlabel">官方來源核對</div>
+          <h2>官方原文與版本</h2>
+          <p class="note">查詢完成後，這裡會列出實際搜尋的文件及對應官方 PDF 連結。</p>
+        </section>
         <section class="panel">
-          <div class="sectionlabel">安全範圍</div>
+          <div class="sectionlabel">Beta 安全範圍</div>
           <h2>Evidence first</h2>
-          <p class="note">僅查詢已核准的 APP145／APP149；資料來自隔離的 Staging 索引。</p>
+          <p class="note">自動搜尋兩份已核准文件 APP145／APP149；尚未涵蓋建築署所有文件。資料來自隔離的 Staging 索引。</p>
           <div class="disclaimer">原文齊全 ≠ 法例現行有效。涉及「最新／現行／法定期限」而版本未驗證時，系統會明確拒答。</div>
           <div class="rule">
             <h3>此版會做</h3>
@@ -150,7 +176,7 @@
         </section>
       </aside>
     </div>
-    <footer>Jason OS · Private Beta v0.1 · SSH Tunnel + localhost only · No auto-deployment · Source validity and legal applicability require independent review.</footer>
+    <footer>Jason OS · Private Beta v0.2 · SSH Tunnel + localhost only · No auto-deployment · Source validity and legal applicability require independent review.</footer>
   </div>
   <script nonce="__NONCE__">
     "use strict";
@@ -169,7 +195,11 @@
 
     async function postJSON(path, data) {
       var token = document.getElementById("token").value.trim();
-      if (!token) throw new Error("請先輸入 Session Token。");
+      if (!token) {
+        document.getElementById("connectionSettings").open = true;
+        document.getElementById("token").focus();
+        throw new Error("請先在「私人連線設定」輸入 Session Token。");
+      }
       var response = await fetch(path, {
         method: "POST",
         cache: "no-store",
@@ -188,27 +218,34 @@
       results.replaceChildren(element("div", "sectionlabel", "02 / 查詢結果"));
       var refused = data.status === "CURRENTNESS_UNVERIFIED_ABSTAIN";
       var status = element("div", "status" + (refused ? " refused" : ""));
-      status.appendChild(element("strong", "", refused ? "來源現行適用性未確認 — 已拒答" : "已找到原始證據 — 待人工覆核"));
+      status.appendChild(element("strong", "", refused ? "現行法律適用性未核實 — 已拒答" : "已找到來源片段 — 尚未生成 AI 答案"));
       status.appendChild(element("p", "", data.message));
       results.appendChild(status);
 
-      var doc = element("div", "docbox");
-      doc.appendChild(element("div", "name", data.source.title));
-      doc.appendChild(element("p", "small", "來源：" + data.source.source_id + " · 版本適用性：" + data.source.revision_date));
-      var link = element("a", "", "開啟官方 PDF");
-      link.href = data.source.official_url;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      doc.appendChild(link);
       var coverage = data.coverage;
-      doc.appendChild(element("p", "small", "已取回 " + coverage.retrieved_unique_chunks + " / " + coverage.indexed_chunks + " 個已索引證據片段；完整性不代表法律效力或語義正確。"));
-      results.appendChild(doc);
-      results.appendChild(element("h2", "", "Evidence / 原文片段"));
+      results.appendChild(element("p", "note", "已搜尋 " + data.sources.length + " 份核准文件；取回 " + coverage.retrieved_unique_chunks + " / " + coverage.indexed_chunks + " 個片段。所有片段列於下方，排名不代表可信度。"));
+      if (refused) results.appendChild(element("p", "note", "下列原文只供歷史資料核對，不能用於確認現行法例或法定期限。"));
+      var sourcePanel = document.getElementById("sourcePanel");
+      sourcePanel.replaceChildren(element("div", "sectionlabel", "官方來源核對"), element("h2", "", "本次搜尋的官方文件"));
+      data.sources.forEach(function (source) {
+        var doc = element("div", "docbox");
+        doc.appendChild(element("div", "name", source.title));
+        doc.appendChild(element("p", "small", "來源：" + source.source_id + " · 版本適用性：" + source.revision_date));
+        var link = element("a", "", "開啟官方 PDF");
+        link.href = source.official_url;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        doc.appendChild(link);
+        doc.appendChild(element("p", "small", "本文件取回 " + source.coverage.retrieved_unique_chunks + " / " + source.coverage.indexed_chunks + " 個已索引片段"));
+        doc.appendChild(element("p", "source-review", "官方來源已核對身份；現行適用性仍未獨立確認。"));
+        sourcePanel.appendChild(doc);
+      });
+      results.appendChild(element("h2", "", "官方原文證據 · 全部 " + data.evidence.length + " 筆"));
 
       data.evidence.forEach(function (item) {
         var card = element("article", "evidence");
         var head = element("div", "evidence-head");
-        head.appendChild(element("h3", "", "[" + item.id + "] · PDF 第 " + item.page + " 頁"));
+        head.appendChild(element("h3", "", "[" + item.id + "] · " + item.source_id + " · PDF 第 " + item.page + " 頁"));
         var sourceLink = element("a", "", "核對原始頁面");
         sourceLink.href = item.source_url;
         sourceLink.target = "_blank";
@@ -231,6 +268,14 @@
       document.getElementById("feedbackStatus").textContent = "";
     }
 
+    document.querySelectorAll("#quickExamples [data-example]").forEach(function(button) {
+      button.addEventListener("click", function() {
+        var field = document.getElementById("question");
+        field.value = button.getAttribute("data-example");
+        field.focus();
+      });
+    });
+
     askForm.addEventListener("submit", async function(event) {
       event.preventDefault();
       var button = document.getElementById("askButton");
@@ -238,6 +283,11 @@
       askState.textContent = "正在核對 Staging 來源…";
       lastRequest = null;
       document.getElementById("feedbackPanel").classList.remove("show");
+      results.replaceChildren(element("div", "sectionlabel", "02 / 查詢結果"),
+        element("p", "note", "正在核對來源身分與索引完整性…"));
+      document.getElementById("sourcePanel").replaceChildren(
+        element("div", "sectionlabel", "官方來源核對"),
+        element("p", "note", "正在核對官方來源…"));
       try {
         var result = await postJSON("/api/ask", {
           source: document.getElementById("source").value,
@@ -247,6 +297,11 @@
         askState.textContent = "查詢完成。所有答案仍須人手核對。";
       } catch (err) {
         askState.textContent = err.message;
+        results.replaceChildren(element("div", "sectionlabel", "02 / 查詢結果"),
+          element("p", "note", "本次查詢未完成，未產生可驗證證據。請檢查私人連線或 Staging 狀態。"));
+        document.getElementById("sourcePanel").replaceChildren(
+          element("div", "sectionlabel", "官方來源核對"),
+          element("p", "note", "本次查詢失敗，沒有可顯示的來源。"));
       } finally {
         button.disabled = false;
       }
