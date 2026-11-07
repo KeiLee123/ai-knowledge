@@ -284,7 +284,7 @@ def test_question_first_evidence_panel_layout_security_and_ux():
     assert 'sourcePanel.appendChild(doc)' in html
     assert 'data.evidence.forEach(function (item)' in html
     assert '官方原文證據 · 全部 ' in html
-    assert '排名不代表可信度' in html
+    assert '取回數量及排名不代表答案正確性或證據充分性' in html
     assert '本次查詢未完成，未產生可驗證證據' in html
     assert 'CURRENTNESS_UNVERIFIED_ABSTAIN' in html
     assert '已取回候選來源片段 — 證據充分性未驗證' in html
