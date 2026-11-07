@@ -218,13 +218,14 @@
       results.replaceChildren(element("div", "sectionlabel", "02 / 查詢結果"));
       var refused = data.status === "CURRENTNESS_UNVERIFIED_ABSTAIN";
       var status = element("div", "status" + (refused ? " refused" : ""));
-      status.appendChild(element("strong", "", refused ? "現行法律適用性未核實 — 已拒答" : "已找到來源片段 — 尚未生成 AI 答案"));
+      status.appendChild(element("strong", "", refused ? "現行法律適用性未核實 — 已拒答" : "已取回候選來源片段 — 證據充分性未驗證"));
       status.appendChild(element("p", "", data.message));
       results.appendChild(status);
 
       var coverage = data.coverage;
-      results.appendChild(element("p", "note", "已搜尋 " + data.sources.length + " 份核准文件；取回 " + coverage.retrieved_unique_chunks + " / " + coverage.indexed_chunks + " 個片段。所有片段列於下方，排名不代表可信度。"));
+      results.appendChild(element("p", "note", "已搜尋 " + data.sources.length + " 份核准文件；取回 " + coverage.retrieved_unique_chunks + " / " + coverage.indexed_chunks + " 個片段。所有候選片段列於下方；取回數量及排名不代表答案正確性或證據充分性。"));
       if (refused) results.appendChild(element("p", "note", "下列原文只供歷史資料核對，不能用於確認現行法例或法定期限。"));
+      else results.appendChild(element("p", "note", "目前只搜尋核准的 APP145／APP149；相似片段可能與問題不直接相關。若缺少直接原文依據，請視為證據未足並核對其他官方文件。"));
       var sourcePanel = document.getElementById("sourcePanel");
       sourcePanel.replaceChildren(element("div", "sectionlabel", "官方來源核對"), element("h2", "", "本次搜尋的官方文件"));
       data.sources.forEach(function (source) {
