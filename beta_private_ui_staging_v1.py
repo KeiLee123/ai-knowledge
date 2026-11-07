@@ -116,8 +116,8 @@ def ask_evidence(data):
         "environment": "staging",
         "status": decision["status"] if decision else "EVIDENCE_ONLY_REVIEW_REQUIRED",
         "message": decision["answer"] if decision else (
-            "已找到已核准官方文件的原文證據，但尚未生成 AI 答案。"
-            "請逐項核對專業判斷、文件版本及適用性。"
+            "已從核准來源取回候選原文片段，尚未評估其是否足以回答問題。"
+            "請核對完整條文、其他可能相關的官方文件、版本及適用性。"
         ),
         "source": selected,  # request/feedback scope, including AUTO_APPROVED
         "sources": descriptions,  # actual approved documents, each with coverage
