@@ -149,6 +149,8 @@ def test_evidence_uses_existing_staging_and_currentness_guard():
                 assert status == 200, raw
                 response = json.loads(raw)
                 assert response["status"] == expected
+                if expected == "EVIDENCE_ONLY_REVIEW_REQUIRED":
+                    assert "尚未評估其是否足以回答問題" in response["message"]
                 assert response["ai_answer_generated"] is False
                 assert response["production_write"] is False
                 assert response["coverage"]["complete_index_coverage"] is True
@@ -253,6 +255,24 @@ def test_auto_currentness_refusal_and_fail_closed_missing_source():
     with_local_server(run)
 
 
+def test_out_of_scope_query_is_not_misrepresented_as_verified():
+    """Q19b is still evidence-only; do not claim P1 sufficiency detection."""
+    question = "消防處消防設施的設計規範包括哪些具體技術要求？"
+    def run(port, feedback_path):
+        with patch.object(ui.qa, "build_packet",
+                          side_effect=lambda sid, q: auto_packet(sid, q, 0.3)):
+            status, _, raw = http_request(port, "POST", "/api/ask",
+                                          {"question": question})
+        assert status == 200, raw
+        result = json.loads(raw)
+        assert result["status"] == "EVIDENCE_ONLY_REVIEW_REQUIRED"
+        assert "尚未評估其是否足以回答問題" in result["message"]
+        assert result["coverage"]["retrieved_unique_chunks"] == 16
+        assert result["ai_answer_generated"] is False
+        assert not feedback_path.exists()
+    with_local_server(run)
+
+
 def test_question_first_evidence_panel_layout_security_and_ux():
     """Guard actual UI flow, not a duplicate backend parser/retrieval suite."""
     html = ui.PAGE_PATH.read_text(encoding="utf-8")
@@ -267,7 +287,9 @@ def test_question_first_evidence_panel_layout_security_and_ux():
     assert '排名不代表可信度' in html
     assert '本次查詢未完成，未產生可驗證證據' in html
     assert 'CURRENTNESS_UNVERIFIED_ABSTAIN' in html
-    assert '已找到來源片段 — 尚未生成 AI 答案' in html
+    assert '已取回候選來源片段 — 證據充分性未驗證' in html
+    assert '相似片段可能與問題不直接相關' in html
+    assert '已找到來源片段 — 尚未生成 AI 答案' not in html
     # Authentication stays token-in-memory / local browser only.
     assert 'id="token" type="password"' in html
     assert 'document.getElementById("connectionSettings").open = true' in html
