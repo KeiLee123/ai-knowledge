@@ -237,13 +237,9 @@ jobs:
           import json, sys
           from pathlib import Path
           raw = Path(sys.argv[1]).read_text(encoding="utf-8")
-          start = raw.find("{")
-          assert start >= 0, "report_json_missing"
-          d, end_offset = json.JSONDecoder().raw_decode(raw[start:])
-          assert not raw[start + end_offset:].strip(), "report_json_trailing_data"
-          # Some PDF extractors can emit a diagnostic before the JSON.
-          # Never reproduce that output in the public CI log.
-          print("non_json_prefix_bytes:", len(raw[:start].encode("utf-8")))
+          # Strict machine-readable contract: no prefix scanning or repair.
+          d = json.loads(raw)
+          print("M11_REAL_APP149_STRICT_JSON_STDOUT: PASS")
           assert d["source_id"] == "BD_PNAP_APP149"
           assert d["document"]["physical_pages"] == 5
           assert d["evidence_verifier"]["case_count"] == 5
