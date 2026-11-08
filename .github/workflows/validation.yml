@@ -191,6 +191,8 @@ jobs:
                            "include_retrieval=True", "M11_PR101_STAGING_WORKTREE: CLEAN",
                            "http://127.0.0.1:8088/embed"):
               assert required in text, required
+          inline_python = text.split("<<'PY'\n", 1)[1].rsplit("\nPY", 1)[0]
+          compile(inline_python, "m11_vps_acceptance_inline.py", "exec")
           print("M11_VPS_RUNNER_STATIC_CONTRACT: PASS")
           PY
 
