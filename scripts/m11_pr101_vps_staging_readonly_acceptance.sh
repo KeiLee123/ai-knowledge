@@ -13,7 +13,8 @@ SHA_MODULE_BLOB="a1f6297650427cce363a4c764f93fdafbcd404fb"
 DOC_URL="https://www.bd.gov.hk/doc/en/resources/codes-and-references/practice-notes-and-circular-letters/pnap/APP/APP149.pdf"
 
 test "$EXPECTED_PR_HEAD" != "" && [[ "$EXPECTED_PR_HEAD" =~ ^[a-f0-9]{40}$ ]]
-test -d "$ROOT/.git"
+# Accept both a normal checkout (.git directory) and a linked Git worktree (.git file).
+test "$(git -C "$ROOT" rev-parse --is-inside-work-tree)" = "true"
 test -x "$ROOT/.venv/bin/python"
 test "$(git -C "$ROOT" branch --show-current)" = "staging"
 test "$(git -C "$ROOT" rev-parse HEAD)" = "$BASE"
