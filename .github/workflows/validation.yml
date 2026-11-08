@@ -173,6 +173,12 @@ jobs:
           set -euo pipefail
           python test_beta_private_ui_staging_v1.py
 
+      - name: M11 automated quality probe isolated no-human-Gold safety contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_m11_automated_quality_probe_v1.py
+
       - name: Hermes Staging evidence JSON contract and refusal test
         shell: bash
         run: |
