@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Offline, synthetic-only M11 automation contract tests; no real official PDF."""
+import contextlib
 import hashlib
+import io
 import json
 import tempfile
 from pathlib import Path
@@ -166,6 +168,35 @@ def test_pinned_file_guard_and_end_to_end_with_synthetic_mocks():
             link = Path(tmp) / "link.pdf"
             link.symlink_to(path)
             refused(lambda: m11.build_report(link))
+
+
+def test_cli_strict_json_stdout_when_extractor_is_noisy():
+    # Use the CLI path (not just build_report) and reproduce a PDF diagnostic.
+    stdout = io.StringIO()
+    stderr = io.StringIO()
+
+    def noisy_report(path, *, include_retrieval=False):
+        print("SYNTHETIC_PDF_DIAGNOSTIC")
+        assert path == "synthetic.pdf"
+        assert include_retrieval is False
+        return {
+            "version": m11.VERSION,
+            "answer_correctness_accuracy": "UNKNOWN_NOT_MEASURED",
+            "external_ai_called": False,
+        }
+
+    with patch.object(m11, "build_report", side_effect=noisy_report), \
+         patch("sys.argv", ["m11", "--pdf", "synthetic.pdf"]), \
+         contextlib.redirect_stdout(stdout), \
+         contextlib.redirect_stderr(stderr):
+        m11.main()
+
+    parsed = json.loads(stdout.getvalue())
+    assert parsed["version"] == m11.VERSION
+    assert parsed["answer_correctness_accuracy"] == "UNKNOWN_NOT_MEASURED"
+    assert parsed["external_ai_called"] is False
+    assert "SYNTHETIC_PDF_DIAGNOSTIC" not in stdout.getvalue()
+    assert "SYNTHETIC_PDF_DIAGNOSTIC" in stderr.getvalue()
 
 
 def test_no_provider_or_db_write_path_in_probe():
