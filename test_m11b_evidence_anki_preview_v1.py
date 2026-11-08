@@ -94,7 +94,9 @@ def test_one_low_risk_historical_preview_uses_existing_anki_schema():
     assert result["external_ai_called"] is False
     assert result["anki_package_created"] is False
     manifest = result["manifest"]
-    assert manifest["schema_version"] == "anki-card-manifest-v1"
+    assert manifest["schema_version"] == "anki-card-preview-v1"
+    assert manifest["exportable"] is False
+    assert manifest["release_authorized"] is False
     assert manifest["generation"]["generated_card_count"] == 1
     assert manifest["generation"]["model_call_performed"] is False
     assert manifest["generation"]["literal_source_preview_only"] is True
@@ -183,19 +185,62 @@ def test_cli_strict_stdout_with_noisy_underlying_module():
     assert "SYNTHETIC_PDF_DIAGNOSTIC" not in stdout.getvalue()
 
 
-def test_existing_exporter_creates_disposable_test_apkg_only():
+def test_test_only_preview_rejected_by_existing_exporter():
     import export_anki_package_v1 as exporter
 
     payload = accepted()["manifest"]
-    assert len(payload["cards"]) == 1
+    assert payload["schema_version"] != exporter.SUPPORTED_SCHEMA
     with tempfile.TemporaryDirectory() as temp:
         root = Path(temp)
         manifest = root / "preview.json"
-        apkg = root / "historical-APP149-TEST.apkg"
+        apkg = root / "UNAUTHORIZED.apkg"
+        manifest.write_text(json.dumps(payload, ensure_ascii=False),
+                            encoding="utf-8")
+        try:
+            exporter.load_manifest(manifest)
+        except RuntimeError as exc:
+            assert "Unsupported manifest schema" in str(exc)
+        else:
+            raise AssertionError("TEST-only preview accepted by exporter")
+
+        with patch("sys.argv", ["existing-exporter", str(manifest),
+                                "--output", str(apkg)]), \\
+             contextlib.redirect_stdout(io.StringIO()):
+            try:
+                exporter.main()
+            except SystemExit as exc:
+                assert "Unsupported manifest schema" in str(exc)
+            else:
+                raise AssertionError("TEST-only preview was exported")
+        assert not apkg.exists()
+
+
+def test_existing_exporter_disposable_synthetic_export_fixture_only():
+    """Export runs ONLY after an explicit transformation inside this CI test.
+
+    This is a synthetic test fixture, not a product converter or a release path.
+    The M11B feature module itself must never perform this transformation.
+    """
+    import export_anki_package_v1 as exporter
+
+    payload = copy.deepcopy(accepted()["manifest"])
+    assert payload["schema_version"] == "anki-card-preview-v1"
+    payload["schema_version"] = exporter.SUPPORTED_SCHEMA
+    payload.pop("exportable")
+    payload.pop("release_authorized")
+    payload["deck"]["name"] = "CI ONLY :: synthetic Anki exporter fixture"
+    payload["generation"]["literal_source_preview_only"] = False
+    for card in payload["cards"]:
+        card.pop("quality")
+        card["tags"] = ["synthetic", "ci_only"]
+    with tempfile.TemporaryDirectory() as temp:
+        root = Path(temp)
+        manifest = root / "synthetic-exportable-fixture.json"
+        apkg = root / "synthetic-ci-fixture.apkg"
         manifest.write_text(json.dumps(payload, ensure_ascii=False),
                             encoding="utf-8")
         with patch("sys.argv", ["existing-exporter", str(manifest),
-                                 "--output", str(apkg)]), \
+                                "--output", str(apkg)]), \\
              contextlib.redirect_stdout(io.StringIO()):
             exporter.main()
         assert apkg.is_file()
