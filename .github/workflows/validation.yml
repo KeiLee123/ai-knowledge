@@ -179,6 +179,21 @@ jobs:
           set -euo pipefail
           python test_m11_automated_quality_probe_v1.py
 
+      - name: M11 VPS read-only acceptance runner syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n scripts/m11_pr101_vps_staging_readonly_acceptance.sh
+          python - <<'PY'
+          from pathlib import Path
+          text = Path("scripts/m11_pr101_vps_staging_readonly_acceptance.sh").read_text()
+          for required in ("EXPECTED_PR_HEAD", "m11_automated_quality_probe_v1.py",
+                           "include_retrieval=True", "M11_PR101_STAGING_WORKTREE: CLEAN",
+                           "http://127.0.0.1:8088/embed"):
+              assert required in text, required
+          print("M11_VPS_RUNNER_STATIC_CONTRACT: PASS")
+          PY
+
       - name: M11 real pinned APP149 read-only report (PR 101 only)
         if: github.event_name == 'pull_request' && github.event.pull_request.number == 101
         shell: bash
