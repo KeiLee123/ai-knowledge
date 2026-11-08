@@ -145,7 +145,8 @@ def build_preview_from_verified_packet(packet, silver):
         return hold("QUOTE_REPEATED_ACROSS_CHUNKS")
 
     locator = {
-        "document_id": PINNED_SOURCE_ID,
+        # Source ID is NOT the database documents.id; do not fabricate one.
+        "document_id": None,
         "document_title": source.get("title") or "APP149",
         "document_checksum": PINNED_PDF_SHA256,
         "chunk_id": match["chunk_id"],
