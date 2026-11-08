@@ -193,6 +193,27 @@ jobs:
               assert required in text, required
           inline_python = text.split("<<'PY'\n", 1)[1].rsplit("\nPY", 1)[0]
           compile(inline_python, "m11_vps_acceptance_inline.py", "exec")
+          import os
+          import subprocess
+          import tempfile
+          guard = 'test "$(git -C "$ROOT" rev-parse --is-inside-work-tree)" = "true"'
+          assert guard in text, "missing_worktree_compatible_guard"
+          assert 'test -d "$ROOT/.git"' not in text, "obsolete_git_directory_guard"
+          with tempfile.TemporaryDirectory() as temp:
+              source = Path(temp) / "regular"
+              linked = Path(temp) / "linked"
+              subprocess.run(["git", "init", "-q", str(source)], check=True)
+              subprocess.run(["git", "-C", str(source), "-c", "user.name=M11CI",
+                              "-c", "user.email=m11ci@example.invalid", "commit",
+                              "--allow-empty", "-qm", "fixture"], check=True)
+              subprocess.run(["git", "-C", str(source), "worktree", "add",
+                              "--detach", "-q", str(linked)], check=True)
+              assert (source / ".git").is_dir()
+              assert (linked / ".git").is_file()
+              for root in (source, linked):
+                  env = dict(os.environ, ROOT=str(root))
+                  subprocess.run(["bash", "-c", guard], check=True, env=env)
+          print("M11_VPS_WORKTREE_REGRESSION: PASS")
           print("M11_VPS_RUNNER_STATIC_CONTRACT: PASS")
           PY
 
