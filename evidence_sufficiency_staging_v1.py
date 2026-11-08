@@ -37,7 +37,8 @@ def _sha_map(sources):
         if not isinstance(item, dict):
             return None
         sid, sha = item.get("source_id"), item.get("sha256")
-        if sid not in SOURCES or not isinstance(sha, str) or not _SHA.fullmatch(sha):
+        if (not isinstance(sid, str) or sid not in SOURCES
+                or not isinstance(sha, str) or not _SHA.fullmatch(sha)):
             return None
         if sid in actual:
             return None
