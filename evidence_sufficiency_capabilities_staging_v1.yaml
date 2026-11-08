@@ -1,0 +1,12 @@
+# Private Beta P1 SOURCE CAPABILITY REVIEW only; this is NOT approved Gold.
+# No running service imports this file. Feature activation is BLOCKED until
+# a qualified reviewer independently signs off pinned corpus + exact cases.
+schema_version: source-capability-review-v0.1
+review_status: PENDING
+review_id: null
+reviewer_qualification: null
+reviewed_at: null
+source_sha256:
+  BD_PNAP_APP145: dc3262cc55c5fd79d29f337fd811cdd871543f59d795972d9f30f558e313127c
+  BD_PNAP_APP149: a5b4d5a1af5f4a32b43973db33d95436f9390e8e2da77747ee666015077bb1a8
+negative_cases: []
