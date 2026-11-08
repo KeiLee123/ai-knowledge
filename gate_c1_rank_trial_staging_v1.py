@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Operator-only live STAGING comparison, after separate GitHub merge/sync.
+"""Operator-only read-only STAGING comparison from isolated review checkout.
 
-Does not deploy, change the UI, write DB/files, generate answers, or log text.
-Original and two candidate rankings are compared against DRAFT anchors ONLY.
+The CLI can be run BEFORE a staging merge from an exact pinned feature clone,
+while checking the untouched /opt/ai-knowledge-staging baseline independently.
+No deployment, UI integration, DB/files writes, AI generation or text logs.
+Original and candidate presentation ranks use DRAFT (non-Gold) anchors ONLY.
 """
 import os
 

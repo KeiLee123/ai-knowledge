@@ -125,6 +125,42 @@ def test_no_nonlocal_side_effects_or_quality_claims():
     assert "ai_answer_generated" not in result
 
 
+
+def test_wrong_first_source_can_regress_under_source_cohesion():
+    """Known failure mode: first-ranked source is NOT certified correct."""
+    sample = [
+        row(1, APP149, 125, 5, "Appendix B"),
+        row(2, APP145, 115, 3, "Enforcement authorities"),
+        row(3, APP149, 123, 3, "Temporary absence"),
+        row(4, APP145, 116, 3, "Difficulties"),
+    ]
+    q = "兩個執法機關如何分工？"
+    old = experiment.propose_order(q, sample, "original")
+    proposal = experiment.propose_order(q, sample, "source_cohesion")
+    assert experiment.candidate_anchor_rank(old, APP145, (115,)) == 2
+    assert experiment.candidate_anchor_rank(proposal, APP145, (115,)) == 3
+    assert [x["evidence_id"] for x in proposal["candidates"]] == [
+        "S1", "S3", "S2", "S4"
+    ]
+
+
+def test_form_kind_confusion_is_not_marked_as_semantic_success():
+    """A generic form heuristic cannot tell Appendix A from Appendix B."""
+    evidence = as_fixture()
+    change = experiment.propose_order(
+        "更換 AS 需要哪份通知表格？",
+        evidence, "source_cohesion_form_aware")
+    temporary = experiment.propose_order(
+        "臨時委任 AS 的通知表格在哪裡？",
+        evidence, "source_cohesion_form_aware")
+    assert change["form_request_detected"]
+    assert temporary["form_request_detected"]
+    # Form class is promoted, NOT specific legal form intent.
+    assert experiment.candidate_anchor_rank(change, APP149, (124,)) == 3
+    assert experiment.candidate_anchor_rank(temporary, APP149, (125,)) == 1
+    assert change["scope"] == "OFFLINE_STAGING_EXPERIMENT_ONLY"
+
+
 def main():
     tests = (
         test_original_is_unchanged_and_no_text_emitted,
@@ -132,6 +168,8 @@ def main():
         test_structural_probe_is_context_dependent_not_appendix_ban,
         test_bad_inputs_fail_closed,
         test_no_nonlocal_side_effects_or_quality_claims,
+        test_wrong_first_source_can_regress_under_source_cohesion,
+        test_form_kind_confusion_is_not_marked_as_semantic_success,
     )
     for test in tests:
         test()
