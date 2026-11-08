@@ -179,6 +179,12 @@ jobs:
           set -euo pipefail
           python test_m11_automated_quality_probe_v1.py
 
+      - name: M11B source-grounded historical TEST-only Anki preview offline contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_m11b_evidence_anki_preview_v1.py
+
       - name: Hermes Staging evidence JSON contract and refusal test
         shell: bash
         run: |
