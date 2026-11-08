@@ -102,6 +102,7 @@ def test_one_low_risk_historical_preview_uses_existing_anki_schema():
     assert card["answer"] == "authorized signatory"
     assert "2010-12" in card["question"]
     assert card["source"]["chunk_ids"] == [101]
+    assert card["source"]["document_id"] is None  # DB ID is not supplied
     assert card["source"]["page_start"] == 1
     assert card["source"]["document_checksum"] == b.PINNED_PDF_SHA256
     assert card["quality"]["release_authorized"] is False
