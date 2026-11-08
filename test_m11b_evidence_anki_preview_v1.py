@@ -204,7 +204,7 @@ def test_test_only_preview_rejected_by_existing_exporter():
             raise AssertionError("TEST-only preview accepted by exporter")
 
         with patch("sys.argv", ["existing-exporter", str(manifest),
-                                "--output", str(apkg)]), \\
+                                "--output", str(apkg)]), \
              contextlib.redirect_stdout(io.StringIO()):
             try:
                 exporter.main()
@@ -240,7 +240,7 @@ def test_existing_exporter_disposable_synthetic_export_fixture_only():
         manifest.write_text(json.dumps(payload, ensure_ascii=False),
                             encoding="utf-8")
         with patch("sys.argv", ["existing-exporter", str(manifest),
-                                "--output", str(apkg)]), \\
+                                "--output", str(apkg)]), \
              contextlib.redirect_stdout(io.StringIO()):
             exporter.main()
         assert apkg.is_file()
