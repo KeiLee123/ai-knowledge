@@ -8,9 +8,11 @@ Results contain no questions, PDF excerpts, credentials, or review requests.
 """
 
 import argparse
+import contextlib
 import hashlib
 import json
 import math
+import sys
 from pathlib import Path
 
 import beta_ask_staging_v1 as qa
@@ -236,8 +238,11 @@ def main():
     parser.add_argument("--with-staging-retrieval", action="store_true",
                         help="Read-only Staging DB and local embedding only")
     args = parser.parse_args()
-    result = build_report(args.pdf,
-                          include_retrieval=args.with_staging_retrieval)
+    # PDF extraction libraries may print diagnostics on stdout. Keep stdout
+    # strictly JSON for downstream tools; leave diagnostics/errors on stderr.
+    with contextlib.redirect_stdout(sys.stderr):
+        result = build_report(
+            args.pdf, include_retrieval=args.with_staging_retrieval)
     print(json.dumps(result, ensure_ascii=False, indent=2,
                      sort_keys=True, allow_nan=False))
 
