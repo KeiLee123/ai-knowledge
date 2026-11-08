@@ -173,6 +173,12 @@ jobs:
           set -euo pipefail
           python test_beta_private_ui_staging_v1.py
 
+      - name: Gate C1b pinned no-regression ranking contract (offline only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_gate_c1b_no_regression_v1.py
+
       - name: M11 automated quality probe isolated no-human-Gold safety contract
         shell: bash
         run: |
