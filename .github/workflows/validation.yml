@@ -198,7 +198,14 @@ jobs:
           python - "$TEST_TMP/report.json" <<'PY'
           import json, sys
           from pathlib import Path
-          d = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          raw = Path(sys.argv[1]).read_text(encoding="utf-8")
+          start = raw.find("{")
+          assert start >= 0, "report_json_missing"
+          d, remainder = json.JSONDecoder().raw_decode(raw[start:])
+          assert not remainder.strip(), "report_json_trailing_data"
+          # Some PDF extractors can emit a diagnostic before the JSON.
+          # Never reproduce that output in the public CI log.
+          print("non_json_prefix_bytes:", len(raw[:start].encode("utf-8")))
           assert d["source_id"] == "BD_PNAP_APP149"
           assert d["document"]["physical_pages"] == 5
           assert d["evidence_verifier"]["case_count"] == 5
