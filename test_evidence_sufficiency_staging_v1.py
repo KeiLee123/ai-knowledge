@@ -69,6 +69,9 @@ def test_sha_scope_and_source_fidelity():
     assert p1.assess(QUESTION, source_bad, c, enabled=True)["assessment"] == "NOT_VERIFIED"
     assert p1.assess(QUESTION, SOURCES[:1], c, enabled=True)["assessment"] == "NOT_VERIFIED"
     assert p1.assess(QUESTION, SOURCES + [SOURCES[0]], c, enabled=True)["assessment"] == "NOT_VERIFIED"
+    malformed = deepcopy(SOURCES)
+    malformed[0]["source_id"] = ["unhashable-source-id"]
+    assert p1.assess(QUESTION, malformed, c, enabled=True)["assessment"] == "NOT_VERIFIED"
     assert SOURCES == source_before
     assert p1.assess(QUESTION, SOURCES, c, enabled=True)["assessment"] == "INSUFFICIENT"
 
