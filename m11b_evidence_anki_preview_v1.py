@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 
 import beta_ask_staging_v1 as qa
-from generate_anki_cards_v1 import SCHEMA_VERSION, make_card
+from generate_anki_cards_v1 import make_card
 from m10b2f_offline_silver_evidence_v1 import HIGH_RISK_TERMS, normalize
 from m10b2g_app149_readonly_silver_pilot_v1 import (
     PINNED_DOCUMENT_VERSION, PINNED_PDF_SHA256, PINNED_SOURCE_ID,
@@ -22,6 +22,9 @@ from m10b2g_app149_readonly_silver_pilot_v1 import (
 )
 
 VERSION = "m11b-literal-evidence-anki-preview-v1"
+# Intentionally NOT an anki-card-manifest-v1. The existing exporter must
+# refuse this draft by schema before it can create a package.
+PREVIEW_SCHEMA_VERSION = "anki-card-preview-v1"
 CASE_ID = "APP149-SILVER-L01"
 ANSWER_LITERAL = "authorized signatory"
 OFFICIAL_URL = (
@@ -186,7 +189,9 @@ def build_preview_from_verified_packet(packet, silver):
         "release_authorized": False,
     }
     manifest = {
-        "schema_version": SCHEMA_VERSION,
+        "schema_version": PREVIEW_SCHEMA_VERSION,
+        "exportable": False,
+        "release_authorized": False,
         "generator_version": VERSION,
         "read_only": True,
         "database_write_performed": False,
