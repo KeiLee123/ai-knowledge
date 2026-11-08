@@ -173,6 +173,12 @@ jobs:
           set -euo pipefail
           python test_beta_private_ui_staging_v1.py
 
+      - name: P1 dormant negative-only capability gate offline contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_evidence_sufficiency_staging_v1.py
+
       - name: Hermes Staging evidence JSON contract and refusal test
         shell: bash
         run: |
