@@ -1,7 +1,11 @@
 # KB-02 — Bounded Extractive Cited Response Preview (Staging-only)
 
-Status: Draft/offline review composer. No Private Beta UI, Hermes, SQL, model
-provider, public endpoint, scheduler or Production activation in this PR.
+Status: code-only Staging Draft review composer; nine offline regression tests
+passed. On 2026-11-10 the owner performed a bounded *read-only operator*
+real APP145/APP149 test of the earlier Draft head 3c57e3f; all seven expected
+preview/abstention cases and final Git/Production checks passed. This is NOT
+a semantic answer or user-browser acceptance. No Private Beta UI, Hermes,
+new SQL, model provider, public endpoint, scheduler or Production activation.
 
 ## Architecture and reuse
 
@@ -56,12 +60,29 @@ one/two selected exact quotes, correct citations, currentness refusal,
 incomplete coverage refusal, no selection, tampered PDF, wrong physical
 page, malformed selectors, wrong source, missing guard and no network code.
 
-Future real Staging acceptance (NOT YET RUN): use the existing approved
-APP145/APP149 source snapshots / PDF by SHA, select the question-relevant
-literal passages and check original physical page and material surrounding
-conditions. Specifically Q01/Q06/Q09/Q14/Q15 and negative Q19/Q19b. The
-previous KB-01 probe verifies any bounded literal overlap from the specific
-chunk; that is intentionally NOT enough to certify KB-02 question relevance.
+OPERATOR EVIDENCE, 2026-11-10 (read-only, premerge Draft head 3c57e3f):
+- /opt/ai-knowledge-staging clean branch staging at bf300666...; PR #108
+  fetched to FETCH_HEAD and its KB02 module loaded in temporary /tmp.
+- Approved APP145/149 PDF copies read from Drive Current to /tmp.
+- Explicit selections passed KB02 source-extract preview: Q01 APP145
+  S3 page3; Q09 APP149 S1 page2; Q14 APP149 S2 page4; Q15 APP149 S4
+  page5. Verified quote-to-original-PDF-page by existing KB01.
+- Q06 with zero selected quotes -> EVIDENCE_ONLY_REVIEW_REQUIRED.
+  Q19 currentness -> CURRENTNESS_UNVERIFIED_ABSTAIN.
+  Q19b with zero selections -> EVIDENCE_ONLY_REVIEW_REQUIRED.
+- Final clean Staging SHA and unchanged Production Git SHA assertions
+  completed; command ended KB-02 READ-ONLY CHECK COMPLETE.
+This proves the *mechanical selected-excerpt composition path* on real
+approved files, not the questions' professional answer sufficiency. In
+particular Q06 and Q19b refusal was caused by empty selections and is NOT
+a validated semantic out-of-scope/insufficiency classifier. Evidence has
+not been audited for completeness of legal conditions, forms, or exceptions.
+Actual private-browser/user Beta and authenticated quote-selection workflow
+remain UNVERIFIED. This PR does not wire the function into any UI.
+
+Gate after any code-only GitHub Staging merge: separate exact-SHA VPS
+fast-forward and regression, with no deployment to Production. No professional
+Gold signoff inferred from operator literal-PDF proof.
 
 A future authenticated private UI must NOT trust caller-provided packet
 `guard_ok`, `read_only`, `approved_baseline` or "reviewer approved" labels;
