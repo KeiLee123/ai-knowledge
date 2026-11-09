@@ -179,6 +179,12 @@ jobs:
           set -euo pipefail
           python test_citation_integrity_staging_v1.py
 
+      - name: KB-02 bounded extractive quote preview offline contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_kb02_extractive_review_staging_v1.py
+
       - name: M11 automated quality probe isolated no-human-Gold safety contract
         shell: bash
         run: |
