@@ -60,8 +60,8 @@ def _checked_evidence(packet, sid, checksum, url, evidence_id):
     require(isinstance(packet, dict) and packet.get("environment") == "staging"
             and packet.get("production_write") is False,
             "staging_readonly_packet_required")
-    require(packet.get("read_only", True) is True
-            and packet.get("guard_ok", True) is True,
+    require(packet.get("read_only") is True
+            and packet.get("guard_ok") is True,
             "staging_guard_not_confirmed")
     require(packet.get("status") != "CURRENTNESS_UNVERIFIED_ABSTAIN",
             "currentness_abstention_preserved")
