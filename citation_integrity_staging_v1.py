@@ -41,7 +41,8 @@ def _source_identity(source):
     require(isinstance(source, dict) and source.get("approved_baseline") is True,
             "trusted_approved_source_required")
     sid = source.get("source_id")
-    require(sid in ALLOWED, "source_not_allowlisted")
+    require(isinstance(sid, str) and sid in ALLOWED,
+            "source_not_allowlisted")
     checksum = source.get("checksum")
     require(isinstance(checksum, str) and re.fullmatch(r"[0-9a-f]{64}", checksum),
             "invalid_source_checksum")
