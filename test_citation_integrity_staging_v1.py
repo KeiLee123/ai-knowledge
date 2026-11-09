@@ -166,6 +166,17 @@ def test_required_staging_runtime_proof_cannot_default_to_true():
             packet[field] = original
 
 
+
+def test_malformed_source_identity_rejected_without_type_crash():
+    with tempfile.TemporaryDirectory() as root:
+        path, trusted, packet = fixture(root)
+        for malformed in (None, 0, ["BD_PNAP_APP149"],
+                          {"source_id": "BD_PNAP_APP149"}):
+            rejects(lambda bad=malformed: v.verify_quote(
+                packet, dict(trusted, source_id=bad), "S1", QUOTE, path),
+                "source_not_allowlisted")
+
+
 def main():
     for name, fn in sorted(globals().items()):
         if name.startswith("test_") and callable(fn):
