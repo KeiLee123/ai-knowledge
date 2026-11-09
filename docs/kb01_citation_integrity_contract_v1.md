@@ -14,8 +14,13 @@ and any future extractive-answer compositor.
 Trust and data flow:
 1. beta_ask_staging_v1.approved_source(source_id) supplies trusted Source Registry +
    baseline identity. Caller-supplied/user-authored source metadata is NOT authority.
-2. Guarded beta_ask_staging_v1.build_packet or beta_private_ui_staging_v1.ask_evidence
-   supplies evidence packet. Do not expose arbitrary user-authored packet as trusted.
+2. Guarded beta_ask_staging_v1.build_packet supplies an evidence packet with
+   explicit read_only=True and guard_ok=True. The existing
+   beta_private_ui_staging_v1.ask_evidence returns a display-oriented packet
+   without those fields: it MUST NOT be passed straight to the verifier.
+   A future separate authenticated adapter may reconstruct a trusted internal
+   retrieval packet from the existing guarded path; it MUST NOT let clients
+   assert read_only/guard_ok themselves. Do not accept user-authored packets.
 3. A separately approved local PDF copy is supplied by the caller. The verifier
    never downloads PDFs, invokes rclone, writes files, queries DB, or calls models.
 4. Caller provides selected S-ID and exact excerpt. Verify Source ID, official URL,
@@ -44,12 +49,22 @@ synthetic PDFs: success, wrong checksum, wrong page, quote absent from indexed
 Chunk, source/url mismatch, currentness abstention, mixed-source identity,
 symlink rejection and corrupt original PDF.
 
-NOT YET VERIFIED: real APP145/APP149 PDF page matches on VPS Staging, real
-Appendix/form reading order, browser integration, semantic answer fidelity,
-Q01/Q06/Q09/Q14/Q15/Q19/Q19b, user acceptance, Production deployment.
+OPERATOR-VERIFIED ISOLATED STAGING PDF INTEGRITY (2026-11-10):
+APP145 and APP149 approved SHA identities matched historical pinned PDFs.
+Q01/Q06/Q09/Q14/Q15 matched bounded literal indexed Chunk excerpts on the
+same PDF physical pages; Q19 currentness refusal passed. This was a read-only
+VPS operator test of the PR head (b8744dcd...), not an active UI integration.
+It does NOT validate semantic question-answer relevance, applicability, or the
+completeness of Appendix content; Q06's matched excerpt may be context only.
 
-Next gate: after PR CI and review, conduct read-only pinned real-source PDF
-verification in isolated VPS Staging with approved source checksum. Do not alter
+NOT YET VERIFIED: running Private Beta UI integration, condition-aware
+answer fidelity, complete Appendix/form interpretation, out-of-corpus Q19b,
+user-facing browser acceptance, deployment or Production. This PR's current
+head includes subsequent type-safety hardening; recheck exact CI before merge.
+
+Next gate: after exact-head PR CI and review, approve a controlled code-only
+GitHub Staging merge, then separately synchronize/review the operator VPS
+Staging checkout before any UI wiring. Do not alter
 Frozen Graph-aware Retrieval v1.3, M8/M9, Source Registry, Google Drive Current,
 PostgreSQL roles/data, personal Anki, or main.
 
