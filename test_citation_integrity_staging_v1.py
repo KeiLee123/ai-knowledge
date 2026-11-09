@@ -152,6 +152,20 @@ def test_reject_pdf_byte_tamper_and_corrupt_pdf():
                 "original_pdf_parse_failed")
 
 
+
+def test_required_staging_runtime_proof_cannot_default_to_true():
+    with tempfile.TemporaryDirectory() as root:
+        path, trusted, packet = fixture(root)
+        for field in ("read_only", "guard_ok"):
+            original = packet.pop(field)
+            rejects(lambda: v.verify_quote(packet, trusted, "S1", QUOTE, path),
+                    "staging_guard_not_confirmed")
+            packet[field] = False
+            rejects(lambda: v.verify_quote(packet, trusted, "S1", QUOTE, path),
+                    "staging_guard_not_confirmed")
+            packet[field] = original
+
+
 def main():
     for name, fn in sorted(globals().items()):
         if name.startswith("test_") and callable(fn):
