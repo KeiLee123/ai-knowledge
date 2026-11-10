@@ -273,7 +273,7 @@
           var quoteField = element("textarea", "review-quote");
           quoteField.setAttribute("aria-label", "[" + item.id + "] 要核實的原文摘錄");
           quoteField.maxLength = 1500;
-          quoteField.value = item.content.trim().split(/\\s+/).slice(0, 18).join(" ");
+          quoteField.value = item.content.trim().split(/\s+/).slice(0, 18).join(" ");
           review.appendChild(quoteField);
           var checkButton = element("button", "btn secondary", "核實這段原文");
           checkButton.type = "button";
