@@ -262,6 +262,64 @@
           details.appendChild(element("pre", "", item.content));
           card.appendChild(details);
         }
+        // Explicit user-chosen source excerpt; no ranked passage is silently
+        // promoted into an answer. The server re-queries and verifies the PDF.
+        if (!refused) {
+          var review = element("details", "citation-review");
+          review.appendChild(element("summary", "",
+            "核實選定的原文引文（並非專業答案）"));
+          review.appendChild(element("p", "hint",
+            "可修改下方文字，請保留原文連續片段（16–1500 字）。核實只檢查來源／頁碼，不判斷是否完整回答問題。"));
+          var quoteField = element("textarea", "review-quote");
+          quoteField.setAttribute("aria-label", "[" + item.id + "] 要核實的原文摘錄");
+          quoteField.maxLength = 1500;
+          quoteField.value = item.content.trim().split(/\\s+/).slice(0, 18).join(" ");
+          review.appendChild(quoteField);
+          var checkButton = element("button", "btn secondary", "核實這段原文");
+          checkButton.type = "button";
+          review.appendChild(checkButton);
+          var checkResult = element("div", "outcome");
+          checkResult.setAttribute("role", "status");
+          checkResult.setAttribute("aria-live", "polite");
+          review.appendChild(checkResult);
+          checkButton.addEventListener("click", async function() {
+            var rid = data.request_id;
+            checkButton.disabled = true;
+            checkResult.replaceChildren(element("p", "small", "正在核對原始 PDF…"));
+            try {
+              var preview = await postJSON("/api/quote-preview", {
+                request_id: rid,
+                evidence_id: item.id,
+                quote: quoteField.value.trim()
+              });
+              // Discard stale results if a different search was submitted.
+              if (!lastRequest || lastRequest.request_id !== rid) return;
+              checkResult.replaceChildren(
+                element("p", "small", preview.message),
+                element("p", "mono", "[" + preview.display_evidence_id +
+                  "] " + preview.source_id + " · Chunk #" + preview.chunk_id +
+                  " · 原始 PDF 第 " + preview.physical_page + " 頁"),
+                element("pre", "", preview.quote),
+                element("p", "small",
+                  "原文及頁碼已核對；相關性、條件及現行法律效力仍須人工核實。")
+              );
+              var checkedLink = element("a", "", "開啟已核實的官方 PDF 頁面");
+              checkedLink.href = preview.source_url;
+              checkedLink.target = "_blank";
+              checkedLink.rel = "noopener noreferrer";
+              checkResult.appendChild(checkedLink);
+            } catch(err) {
+              if (lastRequest && lastRequest.request_id === rid) {
+                checkResult.replaceChildren(element("p", "small",
+                  "引文核實未完成：" + err.message +
+                  "。此段未獲核實，請核對原始 PDF 或 Staging 本地 PDF 副本。"));
+              }
+            } finally {
+              checkButton.disabled = false;
+            }
+          });
+          card.appendChild(review);
+        }
         results.appendChild(card);
       });
       lastRequest = { request_id: data.request_id, source: data.source.source_id };
