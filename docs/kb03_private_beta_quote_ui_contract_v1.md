@@ -1,7 +1,9 @@
 # KB-03 — Private Beta Selected Citation Preview (Staging only)
 
-Status: code-only DRAFT review. No new server is started automatically, no
-Production deployment, and **not yet user-browser accepted**.
+Status: code-only DRAFT review; operator's isolated, read-only
+real-APP145/149 HTTP/PDF source check on 2026-11-12 PASS at feature HEAD
+630bf169af4409be940eb89567df21c2f2a24c40. No new server is started
+automatically, no Production deployment, and **not yet human-browser accepted**.
 
 ## Architecture / why it is additive
 
@@ -86,11 +88,37 @@ server; check successful quote/page, request origin/token, field allowlist,
 AUTO S-ID mapping, stale request, malicious quote, currentness refusal,
 missing original, old Feedback and DOM safe text rendering.
 
-**Next gates:** exact-head GitHub CI; isolated VPS Staging read-only API check
-with approved APP145/149 originals, prior to any code merge; controlled
-code-only Staging merge and exact SHA smoke; separately explicit server start
-via existing SSH tunnel with owner Private Beta browsing Q01/Q06/Q09/Q14/Q15
-and Q19/Q19b and feedback. Any real-world authoritative explanation
-requires separate material-condition review. NO automatic Production cutover.
+### Real-source operator evidence — isolated VPS Staging (2026-11-12)
+Operator ran the pinned one-shot script at clean VPS Staging HEAD
+d3325ceb94092dcca337d4288b54602e7063a084. Feature HEAD
+630bf169af4409be940eb89567df21c2f2a24c40 fetched to FETCH_HEAD,
+Python, HTML and test loaded from that PR into temporary /tmp (no checkout).
+Approved original APP145/149 PDFs read from Drive Current to temporary
+copies. Six KB03 offline loopback/synthetic-PDF tests passed.
+
+The temporary local server + genuine original PDFs returned:
+- TOKEN_AND_ORIGIN_GUARDS: PASS (wrong token 401, missing Origin 403)
+- Q01 APP145 / page 3 / PRIVATE_UI_CITATION_PASS
+- Q09 APP149 / page 2 / PRIVATE_UI_CITATION_PASS
+- Q14 APP149 Appendix A / page 4 / PRIVATE_UI_CITATION_PASS
+- Q15 APP149 Appendix B / page 5 / PRIVATE_UI_CITATION_PASS
+- Q19 CURRENTNESS_AND_PREVIEW_REFUSAL: PASS
+- FINAL SAFETY CHECK: clean unchanged Staging SHA and unchanged
+  Production Git SHA; operator terminal ended
+  KB-03 READ-ONLY STAGING ACCEPTANCE PASS.
+
+This validates only the backend loopback HTTP and exact excerpt-to-source
+page trust path. It was NOT an owner-operated browser acceptance, NOT an
+always-on service, NOT a provisioned persistent PDF cache, and NOT a
+professional relevance/conditions/current-law Gold signoff. No Q06/Q19b
+real browser sufficiency evaluation has been performed.
+
+**Next gates:** re-run exact-head CI after this documentation-only update,
+controlled code-only GitHub Staging merge, exact-SHA VPS Staging sync and
+regression. Separately, operator-provision read-only cache and explicitly
+start existing localhost+SSH-tunnel server for real owner-browser journeys
+Q01/Q06/Q09/Q14/Q15, Q19/Q19b and feedback. Any authoritative legal
+interpretation requires independent material-condition review.
+NO automatic Production cutover.
 
 Related: #60, #106, KB01 #107, KB02 #108, Beta-first CF-01.
