@@ -19,11 +19,16 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
 import beta_ask_staging_v1 as qa
+import kb02_extractive_review_staging_v1 as kb02
+from citation_integrity_staging_v1 import CitationRefused
 
 HOST = "127.0.0.1"
 DEFAULT_PORT = 8765
 PAGE_PATH = Path(__file__).with_suffix(".html")
 FEEDBACK_PATH = Path("/var/lib/jason-os/private-beta-staging/feedback.jsonl")
+# Manually provisioned, checksum-verified original PDF copies. No Drive/network
+# access from the browser server; KB-01 enforces exact approved SHA on every use.
+APPROVED_PDF_DIR = Path("/var/lib/jason-os/private-beta-staging/approved-pdfs")
 MAX_REQUEST_BYTES = 4096
 MAX_FEEDBACK_CHARS = 1000
 FEEDBACK_TYPES = frozenset(("answer_wrong", "source_outdated", "card_idea", "other"))
@@ -87,6 +92,8 @@ def ask_evidence(data):
     for rank, (_, sid, _, ref, item) in enumerate(ranked, 1):
         evidence.append({
             "id": "S" + str(rank),
+            # S-ID inside its own source packet; AUTO global IDs may differ.
+            "source_evidence_id": item["id"],
             "chunk_id": item["chunk_id"],
             "page": item["page"],
             "content": item["content"],
@@ -123,6 +130,76 @@ def ask_evidence(data):
         "sources": descriptions,  # actual approved documents, each with coverage
         "coverage": combined_coverage,
         "evidence": evidence,
+        "ai_answer_generated": False,
+        "production_write": False,
+    }
+
+
+def preview_selected_quote(data, recent_requests, pdf_dir=APPROVED_PDF_DIR):
+    """User-selected quote verified by a new trusted Staging read-only query.
+
+    Browser supplies only request_id, its global display S-ID and literal
+    quote. Scope, question, source-local evidence ID, Chunk and PDF path
+    are derived server-side from the previous authenticated /api/ask result.
+    """
+    if (not isinstance(data, dict)
+            or set(data) != {"request_id", "evidence_id", "quote"}):
+        raise UIRefused("invalid_quote_preview_fields")
+    rid, eid, quote = data["request_id"], data["evidence_id"], data["quote"]
+    if not isinstance(rid, str) or len(rid) != 16:
+        raise UIRefused("invalid_quote_preview_request")
+    if not isinstance(eid, str) or not eid.startswith("S"):
+        raise UIRefused("invalid_quote_preview_evidence")
+    if (not isinstance(quote, str) or not 16 <= len(quote) <= 1500
+            or "\x00" in quote):
+        raise UIRefused("invalid_quote_preview_text")
+    session = recent_requests.get(rid)
+    if not isinstance(session, dict):
+        raise UIRefused("unknown_quote_preview_request")
+    if session.get("status") != "EVIDENCE_ONLY_REVIEW_REQUIRED":
+        raise UIRefused("quote_preview_not_permitted_for_abstention")
+    evidence = session.get("evidence", {}).get(eid)
+    if not isinstance(evidence, dict):
+        raise UIRefused("unknown_quote_preview_evidence")
+    sid = evidence.get("source_id")
+    local_eid = evidence.get("source_evidence_id")
+    if sid not in qa.ALLOWED or not isinstance(local_eid, str):
+        raise UIRefused("quote_preview_untrusted_source")
+    original_dir = Path(pdf_dir)
+    if original_dir.is_symlink() or not original_dir.is_dir():
+        raise UIRefused("approved_pdf_cache_unavailable")
+    original = original_dir / ("APP" + sid.rsplit("APP", 1)[-1] + ".pdf")
+    if original.is_symlink() or not original.is_file():
+        raise UIRefused("approved_pdf_copy_unavailable")
+    result = kb02.build_review_preview(
+        sid, session["question"], [{"evidence_id": local_eid, "quote": quote}],
+        original)
+    if (result.get("status") != "EXTRACTIVE_QUOTES_REVIEW_REQUIRED"
+            or len(result.get("verified_quotes", [])) != 1
+            or result.get("semantic_answer_support") != "NOT_EVALUATED"
+            or result.get("ai_answer_generated") is not False
+            or result.get("production_write") is not False):
+        raise UIRefused("quote_preview_not_verified")
+    proof = result["verified_quotes"][0]
+    if (proof.get("source_id") != sid
+            or proof.get("evidence_id") != local_eid
+            or proof.get("chunk_id") != evidence.get("chunk_id")
+            or proof.get("physical_page") != evidence.get("page")):
+        raise UIRefused("quote_preview_chunk_identity_changed")
+    return {
+        "schema_version": "kb03-private-quote-preview-v1",
+        "status": "EXTRACTIVE_QUOTES_REVIEW_REQUIRED",
+        "display_evidence_id": eid,
+        "source_id": proof["source_id"],
+        "chunk_id": proof["chunk_id"],
+        "physical_page": proof["physical_page"],
+        "source_sha256": proof["source_sha256"],
+        "source_url": proof["source_url"],
+        "quote": proof["quote"],
+        "message": result["message"],
+        "semantic_answer_support": "NOT_EVALUATED",
+        "current_legal_applicability": "NOT_VERIFIED",
+        "review_required": True,
         "ai_answer_generated": False,
         "production_write": False,
     }
@@ -227,7 +304,7 @@ class PrivateBetaHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         if not self.allowed_host() or not self.allowed_origin():
             return self.respond(403, {"error": "local_origin_required"})
-        if self.path not in ("/api/ask", "/api/feedback"):
+        if self.path not in ("/api/ask", "/api/quote-preview", "/api/feedback"):
             return self.respond(404, {"error": "not_found"})
         if not self.authenticated():
             return self.respond(401, {"error": "session_token_required"})
@@ -236,10 +313,25 @@ class PrivateBetaHandler(BaseHTTPRequestHandler):
             if self.path == "/api/ask":
                 result = ask_evidence(data)
                 # A request ID is an in-memory reference, not a stored raw question.
-                self.server.recent_requests[result["request_id"]] = result["source"]["source_id"]
+                self.server.recent_requests[result["request_id"]] = {
+                    "scope": result["source"]["source_id"],
+                    "question": data["question"].strip(),
+                    "status": result["status"],
+                    "evidence": {
+                        ev["id"]: {
+                            "source_id": ev["source_id"],
+                            "source_evidence_id": ev["source_evidence_id"],
+                            "chunk_id": ev["chunk_id"],
+                            "page": ev["page"],
+                        } for ev in result["evidence"]
+                    },
+                }
                 if len(self.server.recent_requests) > 64:
                     self.server.recent_requests.pop(next(iter(self.server.recent_requests)))
                 return self.respond(200, result)
+            if self.path == "/api/quote-preview":
+                return self.respond(200, preview_selected_quote(
+                    data, self.server.recent_requests, self.server.pdf_dir))
             if set(data) != {"request_id", "source", "type", "comment"}:
                 raise UIRefused("invalid_feedback_fields")
             rid = data["request_id"]
@@ -247,7 +339,7 @@ class PrivateBetaHandler(BaseHTTPRequestHandler):
             kind = data["type"]
             comment = data["comment"]
             if (not isinstance(rid, str)
-                    or self.server.recent_requests.get(rid) != source
+                    or self.server.recent_requests.get(rid, {}).get("scope") != source
                     or kind not in FEEDBACK_TYPES
                     or not isinstance(comment, str)
                     or not 5 <= len(comment.strip()) <= MAX_FEEDBACK_CHARS):
@@ -265,20 +357,21 @@ class PrivateBetaHandler(BaseHTTPRequestHandler):
             }
             append_feedback(record, self.server.feedback_path)
             return self.respond(201, {"saved": True, "request_id": rid})
-        except (UIRefused, qa.BetaRefused) as exc:
+        except (UIRefused, qa.BetaRefused, kb02.ExtractiveRefused, CitationRefused) as exc:
             # Only stable safe reason codes. No backend exception details.
             return self.respond(400, {"error": str(exc)})
         except (OSError, RuntimeError, KeyError, TypeError):
             return self.respond(503, {"error": "staging_backend_unavailable"})
 
 
-def build_server(port, token=None, feedback_path=FEEDBACK_PATH):
+def build_server(port, token=None, feedback_path=FEEDBACK_PATH, pdf_dir=APPROVED_PDF_DIR):
     if type(port) is not int or not 0 <= port <= 65535:
         raise UIRefused("invalid_port")
     server = HTTPServer((HOST, port), PrivateBetaHandler)
     server.ui_token = token or secrets.token_urlsafe(32)
     server.recent_requests = {}
     server.feedback_path = feedback_path
+    server.pdf_dir = pdf_dir
     return server
 
 
