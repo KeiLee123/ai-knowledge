@@ -102,6 +102,8 @@ def test_unit_exact_staging_paths_and_token_nonleakage():
     assert "WorkingDirectory=/opt/ai-knowledge-staging" in text
     assert "ExecStart=/opt/ai-knowledge-staging/.venv/bin/python -B /opt/ai-knowledge-staging/private_beta_systemd_staging_v1.py" in text
     assert "Restart=on-failure" in text
+    assert "RestartSec=15" in text
+    assert "StartLimitIntervalSec=0" in text  # DB containers may initialize after Docker
     assert "StandardOutput=null" in text and "StandardError=null" in text
     assert "NoNewPrivileges=true" in text
     assert "WantedBy=multi-user.target" in text
