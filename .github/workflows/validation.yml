@@ -197,6 +197,12 @@ jobs:
           set -euo pipefail
           python test_beta_feedback_review_staging_v1.py
 
+      - name: KB-03 Issue 97 APP149 ranking baseline synthetic-only contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_kb03_issue97_app149_ranking_baseline_staging_v1.py
+
       - name: M11 automated quality probe isolated no-human-Gold safety contract
         shell: bash
         run: |
