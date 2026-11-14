@@ -67,7 +67,7 @@ def test_synthetic_js_reading_modes():
         return
     js = helpers(HTML.read_text(encoding="utf-8"))
     # Standalone synthetic JS: no DOM / browser / credentials / filesystem.
-    trial = String.raw`"use strict";
+    trial = r'''"use strict";
 const assert = require("node:assert/strict");
 const sha = "a5b4d5a1af5f4a32b43973db33d95436f9390e8e2da77747ee666015077bb1a8";
 const chunkPages = {
@@ -127,7 +127,7 @@ assert.equal(app149ReadingAllowed(tampered),false);
 tampered = clone(); tampered.sources.push(app149);
 assert.equal(app149ReadingAllowed(tampered),false);
 console.log("READING MODES SYNTHETIC JS PASS");
-`
+'''
     run = subprocess.run([node, "-e", js + "\n" + trial],
                          capture_output=True, text=True, timeout=15, check=False)
     assert run.returncode == 0, run.stderr[-2500:]
