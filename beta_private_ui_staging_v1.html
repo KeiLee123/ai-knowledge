@@ -269,14 +269,21 @@
           review.appendChild(element("summary", "",
             "核實選定的原文引文（並非專業答案）"));
           review.appendChild(element("p", "hint",
-            "可修改下方文字，請保留原文連續片段（16–1500 字）。核實只檢查來源／頁碼，不判斷是否完整回答問題。"));
+            "請先閱讀上方原文；如有「查看完整原文」，請展開後複製與問題有關的連續原文（16–1500 字）。" +
+            "不預先選取任何引文；核實只檢查來源／頁碼，不判斷是否完整回答問題。"));
           var quoteField = element("textarea", "review-quote");
           quoteField.setAttribute("aria-label", "[" + item.id + "] 要核實的原文摘錄");
           quoteField.maxLength = 1500;
-          quoteField.value = item.content.trim().split(/\s+/).slice(0, 18).join(" ");
+          quoteField.placeholder = "請從上方原文複製你要核實的連續片段（16–1500 字）";
+          quoteField.value = "";
           review.appendChild(quoteField);
           var checkButton = element("button", "btn secondary", "核實這段原文");
           checkButton.type = "button";
+          checkButton.disabled = true;
+          quoteField.addEventListener("input", function() {
+            var length = quoteField.value.trim().length;
+            checkButton.disabled = length < 16 || length > 1500;
+          });
           review.appendChild(checkButton);
           var checkResult = element("div", "outcome");
           checkResult.setAttribute("role", "status");
