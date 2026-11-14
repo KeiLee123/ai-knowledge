@@ -210,6 +210,12 @@ jobs:
           node --version
           KB03_REQUIRE_NODE=1 python test_kb03_issue97_reading_modes_staging_v1.py
 
+      - name: Private Beta Staging systemd root-private token and unit offline contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_private_beta_systemd_staging_v1.py
+
       - name: M11 automated quality probe isolated no-human-Gold safety contract
         shell: bash
         run: |

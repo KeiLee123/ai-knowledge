@@ -1,0 +1,30 @@
+# Jason OS Knowledge Brain - local-only Private Beta STAGING
+# Source of Truth: KeiLee123/ai-knowledge, not /etc/systemd/system.
+# The Python entrypoint stores each rotated token in root-private
+# /var/lib/jason-os/private-beta-staging/session-token-8765 (0600).
+# Never put the token in Environment=, ExecStart= or journal output.
+[Unit]
+Description=Jason OS Private Beta - STAGING loopback only (port 8765)
+After=network.target docker.service
+Wants=docker.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=root
+Group=root
+UMask=0077
+WorkingDirectory=/opt/ai-knowledge-staging
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/ai-knowledge-staging/.venv/bin/python -B /opt/ai-knowledge-staging/private_beta_systemd_staging_v1.py
+Restart=on-failure
+RestartSec=15
+TimeoutStopSec=10
+KillSignal=SIGINT
+NoNewPrivileges=true
+PrivateTmp=true
+StandardOutput=null
+StandardError=null
+
+[Install]
+WantedBy=multi-user.target
