@@ -13,7 +13,7 @@ We retain existing `beta_private_ui_staging_v1.py` and its `qa.check_checkout()`
 Systemd unit is stored in this GitHub repo under `deploy/systemd/jason-os-private-beta-staging.service`, later copied to `/etc/systemd/system/` with root ownership after independent Staging acceptance. Unit runs as root **only because existing Feedback and PDF files are root-owned 0700/0600 and append_feedback rejects other owners**. A dedicated unprivileged service user is a separately reviewed later migration, not part of this MVP.
 
 - `StandardOutput=null`, `StandardError=null`; never put a token in journal, environment, process command line, URL, Git, Google Drive or chat.
-- `Restart=on-failure` and `WantedBy=multi-user.target` for reboot recovery.
+- `Restart=on-failure`, `RestartSec=15`, and `StartLimitIntervalSec=0` prevent a transient not-yet-ready Staging Docker database at boot from permanently rate-locking the service. `WantedBy=multi-user.target` enables startup on reboot; actual reboot recovery must be observed separately.
 - `UMask=0077`, `NoNewPrivileges=true`, `PrivateTmp=true`; no changes to original HTTP host binding, ports or SSH forwarding.
 - Token rotates on each service process restart. Users must re-enter the **new private token** in the browser after restart; read it locally as root. The token file is not a long-lived user password or persistent reuse.
 - A systemd service, private browser and GitHub Code are separate gates. The PR must not install/start/stop anything by itself.
