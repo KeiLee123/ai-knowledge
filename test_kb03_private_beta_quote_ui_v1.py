@@ -255,7 +255,11 @@ def test_html_csp_quote_render_no_unsafe_sink_or_storage():
     assert 'lastRequest.request_id !== rid' in html
     assert 'preview.source_url' in html
     assert 'element("pre", "", preview.quote)' in html
-    assert 'split(/\\s+/)' in html
+    assert 'quoteField.value = "";' in html
+    assert 'quoteField.placeholder = ' in html
+    assert 'quoteField.addEventListener("input", function()' in html
+    assert 'checkButton.disabled = length < 16 || length > 1500;' in html
+    assert 'split(/\\s+/)' not in html
     assert "innerHTML" not in html
     assert "localStorage" not in html
     assert "sessionStorage" not in html
@@ -265,6 +269,24 @@ def test_html_csp_quote_render_no_unsafe_sink_or_storage():
     assert "APPROVED_PDF_DIR" in code
     assert "qa.generate_draft(" not in code
     assert "0.0.0.0" not in code
+
+
+
+def test_q06_prior_paragraph_does_not_autopopulate_wrong_quote():
+    """Q06 source chunk can begin in previous paragraph: require explicit choice.
+
+    Static UI contract complements server-side PDF/sha/chunk revalidation.
+    """
+    html = ui.PAGE_PATH.read_text(encoding="utf-8")
+    assert '"查看完整原文"' in html
+    assert 'element("pre", "", item.content)' in html
+    assert 'quoteField.value = "";' in html
+    assert 'quoteField.placeholder = ' in html
+    assert 'checkButton.disabled = true;' in html
+    assert 'quoteField.addEventListener("input", function()' in html
+    assert 'checkButton.disabled = length < 16 || length > 1500;' in html
+    assert "quoteField.value = item.content" not in html
+    assert "/api/quote-preview" in html
 
 
 def main():
