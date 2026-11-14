@@ -335,7 +335,9 @@
       }
       results.appendChild(evidenceHost);
 
-      data.evidence.forEach(function (item, originalIndex) {
+      var nextEvidenceIndex = 0;
+      data.evidence.forEach(function (item) {
+        var originalIndex = nextEvidenceIndex++;
         var card = element("article", "evidence");
         var head = element("div", "evidence-head");
         head.appendChild(element("h3", "", "[" + item.id + "] · 原始排名 " + (originalIndex + 1) + " · " + item.source_id + " · PDF 第 " + item.page + " 頁"));
