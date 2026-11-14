@@ -55,6 +55,10 @@
     .small { color:var(--mute); font-size:12px; line-height:1.65 }
     .mono { font:12px ui-monospace,Consolas,monospace; overflow-wrap:anywhere }
     a { color:var(--blue); font-weight:600; text-decoration:underline; text-underline-offset:3px }
+    .reading-tools { border:1px solid var(--line); border-radius:10px; padding:13px;
+      background:#f9fbfc; margin:0 0 15px }
+    .reading-tools label { margin-bottom:7px }
+    .reading-tools select { max-width:440px }
     .evidence { border-top:1px solid var(--line); padding:14px 0 9px }
     .evidence-head { display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap }
     .evidence p { white-space:pre-wrap; line-height:1.7; font-size:13px; margin:7px 0 }
@@ -214,6 +218,60 @@
       return payload;
     }
 
+
+    // BEGIN ISSUE97 PURE READING HELPERS.
+    // This is document-section navigation, NOT semantic reranking.
+    // Approved APP149 December 2010 source snapshot; update only after source
+    // identity, section/page mapping and tests are independently revalidated.
+    var APP149_READING_SHA256 = "a5b4d5a1af5f4a32b43973db33d95436f9390e8e2da77747ee666015077bb1a8";
+    var APP149_READING_PAGES = {
+      "119": 1, "120": 1, "121": 2, "122": 2,
+      "123": 3, "124": 4, "125": 5, "126": 5
+    };
+
+    function app149ReadingAllowed(data) {
+      if (!data || !Array.isArray(data.sources) || !Array.isArray(data.evidence)
+          || !data.coverage || data.coverage.complete_index_coverage !== true
+          || (data.evidence.length !== 8 && data.evidence.length !== 16)) return false;
+      var matches = data.sources.filter(function(source) {
+        return source && source.source_id === "BD_PNAP_APP149";
+      });
+      if (matches.length !== 1 || matches[0].sha256 !== APP149_READING_SHA256) return false;
+      var coverage = matches[0].coverage;
+      if (!coverage || coverage.indexed_chunks !== 8
+          || coverage.retrieved_unique_chunks !== 8
+          || coverage.complete_index_coverage !== true) return false;
+      var seen = Object.create(null);
+      for (var i = 0; i < data.evidence.length; i++) {
+        var item = data.evidence[i];
+        if (!item || item.id !== "S" + (i + 1)) return false;
+        if (item.source_id !== "BD_PNAP_APP149") continue;
+        var key = String(item.chunk_id);
+        if (!Object.prototype.hasOwnProperty.call(APP149_READING_PAGES, key)
+            || APP149_READING_PAGES[key] !== item.page || seen[key]) return false;
+        seen[key] = true;
+      }
+      return Object.keys(seen).length === 8;
+    }
+
+    function readingPriority(item, mode) {
+      if (item.source_id !== "BD_PNAP_APP149") return 1;
+      if (mode === "body") return item.page <= 3 ? 0 : 1;
+      if (mode === "forms") return item.page >= 4 ? 0 : 1;
+      return 1;
+    }
+
+    function rankCardsForReading(records, mode) {
+      var ordered = records.slice();
+      if (mode !== "body" && mode !== "forms") return ordered;
+      ordered.sort(function(a, b) {
+        return readingPriority(a.item, mode) - readingPriority(b.item, mode)
+            || a.originalIndex - b.originalIndex;
+      });
+      return ordered;
+    }
+    // END ISSUE97 PURE READING HELPERS.
+
     function showResult(data) {
       results.replaceChildren(element("div", "sectionlabel", "02 / 查詢結果"));
       var refused = data.status === "CURRENTNESS_UNVERIFIED_ABSTAIN";
@@ -243,10 +301,44 @@
       });
       results.appendChild(element("h2", "", "官方原文證據 · 全部 " + data.evidence.length + " 筆"));
 
-      data.evidence.forEach(function (item) {
+      // This opt-in view moves existing DOM nodes only; source rank / S-ID,
+      // quote inputs and server-side ID mappings remain the original ones.
+      var evidenceHost = element("div", "evidence-host");
+      var evidenceCards = [];
+      var readingAllowed = app149ReadingAllowed(data);
+      var readingSelect = null;
+      if (readingAllowed) {
+        var readingTools = element("div", "reading-tools");
+        var readingLabel = element("label", "", "APP149 閱讀順序（不改搜尋排名）");
+        readingLabel.setAttribute("for", "readingMode");
+        readingTools.appendChild(readingLabel);
+        readingSelect = element("select");
+        readingSelect.id = "readingMode";
+        [
+          ["original", "原始檢索排名（預設）"],
+          ["body", "APP149 正文優先 · PDF 第 1–3 頁"],
+          ["forms", "APP149 通知表格優先 · PDF 第 4–5 頁"]
+        ].forEach(function(option) {
+          var node = element("option", "", option[1]);
+          node.value = option[0];
+          readingSelect.appendChild(node);
+        });
+        readingSelect.value = "original";
+        readingSelect.setAttribute("aria-describedby", "readingModeHint");
+        readingTools.appendChild(readingSelect);
+        var readingHint = element("p", "hint",
+          "只調整閱讀顯示位置：全部原文仍保留，S 編號及原始排名不變。" +
+          "這不是 AI 意圖分類或相關性評分；請核對實際條文、PDF 頁碼與版本。");
+        readingHint.id = "readingModeHint";
+        readingTools.appendChild(readingHint);
+        results.appendChild(readingTools);
+      }
+      results.appendChild(evidenceHost);
+
+      data.evidence.forEach(function (item, originalIndex) {
         var card = element("article", "evidence");
         var head = element("div", "evidence-head");
-        head.appendChild(element("h3", "", "[" + item.id + "] · " + item.source_id + " · PDF 第 " + item.page + " 頁"));
+        head.appendChild(element("h3", "", "[" + item.id + "] · 原始排名 " + (originalIndex + 1) + " · " + item.source_id + " · PDF 第 " + item.page + " 頁"));
         var sourceLink = element("a", "", "核對原始頁面");
         sourceLink.href = item.source_url;
         sourceLink.target = "_blank";
@@ -327,8 +419,17 @@
           });
           card.appendChild(review);
         }
-        results.appendChild(card);
+        evidenceCards.push({ item: item, originalIndex: originalIndex, card: card });
+        evidenceHost.appendChild(card);
       });
+      if (readingSelect) {
+        readingSelect.addEventListener("change", function() {
+          rankCardsForReading(evidenceCards, readingSelect.value).forEach(function(record) {
+            // Move same nodes: any typed quote and bound quote-preview handler survive.
+            evidenceHost.appendChild(record.card);
+          });
+        });
+      }
       lastRequest = { request_id: data.request_id, source: data.source.source_id };
       document.getElementById("feedbackPanel").classList.add("show");
       document.getElementById("feedbackStatus").textContent = "";
