@@ -210,6 +210,36 @@ jobs:
           node --version
           KB03_REQUIRE_NODE=1 python test_kb03_issue97_reading_modes_staging_v1.py
 
+      - name: Issue 87 PNBI signed-copy index G0 offline safety contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_pnbi_g0_readonly_probe_v1.py
+
+      - name: Issue 87 PNBI official PDF G1 in-memory safety contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_pnbi_g1_pdf_probe_v1.py
+
+      - name: Issue 87 PNBI G2 immutable Drive Staging archive and SHA readback offline contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_pnbi_g2_drive_staging_archive_v1.py
+
+      - name: Issue 87 PNBI G3-A read-only original SHA and full-page text review contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_pnbi_g3a_readonly_quality_probe_v1.py
+
+      - name: Issue 87 Document Fidelity G3-B evidence and citation safety offline contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_validate_document_fidelity_review_v01.py
+
       - name: Private Beta Staging systemd root-private token and unit offline contract
         shell: bash
         run: |
