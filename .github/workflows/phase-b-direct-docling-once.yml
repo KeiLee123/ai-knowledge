@@ -1,0 +1,192 @@
+name: Phase B direct official Docling public APP149 pilot (one-shot)
+
+# Feature-only: native x86_64 / aarch64 off-VPS APP149 test matrix.
+# This is a one-shot experiment, not a deployment workflow.
+# No recurring schedule, main/staging deployment, secrets or model artifacts.
+on:
+  push:
+    branches:
+      - feature/direct-docling-mvp-pilot
+    paths:
+      - .github/workflows/phase-b-direct-docling-once.yml
+      - ops/phase_b_direct_docling_pilot.py
+
+permissions:
+  contents: read
+
+jobs:
+  public-app149:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+            torch_spec: "torch==2.9.1+cpu"
+            vision_spec: "torchvision==0.24.1+cpu"
+            wheel_index: "https://download.pytorch.org/whl/cpu"
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+            torch_spec: "torch==2.9.1"
+            vision_spec: "torchvision==0.24.1"
+            wheel_index: "https://pypi.org/simple"
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 35
+    env:
+      PIP_NO_CACHE_DIR: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      HF_HUB_DISABLE_IMPLICIT_TOKEN: "1"
+      CUDA_VISIBLE_DEVICES: ""
+      OMP_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+    steps:
+      - name: Checkout only the feature branch
+        uses: actions/checkout@v4
+
+      - name: Use Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install vetted CPU Torch and official Docling
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check \
+            --index-url "${{ matrix.wheel_index }}" \
+            "${{ matrix.torch_spec }}" "${{ matrix.vision_spec }}"
+          # Pilot preflight uses PyMuPDF to verify five physical PDF pages.
+          python -m pip install --disable-pip-version-check 'docling==2.146.0' 'PyMuPDF==1.28.2'
+          python -m pip check
+          python -m py_compile ops/phase_b_direct_docling_pilot.py
+          python - <<'PY'
+          import torch
+          import platform
+          import importlib.metadata as md
+          assert platform.machine() == "${{ matrix.arch }}", platform.machine()
+          assert torch.version.cuda is None
+          assert not torch.cuda.is_available()
+          assert md.version("docling") == "2.146.0"
+          print("CPU_ONLY_PACKAGE_PREFLIGHT_PASS")
+          PY
+
+      - name: Fetch public BD APP149 bytes with strict SHA pin
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          from urllib.parse import urlparse
+          from urllib.request import Request, urlopen
+
+          url = "https://www.bd.gov.hk/doc/en/resources/codes-and-references/practice-notes-and-circular-letters/pnap/APP/APP149.pdf"
+          expected = "a5b4d5a1af5f4a32b43973db33d95436f9390e8e2da77747ee666015077bb1a8"
+          output_dir = Path("/tmp/phase-b-direct-docling-public")
+          output_dir.mkdir(mode=0o700, exist_ok=False)
+          pdf = output_dir / "APP149.pdf"
+          request = Request(url, headers={"User-Agent": "Jason-OS-Docling-Public-Pilot/0.1", "Accept": "application/pdf"})
+          sha = hashlib.sha256()
+          size = 0
+          with urlopen(request, timeout=60) as response:
+              if urlparse(response.url).hostname != "www.bd.gov.hk":
+                  raise RuntimeError("official source redirect changed host")
+              with pdf.open("xb") as out:
+                  while True:
+                      chunk = response.read(65536)
+                      if not chunk:
+                          break
+                      size += len(chunk)
+                      if size > 5 * 1024 * 1024:
+                          raise RuntimeError("public PDF exceeds trial size bound")
+                      out.write(chunk)
+                      sha.update(chunk)
+          if size != 25520 or sha.hexdigest() != expected:
+              raise RuntimeError("APP149 source/version changed: AUTO_HOLD; no Docling execution")
+          print("PINNED_PUBLIC_SOURCE_PREFLIGHT_PASS: 25520 bytes, SHA256 verified")
+          PY
+
+      - name: Run one real official Docling conversion, no DB/worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          install -d -m 700 /tmp/phase-b-direct-docling-output
+          timeout --signal=TERM --kill-after=15s 240s \
+            python ops/phase_b_direct_docling_pilot.py \
+            /tmp/phase-b-direct-docling-public/APP149.pdf \
+            --report /tmp/phase-b-direct-docling-output/report.json
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          result = json.loads(Path("/tmp/phase-b-direct-docling-output/report.json").read_text())
+          if result["status"] != "MECHANICAL_PILOT_PASS_LIMITED":
+              raise RuntimeError("Docling result is not complete; stop at AUTO_HOLD")
+          assert result["db_write_performed"] is False
+          assert result["production_write_performed"] is False
+          print("DIRECT_DOCLING_REAL_PUBLIC_DOCUMENT_PASS_LIMITED")
+          PY
+
+      - name: Record public model cache SHA256 inventory (no model bytes)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          from hashlib import sha256
+          import json
+          import os
+
+          # Only model caches from this short-lived, empty GitHub runner.
+          roots = [
+              ("docling", Path.home() / ".cache" / "docling" / "models"),
+              ("huggingface", Path(os.environ.get("HF_HOME", str(Path.home() / ".cache" / "huggingface"))) / "hub"),
+          ]
+          allowed = {".safetensors", ".onnx", ".pt", ".pth", ".bin", ".ckpt", ".json", ".yaml", ".yml"}
+          result = {"status": "MODEL_CACHE_INVENTORY_PASS", "files": [],
+                    "roots_seen": [], "hash_algorithm": "sha256", "model_files_only": True}
+          seen = set()
+          total_bytes = 0
+          for group, root in roots:
+              if not root.exists():
+                  continue
+              result["roots_seen"].append(group)
+              root_real = root.resolve()
+              for path in sorted(root.rglob("*")):
+                  if not path.is_file() or path.suffix.lower() not in allowed:
+                      continue
+                  if not path.resolve().is_relative_to(root_real):
+                      raise RuntimeError("model cache symlink escapes verified root")
+                  logical = group + "/" + path.relative_to(root).as_posix()
+                  if logical in seen:
+                      raise RuntimeError("duplicate logical model cache file")
+                  seen.add(logical)
+                  size = path.stat().st_size
+                  total_bytes += size
+                  if len(seen) > 256 or total_bytes > 4_000_000_000:
+                      raise RuntimeError("model cache inventory bound exceeded")
+                  digest = sha256()
+                  with path.open("rb") as stream:
+                      while chunk := stream.read(1024 * 1024):
+                          digest.update(chunk)
+                  result["files"].append({"path": logical, "bytes": size,
+                                          "sha256": digest.hexdigest()})
+          result["file_count"] = len(result["files"])
+          result["total_bytes"] = total_bytes
+          if not result["files"]:
+              raise RuntimeError("no cached Docling models detected: inventory incomplete")
+          output = Path("/tmp/phase-b-direct-docling-output/model-inventory.json")
+          output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          print("DOCLING_MODEL_INVENTORY_SHA256_PASS", result["file_count"], "files")
+          PY
+
+      - name: Publish tiny metadata JSON only (no PDFs, text or weights)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase-b-direct-docling-${{ matrix.arch }}-public-metadata-only
+          path: |
+            /tmp/phase-b-direct-docling-output/report.json
+            /tmp/phase-b-direct-docling-output/model-inventory.json
+          if-no-files-found: ignore
+          retention-days: 3
