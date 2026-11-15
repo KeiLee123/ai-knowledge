@@ -114,5 +114,55 @@ class G1Tests(unittest.TestCase):
                 g1.inspect_one(1, opener=object())
 
 
+class OfficialSourceSelectionTests(unittest.TestCase):
+    def setUp(self):
+        import pnbi_g0_readonly_probe_v1 as g0
+        self.g0 = g0
+        self.html = "<html>" + "".join(
+            f'<a href="{g0.PREFIX}PNBI{n:03}.pdf">More details</a>'
+            f'<a href="{g0.SIGNED_PREFIX}PNBI{n:03}se.pdf">Signed Copy</a>'
+            for n in range(1, 11)
+        ) + "</html>"
+
+    def opener(self, html=None):
+        body = (self.html if html is None else html).encode("utf-8")
+        return Opener(Response(g1.INDEX, body, "text/html", str(len(body))))
+
+    def test_default_source_is_official_readable_detail(self):
+        selected = g1.fetch_official_index(self.opener())
+        self.assertTrue(selected[1].endswith("/pnbi/PNBI001.pdf"))
+        self.assertEqual(len(selected), 10)
+
+    def test_signed_source_is_explicitly_opt_in(self):
+        selected = g1.fetch_official_index(self.opener(), source="signed")
+        self.assertTrue(selected[1].endswith("/pnbi/signed/PNBI001se.pdf"))
+
+    def test_missing_detail_does_not_automatically_fallback_to_signed(self):
+        signed_only = self.html.replace("More details", "Not present")
+        with self.assertRaisesRegex(ValueError, "INCOMPLETE_DETAIL"):
+            g1.fetch_official_index(self.opener(signed_only))
+
+    def test_unsupported_mode_holds(self):
+        with self.assertRaisesRegex(ValueError, "UNRECOGNIZED_SOURCE_MODE"):
+            g1.fetch_official_index(self.opener(), source="unknown")
+
+    def test_one_document_defaults_to_official_detail(self):
+        detail_url = "https://www.bd.gov.hk" + self.g0.PREFIX + "PNBI001.pdf"
+        with patch.object(g1, "fetch_official_index", return_value={1: detail_url}) as discover, \
+             patch.object(g1, "fetch_pdf", return_value=PDF), \
+             patch.object(g1, "run_poppler", side_effect=["Pages: 2\nEncrypted: no\n", "PNBI-1"]):
+            actual = g1.inspect_one(1, opener=object())
+            discover.assert_called_once_with(object_marker := discover.call_args.args[0], source="detail")
+            self.assertEqual(actual["source"], "detail")
+            self.assertEqual(actual["url"], detail_url)
+
+    def test_scan_signature_cannot_satisfy_text_identity(self):
+        with patch.object(g1, "fetch_official_index", return_value={1: URL}), \
+             patch.object(g1, "fetch_pdf", return_value=PDF), \
+             patch.object(g1, "run_poppler", side_effect=["Pages: 4\nEncrypted: no\n", ""]):
+            with self.assertRaisesRegex(ValueError, "SOURCE_ID_TEXT_UNVERIFIED"):
+                g1.inspect_one(1, opener=object(), source="signed")
+
+
 if __name__ == "__main__":
     unittest.main()
