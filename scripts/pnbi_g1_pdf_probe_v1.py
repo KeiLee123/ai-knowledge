@@ -11,13 +11,13 @@ import subprocess
 import sys
 from urllib.request import Request, build_opener
 
-from pnbi_g0_readonly_probe_v1 import INDEX, NoRedirect, extract
+from pnbi_g0_readonly_probe_v1 import INDEX, NoRedirect, extract, extract_detail
 
 MAX_INDEX_BYTES = 2_000_000
 MAX_PDF_BYTES = 25_000_000
 
 
-def fetch_official_index(opener):
+def fetch_official_index(opener, source="detail"):
     request = Request(
         INDEX,
         headers={"Accept": "text/html", "User-Agent": "JasonOS-PNBI-G1-ReadOnly/1.0"},
@@ -30,7 +30,12 @@ def fetch_official_index(opener):
         body = response.read(MAX_INDEX_BYTES + 1)
     if len(body) > MAX_INDEX_BYTES:
         raise ValueError("INDEX_SIZE_HOLD")
-    return extract(body.decode("utf-8-sig", errors="strict"))
+    html = body.decode("utf-8-sig", errors="strict")
+    if source == "detail":
+        return extract_detail(html)
+    if source == "signed":
+        return extract(html)
+    raise ValueError("UNRECOGNIZED_SOURCE_MODE_HOLD")
 
 
 def fetch_pdf(opener, url):
@@ -93,9 +98,9 @@ def validate_document_id(text, number):
         raise ValueError("PNBI_SOURCE_ID_TEXT_UNVERIFIED_REVIEW_HOLD")
 
 
-def inspect_one(number, opener=None):
+def inspect_one(number, opener=None, source="detail"):
     opener = opener or build_opener(NoRedirect)
-    official = fetch_official_index(opener)  # Re-check G0 on this run.
+    official = fetch_official_index(opener, source=source)  # Re-check official index each run.
     url = official[number]
     data = fetch_pdf(opener, url)
     info = run_poppler(["pdfinfo", "-"], data)
@@ -104,6 +109,7 @@ def inspect_one(number, opener=None):
     validate_document_id(text, number)
     return {
         "number": number,
+        "source": source,
         "url": url,
         "bytes": len(data),
         "sha256": hashlib.sha256(data).hexdigest(),
@@ -114,9 +120,11 @@ def inspect_one(number, opener=None):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pnbi", required=True, type=int, choices=range(1, 11), metavar="1..10")
+    parser.add_argument("--source", choices=("detail", "signed"), default="detail",
+                        help="detail=standard official PDF (default); signed=optional visual-copy source")
     args = parser.parse_args(argv)
-    result = inspect_one(args.pnbi)
-    print("PNBI-{number:02d} | G1_PDF_CANDIDATE_PASS | SHA256={sha256} | BYTES={bytes} | PAGES={pages} | URL={url}".format(**result))
+    result = inspect_one(args.pnbi, source=args.source)
+    print("PNBI-{number:02d} | G1_PDF_CANDIDATE_PASS | SOURCE={source} | SHA256={sha256} | BYTES={bytes} | PAGES={pages} | URL={url}".format(**result))
     print("G1_PDF_SOURCE_ID_TEXT_PASS; SIGNATURE_CRYPTO_NOT_TESTED; NO_DRIVE_WRITE; NO_DB_WRITE")
 
 
