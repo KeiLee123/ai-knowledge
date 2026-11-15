@@ -216,6 +216,12 @@ jobs:
           set -euo pipefail
           python test_pnbi_g0_readonly_probe_v1.py
 
+      - name: Issue 87 PNBI official PDF G1 in-memory safety contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_pnbi_g1_pdf_probe_v1.py
+
       - name: Private Beta Staging systemd root-private token and unit offline contract
         shell: bash
         run: |
