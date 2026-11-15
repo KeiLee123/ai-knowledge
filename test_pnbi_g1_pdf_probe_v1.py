@@ -148,11 +148,12 @@ class OfficialSourceSelectionTests(unittest.TestCase):
 
     def test_one_document_defaults_to_official_detail(self):
         detail_url = "https://www.bd.gov.hk" + self.g0.PREFIX + "PNBI001.pdf"
+        opener = object()
         with patch.object(g1, "fetch_official_index", return_value={1: detail_url}) as discover, \
              patch.object(g1, "fetch_pdf", return_value=PDF), \
              patch.object(g1, "run_poppler", side_effect=["Pages: 2\nEncrypted: no\n", "PNBI-1"]):
-            actual = g1.inspect_one(1, opener=object())
-            discover.assert_called_once_with(object_marker := discover.call_args.args[0], source="detail")
+            actual = g1.inspect_one(1, opener=opener)
+            discover.assert_called_once_with(opener, source="detail")
             self.assertEqual(actual["source"], "detail")
             self.assertEqual(actual["url"], detail_url)
 
