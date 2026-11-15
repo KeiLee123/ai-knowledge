@@ -191,6 +191,12 @@ jobs:
           set -euo pipefail
           python test_kb03_private_beta_quote_ui_v1.py
 
+      - name: KB-97 draft 20-case metadata-only QA observer synthetic contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_kb97_full_qa_observer_staging_v1.py
+
       - name: KB-03 private Feedback Review Loop synthetic-only contract
         shell: bash
         run: |
