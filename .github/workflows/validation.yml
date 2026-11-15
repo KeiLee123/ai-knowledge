@@ -222,6 +222,12 @@ jobs:
           set -euo pipefail
           python test_pnbi_g1_pdf_probe_v1.py
 
+      - name: Issue 87 PNBI G2 immutable Drive Staging archive and SHA readback offline contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_pnbi_g2_drive_staging_archive_v1.py
+
       - name: Private Beta Staging systemd root-private token and unit offline contract
         shell: bash
         run: |
