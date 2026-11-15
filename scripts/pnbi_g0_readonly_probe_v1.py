@@ -59,6 +59,42 @@ def extract(html):
         raise ValueError("INCOMPLETE_SIGNED_COPY_LINKS_HOLD missing=" + str(missing))
     return found
 
+
+def extract_detail(html):
+    """Bounded official-index discovery of More details (standard, readable) PDFs.
+
+    Signed Copy and Obsolete Versions are ignored, not substituted.
+    Fail closed on missing, duplicate, off-host, bad-language or wrong-path links.
+    """
+    parser = Links()
+    parser.feed(html)
+    found = {}
+    for link in parser.links:
+        label = " ".join(link["text"].split()).casefold()
+        if "more details" not in label:
+            continue
+        url = urljoin(INDEX, link["href"])
+        parts = urlsplit(url)
+        if parts.scheme != "https" or parts.netloc != "www.bd.gov.hk" or parts.query or parts.fragment:
+            raise ValueError("UNSAFE_DETAIL_LINK_HOLD")
+        if parts.path.lower().rsplit("/", 1)[0] != PREFIX.rstrip("/"):
+            raise ValueError("NON_ENGLISH_OR_WRONG_DETAIL_PATH_HOLD")
+        filename = parts.path.rsplit("/", 1)[-1]
+        match = re.fullmatch(r"PNBI0*(\d{1,2})\.pdf", filename, re.I)
+        if not match:
+            raise ValueError("UNRECOGNIZED_DETAIL_FILENAME_HOLD")
+        number = int(match.group(1))
+        if number not in range(1, 11):
+            raise ValueError("OUT_OF_SCOPE_PNBI_DETAIL_HOLD")
+        if number in found:
+            raise ValueError(f"DUPLICATE_PNBI_DETAIL_{number}_HOLD")
+        found[number] = url
+    if sorted(found) != list(range(1, 11)):
+        missing = sorted(set(range(1, 11)) - found.keys())
+        raise ValueError("INCOMPLETE_DETAIL_LINKS_HOLD missing=" + str(missing))
+    return found
+
+
 def main():
     req = Request(INDEX, headers={"Accept": "text/html", "User-Agent": "JasonOS-PNBI-G0-ReadOnly/1.0"})
     opener = build_opener(NoRedirect)
