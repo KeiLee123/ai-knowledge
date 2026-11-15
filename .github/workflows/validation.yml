@@ -228,6 +228,12 @@ jobs:
           set -euo pipefail
           python test_pnbi_g2_drive_staging_archive_v1.py
 
+      - name: Issue 87 PNBI G3-A read-only original SHA and full-page text review contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_pnbi_g3a_readonly_quality_probe_v1.py
+
       - name: Private Beta Staging systemd root-private token and unit offline contract
         shell: bash
         run: |
