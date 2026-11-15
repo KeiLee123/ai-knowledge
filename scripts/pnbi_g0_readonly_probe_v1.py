@@ -61,7 +61,7 @@ def extract(html):
 
 
 def extract_detail(html):
-    """Bounded official-index discovery of More details (standard, readable) PDFs.
+    """Bounded official-index discovery of PNBI-number-labeled standard PDFs.
 
     Signed Copy and Obsolete Versions are ignored, not substituted.
     Fail closed on missing, duplicate, off-host, bad-language or wrong-path links.
@@ -70,9 +70,15 @@ def extract_detail(html):
     parser.feed(html)
     found = {}
     for link in parser.links:
-        label = " ".join(link["text"].split()).casefold()
-        if "more details" not in label:
+        # The official "More details" anchor is a javascript:; row expander,
+        # NOT a PDF URL. Standard PDFs have exact link labels PNBI-1..PNBI-10.
+        label = " ".join(link["text"].split())
+        identity = re.fullmatch(r"PNBI\s*[-–—]\s*0*(\d{1,2})", label, re.I)
+        if not identity:
             continue
+        number = int(identity.group(1))
+        if number not in range(1, 11):
+            raise ValueError("OUT_OF_SCOPE_PNBI_DETAIL_HOLD")
         url = urljoin(INDEX, link["href"])
         parts = urlsplit(url)
         if parts.scheme != "https" or parts.netloc != "www.bd.gov.hk" or parts.query or parts.fragment:
@@ -83,9 +89,8 @@ def extract_detail(html):
         match = re.fullmatch(r"PNBI0*(\d{1,2})\.pdf", filename, re.I)
         if not match:
             raise ValueError("UNRECOGNIZED_DETAIL_FILENAME_HOLD")
-        number = int(match.group(1))
-        if number not in range(1, 11):
-            raise ValueError("OUT_OF_SCOPE_PNBI_DETAIL_HOLD")
+        if int(match.group(1)) != number:
+            raise ValueError("DETAIL_LABEL_FILENAME_MISMATCH_HOLD")
         if number in found:
             raise ValueError(f"DUPLICATE_PNBI_DETAIL_{number}_HOLD")
         found[number] = url
