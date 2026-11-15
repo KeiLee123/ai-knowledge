@@ -196,7 +196,7 @@ class DetailProbeTest(unittest.TestCase):
             module.extract_detail(self.html + detail_row(12))
 
     def test_nested_label_still_recognized(self):
-        bad = self.html.replace(">PNBI-1<", ">PNBI-<span>1</span><")
+        bad = self.html.replace(">PNBI-1</a>", ">PNBI-<span>1</span></a>")
         self.assertEqual(len(module.extract_detail(bad)), 10)
 
 
