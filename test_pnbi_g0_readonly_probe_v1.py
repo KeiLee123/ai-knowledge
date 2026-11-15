@@ -93,9 +93,11 @@ class ProbeTest(unittest.TestCase):
         self.assertEqual(len(module.extract(html)), 10)
 
 
-def detail_row(index, *, href=None, label="More details"):
+def detail_row(index, *, href=None, label=None):
     if href is None:
         href = module.PREFIX + f"PNBI{index:03}.pdf"
+    if label is None:
+        label = f"PNBI-{index}"
     return (f'<tr><td>PNBI-{index}</td>'
             f'<td><a href="{href}">{label}</a></td>'
             f'<td><a href="{module.SIGNED_PREFIX}PNBI{index:03}se.pdf">Signed Copy</a></td></tr>')
@@ -161,8 +163,40 @@ class DetailProbeTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "UNSAFE_DETAIL"):
             module.extract_detail(bad)
 
+    def test_js_more_details_expander_ignored(self):
+        expanders = "".join(
+            f'<a href="javascript:;" class="expandBtn" '
+            f'data-target="#row{n}">More details</a>'
+            for n in range(1, 11)
+        )
+        self.assertEqual(module.extract_detail(self.html + expanders),
+                         module.extract_detail(self.html))
+
+    def test_js_expanders_alone_do_not_create_any_pdf_candidate(self):
+        expanders = "".join(
+            f'<a href="javascript:;" data-target="#row{n}">More details</a>'
+            for n in range(1, 11)
+        )
+        with self.assertRaisesRegex(ValueError, "INCOMPLETE_DETAIL"):
+            module.extract_detail(expanders)
+
+    def test_label_filename_mismatch_holds(self):
+        bad = self.html.replace('href="' + module.PREFIX + 'PNBI003.pdf"',
+                                'href="' + module.PREFIX + 'PNBI002.pdf"')
+        with self.assertRaisesRegex(ValueError, "DETAIL_LABEL_FILENAME_MISMATCH"):
+            module.extract_detail(bad)
+
+    def test_organization_chart_is_ignored(self):
+        other = '<a href="../../../../doc/en/about-us/En-cha-c.pdf">Organisation chart</a>'
+        self.assertEqual(module.extract_detail(self.html + other),
+                         module.extract_detail(self.html))
+
+    def test_label_number_not_in_scope_holds(self):
+        with self.assertRaisesRegex(ValueError, "OUT_OF_SCOPE"):
+            module.extract_detail(self.html + detail_row(12))
+
     def test_nested_label_still_recognized(self):
-        bad = self.html.replace(">More details<", ">More <span>details</span><")
+        bad = self.html.replace(">PNBI-1<", ">PNBI-<span>1</span><")
         self.assertEqual(len(module.extract_detail(bad)), 10)
 
 
