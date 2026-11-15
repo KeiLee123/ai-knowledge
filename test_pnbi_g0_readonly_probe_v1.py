@@ -12,7 +12,7 @@ spec.loader.exec_module(module)
 
 def official_row(index, *, href=None, label="Signed Copy"):
     if href is None:
-        href = module.PREFIX + f"PNBI{index:03}.pdf"
+        href = module.SIGNED_PREFIX + f"PNBI{index:03}se.pdf"
     return (f'<tr><td>PNBI-{index}</td>'
             f'<td><a href="{href}">{label}</a></td></tr>')
 
@@ -26,7 +26,7 @@ class ProbeTest(unittest.TestCase):
     def test_valid_ten(self):
         actual = module.extract(self.index)
         self.assertEqual(sorted(actual), list(range(1, 11)))
-        self.assertTrue(actual[2].endswith("PNBI002.pdf"))
+        self.assertTrue(actual[2].endswith("PNBI002se.pdf"))
 
     def test_missing_link_holds(self):
         with self.assertRaisesRegex(ValueError, "INCOMPLETE"):
@@ -38,7 +38,7 @@ class ProbeTest(unittest.TestCase):
 
     def test_off_domain_holds(self):
         hostile = self.index.replace(
-            module.PREFIX + "PNBI003.pdf", "https://evil.example/PNBI003.pdf"
+            module.SIGNED_PREFIX + "PNBI003se.pdf", "https://evil.example/PNBI003se.pdf"
         )
         with self.assertRaisesRegex(ValueError, "UNSAFE"):
             module.extract(hostile)
@@ -58,9 +58,35 @@ class ProbeTest(unittest.TestCase):
             module.extract(self.index + official_row(11))
 
     def test_filename_identity_mismatch_holds(self):
-        wrong = self.index.replace("PNBI003.pdf", "another.pdf")
+        wrong = self.index.replace("PNBI003se.pdf", "another.pdf")
         with self.assertRaisesRegex(ValueError, "UNRECOGNIZED"):
             module.extract(wrong)
+
+    def test_unsigned_detail_pdf_is_not_signed_copy(self):
+        unsafe = self.index.replace(
+            module.SIGNED_PREFIX + "PNBI001se.pdf",
+            module.PREFIX + "PNBI001.pdf",
+        )
+        with self.assertRaisesRegex(ValueError, "WRONG_SIGNED_PATH"):
+            module.extract(unsafe)
+
+    def test_legacy_obsolete_pdf_must_not_be_signed_candidate(self):
+        unsafe = self.index.replace(
+            module.SIGNED_PREFIX + "PNBI006se.pdf",
+            module.PREFIX + "obsolete/PNBI006_2013.pdf",
+        )
+        with self.assertRaisesRegex(ValueError, "WRONG_SIGNED_PATH"):
+            module.extract(unsafe)
+
+    def test_signed_copy_wrong_suffix_holds(self):
+        unsafe = self.index.replace("PNBI007se.pdf", "PNBI007old.pdf")
+        with self.assertRaisesRegex(ValueError, "UNRECOGNIZED"):
+            module.extract(unsafe)
+
+    def test_signed_copy_query_string_holds(self):
+        unsafe = self.index.replace("PNBI008se.pdf", "PNBI008se.pdf?ref=ignored")
+        with self.assertRaisesRegex(ValueError, "UNSAFE"):
+            module.extract(unsafe)
 
     def test_html_nested_label(self):
         html = self.index.replace(">Signed Copy<", ">Signed <strong>Copy</strong><")
