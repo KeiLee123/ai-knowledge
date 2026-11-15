@@ -234,6 +234,12 @@ jobs:
           set -euo pipefail
           python test_pnbi_g3a_readonly_quality_probe_v1.py
 
+      - name: Issue 87 Document Fidelity G3-B evidence and citation safety offline contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_validate_document_fidelity_review_v01.py
+
       - name: Private Beta Staging systemd root-private token and unit offline contract
         shell: bash
         run: |
