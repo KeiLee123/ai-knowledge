@@ -210,6 +210,12 @@ jobs:
           node --version
           KB03_REQUIRE_NODE=1 python test_kb03_issue97_reading_modes_staging_v1.py
 
+      - name: Issue 87 PNBI signed-copy index G0 offline safety contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_pnbi_g0_readonly_probe_v1.py
+
       - name: Private Beta Staging systemd root-private token and unit offline contract
         shell: bash
         run: |
