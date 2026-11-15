@@ -93,5 +93,78 @@ class ProbeTest(unittest.TestCase):
         self.assertEqual(len(module.extract(html)), 10)
 
 
+def detail_row(index, *, href=None, label="More details"):
+    if href is None:
+        href = module.PREFIX + f"PNBI{index:03}.pdf"
+    return (f'<tr><td>PNBI-{index}</td>'
+            f'<td><a href="{href}">{label}</a></td>'
+            f'<td><a href="{module.SIGNED_PREFIX}PNBI{index:03}se.pdf">Signed Copy</a></td></tr>')
+
+
+class DetailProbeTest(unittest.TestCase):
+    def setUp(self):
+        self.html = "<html><table>" + "".join(detail_row(n) for n in range(1, 11)) + "</table></html>"
+
+    def test_ten_standard_links_separate_from_signed(self):
+        selected = module.extract_detail(self.html)
+        self.assertEqual(sorted(selected), list(range(1, 11)))
+        self.assertEqual(selected[1], "https://www.bd.gov.hk" + module.PREFIX + "PNBI001.pdf")
+        self.assertEqual(len(module.extract(self.html)), 10)
+
+    def test_signed_only_is_not_a_detail(self):
+        only_signed = "<html>" + "".join(official_row(n) for n in range(1, 11)) + "</html>"
+        with self.assertRaisesRegex(ValueError, "INCOMPLETE_DETAIL"):
+            module.extract_detail(only_signed)
+
+    def test_missing_standard_detail_holds(self):
+        with self.assertRaisesRegex(ValueError, "INCOMPLETE_DETAIL"):
+            module.extract_detail(self.html.replace(detail_row(3), ""))
+
+    def test_duplicate_detail_holds(self):
+        with self.assertRaisesRegex(ValueError, "DUPLICATE_PNBI_DETAIL"):
+            module.extract_detail(self.html + detail_row(3))
+
+    def test_wrong_domain_detail_holds(self):
+        bad = self.html.replace(module.PREFIX + "PNBI001.pdf", "https://other.example/PNBI001.pdf")
+        with self.assertRaisesRegex(ValueError, "UNSAFE_DETAIL"):
+            module.extract_detail(bad)
+
+    def test_wrong_language_detail_holds(self):
+        bad = self.html.replace(module.PREFIX + "PNBI001.pdf",
+                                module.PREFIX.replace("/doc/en/", "/doc/tc/") + "PNBI001.pdf")
+        with self.assertRaisesRegex(ValueError, "WRONG_DETAIL_PATH"):
+            module.extract_detail(bad)
+
+    def test_signed_link_labeled_detail_holds(self):
+        bad = self.html.replace(module.PREFIX + "PNBI001.pdf",
+                                module.SIGNED_PREFIX + "PNBI001se.pdf")
+        with self.assertRaisesRegex(ValueError, "WRONG_DETAIL_PATH"):
+            module.extract_detail(bad)
+
+    def test_obsolete_link_labeled_detail_holds(self):
+        bad = self.html.replace(module.PREFIX + "PNBI001.pdf",
+                                module.PREFIX + "obsolete/PNBI001_2012.pdf")
+        with self.assertRaisesRegex(ValueError, "WRONG_DETAIL_PATH"):
+            module.extract_detail(bad)
+
+    def test_unrecognized_basename_holds(self):
+        bad = self.html.replace("PNBI001.pdf", "PNBI001_draft.pdf")
+        with self.assertRaisesRegex(ValueError, "UNRECOGNIZED_DETAIL_FILENAME"):
+            module.extract_detail(bad)
+
+    def test_extra_eleventh_detail_holds(self):
+        with self.assertRaisesRegex(ValueError, "OUT_OF_SCOPE"):
+            module.extract_detail(self.html + detail_row(11))
+
+    def test_query_string_rejected(self):
+        bad = self.html.replace("PNBI004.pdf", "PNBI004.pdf?rev=old")
+        with self.assertRaisesRegex(ValueError, "UNSAFE_DETAIL"):
+            module.extract_detail(bad)
+
+    def test_nested_label_still_recognized(self):
+        bad = self.html.replace(">More details<", ">More <span>details</span><")
+        self.assertEqual(len(module.extract_detail(bad)), 10)
+
+
 if __name__ == "__main__":
     unittest.main()
