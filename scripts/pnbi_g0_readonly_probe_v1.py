@@ -8,6 +8,7 @@ import sys
 
 INDEX = "https://www.bd.gov.hk/en/resources/codes-and-references/practice-notes-and-circular-letters/index_pnbi.html"
 PREFIX = "/doc/en/resources/codes-and-references/practice-notes-and-circular-letters/pnbi/"
+SIGNED_PREFIX = PREFIX + "signed/"
 
 class NoRedirect(HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
@@ -41,10 +42,10 @@ def extract(html):
         parts = urlsplit(url)
         if parts.scheme != "https" or parts.netloc != "www.bd.gov.hk" or parts.query or parts.fragment:
             raise ValueError("UNSAFE_SIGNED_COPY_LINK_HOLD")
-        if not parts.path.lower().startswith(PREFIX):
-            raise ValueError("NON_ENGLISH_OR_WRONG_PATH_HOLD")
+        if parts.path.lower().rsplit("/", 1)[0] != SIGNED_PREFIX.rstrip("/"):
+            raise ValueError("NON_ENGLISH_OR_WRONG_SIGNED_PATH_HOLD")
         filename = parts.path.rsplit("/", 1)[-1]
-        m = re.fullmatch(r"PNBI0*(\d{1,2})\.pdf", filename, re.I)
+        m = re.fullmatch(r"PNBI0*(\d{1,2})se\.pdf", filename, re.I)
         if not m:
             raise ValueError("UNRECOGNIZED_SIGNED_FILENAME_HOLD")
         number = int(m.group(1))
