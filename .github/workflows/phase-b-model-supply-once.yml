@@ -1,0 +1,108 @@
+name: Phase B model supply evidence (one-shot)
+# One-off, feature-only; not workflow_dispatch and not a Production workflow.
+# This job fetches public immutable model files ONLY into an ephemeral runner;
+# uploaded artifacts are metadata JSON only, NEVER weights, PDFs or secrets.
+on:
+  push:
+    branches:
+      - feature/phase-b-shadow-processing-mvp
+    paths:
+      - .github/workflows/phase-b-model-supply-once.yml
+
+permissions:
+  contents: read
+
+jobs:
+  model-byte-inventory:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      HF_HUB_DISABLE_IMPLICIT_TOKEN: "1"
+      HF_HUB_DISABLE_PROGRESS_BARS: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+      PIP_NO_CACHE_DIR: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install lightweight download and hash dependencies only
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check -r requirements.txt 'huggingface_hub==0.36.0'
+      - name: Fetch three immutable source trees and calculate real byte SHA256
+        run: |
+          set -euo pipefail
+          python -m ops.phase_b_shadow.prepare_model_supply
+      - name: Upload PUBLIC metadata evidence only (NO MODEL FILES)
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase-b-model-sha256-only
+          path: ${{ runner.temp }}/phase-b-model-supply/report/model-inventory.json
+          if-no-files-found: error
+          retention-days: 3
+
+  cpu-package-feasibility:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      PIP_NO_CACHE_DIR: "1"
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      CUDA_VISIBLE_DEVICES: ""
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install explicit CPU-only PyTorch wheel pair
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --index-url https://download.pytorch.org/whl/cpu 'torch==2.9.1+cpu' 'torchvision==0.24.1+cpu'
+      - name: Resolve and install the exact Phase B application requirements
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check -r requirements-phase-b.txt
+          python -m pip check
+      - name: Verify CPU runtime and save public version metadata
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/phase-b-cpu-evidence"
+          python - <<'PY'
+          import importlib.metadata as md
+          import json
+          import os
+          import platform
+          from pathlib import Path
+          import torch
+          import torchvision
+          assert torch.version.cuda is None, "unexpected CUDA-enabled torch"
+          assert "+cpu" in torch.__version__, "torch package is not CPU wheel"
+          assert not torch.cuda.is_available(), "unexpected GPU access"
+          packages = ("torch", "torchvision", "docling", "docling-core",
+                      "docling-ibm-models", "docling-parse", "transformers", "celery")
+          report = {
+              "status": "CPU_PYTHON_WHEEL_IMPORT_CHECK_ONLY_NOT_IMAGE",
+              "python": platform.python_version(),
+              "platform": platform.platform(),
+              "packages": {p: md.version(p) for p in packages},
+              "torch_cuda_version": None,
+              "cuda_available": False,
+              "cpu_image_built": False,
+              "model_inference_performed": False,
+              "staging_runtime_performed": False,
+          }
+          out = Path(os.environ["RUNNER_TEMP"]) / "phase-b-cpu-evidence" / "cpu-package-versions.json"
+          out.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          print("CPU_DEPENDENCY_SUMMARY="+json.dumps(report, sort_keys=True))
+          PY
+          df -h .
+          du -sh "$pythonLocation" 2>/dev/null || true
+      - name: Upload PUBLIC version evidence only (NO WHEELS / WEIGHTS)
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase-b-cpu-package-versions-only
+          path: ${{ runner.temp }}/phase-b-cpu-evidence/cpu-package-versions.json
+          if-no-files-found: error
+          retention-days: 3

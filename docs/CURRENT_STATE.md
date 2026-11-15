@@ -56,3 +56,38 @@ See [governance](DEVELOPMENT_GOVERNANCE.md) and [dated audit](DEVELOPMENT_HEALTH
 This document is a dated GitHub technical navigation snapshot. For a new development task, retrieve the [M1 Master Index](https://docs.google.com/document/d/1QDcl287N5zFqeYEpukN10cd-2qv7lJEdNcT4rJ0lpTI/edit) and [Knowledge Brain Current State](https://docs.google.com/document/d/1ETsFRfbE2HsRG2yb78EKDfRm2VzveyLNkLS-cr1g6Nk/edit) first, follow the [M2 Preflight/Handoff SOP](https://docs.google.com/document/d/1_WZ2rtpQOEsQFAWq1zjgoSxAgf6qyRrbhKlmqJlql5U/edit), and use the [M3 audit](https://docs.google.com/document/d/1Kq28KgAtzR9zcn5iYA8VoznxyrW3PsfDN0LrlSUKqAg/edit) only as dated evidence. Reconcile live PR/CI and bounded VPS evidence separately. The original open-PR count predates this governance Draft [PR #89](https://github.com/KeiLee123/ai-knowledge/pull/89).
 
 For [Document Ingestion PR #88](https://github.com/KeiLee123/ai-knowledge/pull/88), the pinned real VPS read-only audit already covered all 298 PDF pages, 148 structured table chunks and 148 writer-metadata checks with zero mismatches. Pages 151–298 were 148 extractor blank candidates, not independently rendered-blank pages. The separate render script passed synthetic CI on head a1b0f4856edf3c6090ce44fcbbd7d65cefcb1fa2, but the real 148-page raster test and database round-trip remain unverified. This addendum does not authorize Production deployment or modifications to Frozen v1.3.
+
+## 2026-11-04 — Phase B code-only PR #95 audit addendum (GitHub only)
+
+[Draft PR #95](https://github.com/KeiLee123/ai-knowledge/pull/95) targets
+`staging` for a database-free Docling/Celery/Redis shadow worker; related
+[Issue #94](https://github.com/KeiLee123/ai-knowledge/issues/94).
+The code-only review added fail-closed source PDF page-count comparison,
+Docling table-cell end-offset verification, and bounded/symlink-safe
+fixture-catalog handling with offline regressions. **Exact updated PR
+head and CI require checking live GitHub**; do not reuse the historical
+FD4CF461 acceptance as evidence for this review commit. Real Docling
+model execution, Staging resource benchmark, service deployment,
+user Beta and Production are **NOT VERIFIED / NOT AUTHORIZED**.
+PostgreSQL `trust` authentication and backup/restore remain separate
+release HOLDs. Read the Google Drive Migration Contract and Beta-First
+Product Contract for canonical decisions. Frozen Retrieval and M8/M9
+are unchanged.
+
+## 2026-11-05 — Phase B Off-VPS CPU Image Gate (GitHub-only, NOT VPS verified)
+
+[Draft PR #95](https://github.com/KeiLee123/ai-knowledge/pull/95)
+built a real CPU-only **candidate** Docker image outside the VPS:
+[GitHub Actions #41876179138](https://github.com/KeiLee123/ai-knowledge/actions/runs/41876179138)
+SUCCESS at commit `9f3aca8f4aa53241f55c94efee01786d917ed7e4`.
+Uncompressed local size 1,867,147,090 bytes, nonroot UID 10001,
+network-disabled read-only import PASS with 1 CPU / 3 GiB. Python
+Docling 2.146.0 + CPU Torch imports pass; no inference. The image
+was **not** pushed, retained, privately delivered or deployed. Existing
+Validation #41876196709 SUCCESS (25 Phase B offline test methods)
+at that same code commit. Prior immutable-source candidate model
+inventory: 20 files / 701,224,343 bytes, but **no private binary
+delivery/rehash**. Staging runtime, App149 provenance, Product Private
+Beta and DB trust-auth/backup restore remain HOLD. Frozen Retrieval,
+Production, DB and M8/M9 unchanged. Consult Issue #94 and the Phase B
+Model Supply Gate; do not infer any live VPS state.
