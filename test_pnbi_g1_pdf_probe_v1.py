@@ -119,7 +119,7 @@ class OfficialSourceSelectionTests(unittest.TestCase):
         import pnbi_g0_readonly_probe_v1 as g0
         self.g0 = g0
         self.html = "<html>" + "".join(
-            f'<a href="{g0.PREFIX}PNBI{n:03}.pdf">More details</a>'
+            f'<a href="{g0.PREFIX}PNBI{n:03}.pdf">PNBI-{n}</a>'
             f'<a href="{g0.SIGNED_PREFIX}PNBI{n:03}se.pdf">Signed Copy</a>'
             for n in range(1, 11)
         ) + "</html>"
@@ -138,9 +138,15 @@ class OfficialSourceSelectionTests(unittest.TestCase):
         self.assertTrue(selected[1].endswith("/pnbi/signed/PNBI001se.pdf"))
 
     def test_missing_detail_does_not_automatically_fallback_to_signed(self):
-        signed_only = self.html.replace("More details", "Not present")
+        signed_only = self.html.replace(">PNBI-1<", ">Not a PNBI link<")
         with self.assertRaisesRegex(ValueError, "INCOMPLETE_DETAIL"):
             g1.fetch_official_index(self.opener(signed_only))
+
+    def test_more_details_expander_not_a_download_url(self):
+        expandable = self.html + '<a href="javascript:;" class="expandBtn" data-target="#row1">More details</a>'
+        selected = g1.fetch_official_index(self.opener(expandable))
+        self.assertEqual(len(selected), 10)
+        self.assertTrue(selected[1].endswith("/PNBI001.pdf"))
 
     def test_unsupported_mode_holds(self):
         with self.assertRaisesRegex(ValueError, "UNRECOGNIZED_SOURCE_MODE"):
