@@ -113,6 +113,16 @@ class FidelityTests(unittest.TestCase):
     def test_21_missing_image_metric(self):
         with self.assertRaisesRegex(ValueError,"IMAGE_METRIC"):
             self.validate(self.altered(lambda m:m["rows"][0].pop("embedded_pdf_image_xobjects")))
+    def test_23_graphic_spatial_relation_is_blocked_even_with_text_labels(self):
+        r = self.validate(self.altered(
+            lambda m: m["rows"][2].update(
+                disposition="GRAPHIC_SPATIAL_RELATION_NOT_PRESERVED_MULTIMODAL_REQUIRED",
+                observation="Photo 3 string exists but arrow position is not reproducible from text")))
+        self.assertEqual(r["risk_pages"]["TEXT_ONLY_SEMANTICS_BLOCKED"], [67])
+
+    def test_24_old_graphic_label_missing_flag_still_supported(self):
+        self.assertEqual(self.validate()["risk_pages"]["TEXT_ONLY_SEMANTICS_BLOCKED"], [67])
+
     def test_22_disposition_wrong_type(self):
         with self.assertRaisesRegex(ValueError,"UNSUPPORTED_DISPOSITION"):
             self.validate(self.altered(lambda m:m["rows"][0].update(disposition=[])))
