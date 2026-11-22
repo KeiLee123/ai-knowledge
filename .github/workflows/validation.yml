@@ -161,6 +161,15 @@ jobs:
           set -euo pipefail
           python test_beta_stage_monitor_candidate_v1.py
 
+      - name: Beta Drive candidate to isolated validation integration
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_m10_candidate_intake_v1.py
+          python test_m10b1_isolated_candidate_v1.py
+          python test_m10b2a_candidate_lexical_v1.py
+          python test_beta_validate_drive_candidate_v1.py
+
       - name: Private Beta Staging Q&A source and citation safety contract
         shell: bash
         run: |

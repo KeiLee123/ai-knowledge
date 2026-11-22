@@ -1,5 +1,24 @@
 # Knowledge Brain — Current State
 
+## 2026-11-22 — Gate 1 candidate validation adapter (Draft; not deployed)
+
+Issue #59: `beta_validate_drive_candidate_v1.py` joins a freshly read existing
+versioned Drive object to the same M9 candidate's existing M10B-1 parse and
+M10B-2A in-memory lexical evidence. Default is a local non-write plan; Drive
+read and isolated candidate-workspace write are separate explicit modes.
+See [contract and remaining gates](beta_drive_isolated_candidate_validation_v1.md).
+Base staging SHA: `9667c26d229f2df5688dd5d63ee23da95aca2f7c`.
+This is an additive engineering proposal, not real changed-source acceptance,
+shared-DB ingestion, new deployment or authorization to merge. The older
+snapshot below is historical; exact feature head/CI belong to its Draft PR.
+
+Earlier same-day independent acceptance at that base SHA: seven Browser cases
+Q01/Q06/Q09/Q14/Q15/Q19/Q19b, one explicitly authorized Staging Feedback saved,
+and VPS Linux 41/41 existing synthetic candidate tests passed. These bounded
+results do not establish legal semantics, currentness, full USER_BETA or this
+new adapter's runtime acceptance; safe detailed evidence is in the owner's
+2026-11-22 local handoff reports, pending canonical external handoff sync.
+
 **Snapshot date:** 2026-11-01 (GitHub + existing Google Drive product decisions; **not a live VPS audit**).  
 **Owner workstream:** Knowledge Brain backend; consume from 03 — Knowledge & Learning, and expose read-only interfaces to Jarvis Core where warranted.  
 **Status:** Existing Production baseline protected; Staging development active; **private usable Beta not yet fully accepted**.
