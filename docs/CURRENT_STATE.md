@@ -1,5 +1,18 @@
 # Knowledge Brain — Current State
 
+## 2026-11-22 — HKeL duplicate-reference guard (feature; CI pending)
+
+PR119 merged to staging `bdac522211cbbca970eee0d174446191d69e9e4f`;
+post-merge CI45026697750 passed. Owner-approved VPS sync and installed
+default/official read-only CLI passed21:24; clean, same active PID160295,
+protected hashes unchanged and no state/baseline created. Earlier labels below
+are dated history. Review found deduplication could hide conflicting raw
+references. Follow-up feature checks raw references before existing dedup,
+with one regression covering duplicate shapes and pre-write refusal modes.
+No parser/registry/Frozen/M8/M9 changes. New guard not deployed; real baseline,
+candidate, Drive/index, changed edition and legal/full-Beta gates remain open.
+Issue59 stays OPEN; review this feature's exact-head CI before runtime approval.
+
 ## 2026-11-22 — HKeL Linux ZIP-member fix (Draft, not deployed)
 
 PR118 merged as `2eae0ad`; exact post-merge CI passed. Approved VPS sync and

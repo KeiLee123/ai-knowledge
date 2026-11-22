@@ -8,6 +8,7 @@ from pathlib import Path
 import tempfile
 from unittest.mock import patch
 import urllib.error
+import xml.etree.ElementTree as ET
 import zipfile
 
 import hkel_watch_staging_v1 as mod
@@ -219,6 +220,28 @@ def test_xml_identity_date_language_dtd_and_parse_errors_are_rejected():
         with tempfile.TemporaryDirectory() as temp:
             result = invoke(Path(temp)/'hkel-watch-staging', (manifest, raw))
             assert result['status'] == 'BLOCKED', result
+
+
+def test_duplicate_canonical_refs_are_refused_before_deduplication():
+    manifest, xml = fixture()
+    for case in ('same-id-conflict', 'different-id-conflict', 'identical'):
+        tree = ET.fromstring(xml)
+        main = tree.find('{' + mod.NS + '}main')
+        duplicate = copy.deepcopy(main[0])
+        if case != 'identical':
+            duplicate.find('{' + mod.NS + '}content').text = 'Conflicting section text.'
+        if case == 'different-id-conflict':
+            duplicate.set('id', 'other-id')
+        main.append(duplicate)
+        ambiguous = ET.tostring(tree, encoding='utf-8')
+        for action in ('plan', 'initialize-baseline', 'save-candidate'):
+            with tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)/'hkel-watch-staging'
+                result = invoke(root, (manifest, ambiguous), action=action)
+                assert result['status'] == 'BLOCKED', (case, action, result)
+                assert result['reasons'] == ['empty_or_duplicate_canonical_refs'], result
+                assert not root.exists() and not result['state_write_attempted'], result
+                assert not result['state_written'] and not result['partial_state_may_exist'], result
 
 
 def test_unapproved_urls_redirects_deadline_and_budgets_refuse_before_connection():
