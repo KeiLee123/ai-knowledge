@@ -113,6 +113,24 @@ class FidelityTests(unittest.TestCase):
     def test_21_missing_image_metric(self):
         with self.assertRaisesRegex(ValueError,"IMAGE_METRIC"):
             self.validate(self.altered(lambda m:m["rows"][0].pop("embedded_pdf_image_xobjects")))
+    def test_25_amendment_visual_highlight_is_review_required(self):
+        review = self.altered(
+            lambda m: m["rows"][2].update(
+                disposition="VISUAL_AMENDMENT_HIGHLIGHT_NOT_PRESERVED_TEXT_ONLY",
+                observation="2012 original and 2022 amended columns with yellow insertion marks"))
+        result = self.validate(review)
+        self.assertEqual(result["risk_pages"]["AMENDMENT_VERSION_CONTEXT_REQUIRED"], [67])
+        self.assertEqual(result["g3b_status"], "EVIDENCE_MANIFEST_VALID_REVIEW_REQUIRED")
+        self.assertFalse(result["full_document_visual_review"])
+
+    def test_26_amendment_highlight_cannot_claim_pass(self):
+        review = self.altered(
+            lambda m: (m["rows"][2].update(
+                disposition="VISUAL_AMENDMENT_HIGHLIGHT_NOT_PRESERVED_TEXT_ONLY"),
+                m.update(status="G3B_PASS; FULL_DOCUMENT_REVIEW_REQUIRED")))
+        with self.assertRaisesRegex(ValueError, "AUTO_APPROVAL_FORBIDDEN"):
+            self.validate(review)
+
     def test_23_graphic_spatial_relation_is_blocked_even_with_text_labels(self):
         r = self.validate(self.altered(
             lambda m: m["rows"][2].update(
