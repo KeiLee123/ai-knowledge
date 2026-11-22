@@ -224,6 +224,16 @@ def test_provider_and_invalid_metadata_diagnostics_do_not_leak():
         assert result['status'] == 'BLOCKED' and 'PRIVATE INPUT' not in json.dumps(result)
 
 
+def test_malformed_provider_shapes_return_blocked_without_traceback():
+    raw, xml = fixture()
+    for malformed in ([None], {'Chapter': [None]},
+                      {'Chapter': [dict(json.loads(raw)['Chapter'][0], Version=[None])]}):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)/'hkel-watch-staging'
+            result = invoke(root, (json.dumps(malformed).encode(), xml))
+            assert result['status'] == 'BLOCKED' and not root.exists(), result
+
+
 def test_production_and_traversal_roots_are_refused():
     for root in (Path('/opt/ai-knowledge/watch/hkel-watch-staging'), Path('/tmp/production/hkel-watch-staging'),
                  Path('/tmp/a/../hkel-watch-staging'), Path('hkel-watch-staging')):

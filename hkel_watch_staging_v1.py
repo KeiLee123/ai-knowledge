@@ -96,11 +96,15 @@ def read_file(path, root, limit):
 
 
 def identity(manifest, registry):
-    source = registry['legislation'][CAP]
+    need(isinstance(registry, dict) and isinstance(registry.get('defaults'), dict)
+         and isinstance(registry.get('legislation'), dict), 'registry_schema_invalid')
+    source = registry['legislation'].get(CAP)
+    need(isinstance(source, dict), 'registry_chapter_missing')
     need(registry['defaults']['source_of_truth'] == 'HKeL'
          and source.get('enabled') is True and str(source['chapter']) == '123'
          and source['title'] == 'Buildings Ordinance', 'registry_identity_mismatch')
-    need(isinstance(manifest.get('Chapter'), list), 'invalid_manifest_chapters')
+    need(isinstance(manifest, dict) and isinstance(manifest.get('Chapter'), list), 'invalid_manifest_chapters')
+    need(all(isinstance(c, dict) for c in manifest['Chapter']), 'invalid_chapter_record')
     chapters = [c for c in manifest['Chapter'] if str(c.get('CapNo', '')).strip() == '123']
     need(len(chapters) == 1, 'chapter_missing_or_ambiguous')
     chapter = legacy.build_chapter_index(manifest)['123']
@@ -110,6 +114,8 @@ def identity(manifest, registry):
     versions = chapter.get('Version', [])
     versions = [versions] if isinstance(versions, dict) else versions
     need(isinstance(versions, list), 'invalid_version_list')
+    need(all(isinstance(v, dict) and isinstance(v.get('VersionDate'), dict) for v in versions),
+         'invalid_version_record')
     current = [v for v in versions if v.get('VersionDate', {}).get('isCurrentVersion') is True]
     need(len(current) == 1, 'current_version_missing_or_ambiguous')
     version = legacy.get_current_version(chapter)
@@ -385,6 +391,7 @@ def run(*, state_root=STATE_ROOT, manifest_raw=None, xml=None, fetch=False, acti
 
 
 def check_checkout():
+    need(Path(__file__).resolve().parent == Path('/opt/ai-knowledge-staging'), 'staging_checkout_required')
     from beta_stage_monitor_candidate_v1 import check_staging_checkout
     check_staging_checkout(Path(__file__).resolve().parent)
 
