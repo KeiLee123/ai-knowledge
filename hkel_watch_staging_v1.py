@@ -261,7 +261,11 @@ def fetch_official(registry):
     manifest_raw = reader.request(MASTER_URL)
     selected = identity(json.loads(manifest_raw.decode('utf-8-sig')), registry)
     with RangedZip(reader) as remote, zipfile.ZipFile(remote) as archive:
-        entries = [m for m in archive.infolist() if m.filename == selected['member']]
+        # Official packages use Windows separators. Compare original header
+        # names with only that separator substitution: ZipInfo.filename may
+        # sanitize separators/NUL differently across operating systems.
+        entries = [m for m in archive.infolist()
+                   if m.orig_filename.replace('\\', '/') == selected['member']]
         need(len(entries) == 1, 'xml_member_missing_or_ambiguous')
         member = entries[0]
         need(0 < member.file_size <= MAX_XML and 0 < member.compress_size <= MAX_XML

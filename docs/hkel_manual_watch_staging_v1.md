@@ -144,3 +144,22 @@ Decision/source links: [Beta contract](https://docs.google.com/document/d/1dfIGs
 [official catalogue](https://data.gov.hk/en-data/dataset/hk-doj-hkel-list-of-legislation-current),
 [JSON dictionary](https://www.elegislation.gov.hk/datagovhk/hkel_list_json-dictionary_en.pdf),
 [reuse terms and attribution](https://data.gov.hk/en/terms-and-conditions).
+
+## 2026-11-22 real Linux source-read blocker and proposed fix
+
+Approved VPS sync to PR118 merge `2eae0ad` succeeded; default CLI correctly
+returned BASELINE_REQUIRED. Fresh official read was BLOCKED: the selected
+central-directory name uses `cap_123_en_c\\cap_123_20260301000000_en_c.xml`,
+while metadata uses `/`. Windows ZipInfo.filename silently normalizes this;
+Linux does not. Read-only VPS diagnosis found zero literal matches and exactly
+one separator-normalized match, with the same manifest SHA/archive ETag.
+
+The feature fix compares ZipInfo.orig_filename, replacing only backslashes
+with forward slashes. No case folding, path resolution or traversal collapse;
+NUL suffixes remain mismatches. Slash/backslash aliases together are ambiguous
+and refused. Continue opening the unique ZipInfo object with existing
+CRC/size/ETag/metadata checks. No canonical source/member/hash change.
+
+The fix is a separate Draft, not deployed. Original VPS read failure remains
+failed acceptance until corrected code receives separately approved runtime
+validation. No baseline was initialized; service/source hashes stayed intact.
