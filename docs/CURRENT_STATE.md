@@ -1,5 +1,23 @@
 # Knowledge Brain — Current State
 
+## 2026-11-22 — HKeL Cap123 manual Staging watch (Draft; not deployed)
+
+Issue #59: `hkel_watch_staging_v1.py` adds the missing isolated single-chapter
+manual watch entry point, reusing the existing law registry/version helpers,
+Cap123 XML parser and M10B immutable-file helpers. Default is no-network,
+no-write planning; public-source fetch and confirmed Staging baseline/candidate
+modes are separate. No Drive/DB/model/timer or accepted-baseline advancement.
+See [bounded contract](hkel_manual_watch_staging_v1.md). This is a Draft proposal,
+not Continuous Watch, active HKeL ingestion or operational authorization.
+
+Base staging `afefeda2ca22de0d9351b6565a08ae53d2938abe` includes merged PR #117;
+exact merge CI 45014216863 passed. Separately approved VPS code sync and actual
+APP145/149 default NO_CHANGE CLI checks passed on 2026-11-22. This supersedes
+the older PR #117 Draft/pending snapshot below only for those bounded results.
+Real changed-source/Drive/index acceptance and legal currentness remain open.
+HKeL source audit found no Staging baseline; Production bootstrap/ingestor
+must not be used as a shortcut. The new adapter has not been sent to VPS.
+
 ## 2026-11-22 — Gate 1 candidate validation adapter (Draft; not deployed)
 
 Issue #59: `beta_validate_drive_candidate_v1.py` joins a freshly read existing
