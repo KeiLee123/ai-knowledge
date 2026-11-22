@@ -130,6 +130,41 @@ def test_official_fetch_uses_bounded_ranges_and_creates_no_state():
         assert result['input_provenance'] == 'official-https'
 
 
+def test_official_windows_zip_member_and_alias_ambiguity():
+    raw, _ = fixture()
+    version = json.loads(raw)['Chapter'][0]['Version'][0]
+    expected = version['FileLocation']+'/'+version['FileName']
+    windows = expected.replace('/', '\\')
+    cases = [([windows], 'BASELINE_REQUIRED'),
+             ([expected, windows], 'BLOCKED'),
+             (['cap_123_en_c\\..\\'+windows], 'BLOCKED'),
+             ([expected+'\x00untrusted'], 'BLOCKED')]
+    for names, status in cases:
+        server = FakeOfficial()
+        stream = io.BytesIO()
+        with zipfile.ZipFile(stream, 'w') as archive:
+            for name in names:
+                member = zipfile.ZipInfo(name)
+                # Preserve raw header bytes on Windows too: its constructor
+                # normally sanitizes separators/NUL before writing fixtures.
+                member.filename = member.orig_filename = name
+                member.compress_type = zipfile.ZIP_DEFLATED
+                archive.writestr(member, server.xml)
+        server.archive = stream.getvalue()
+        with zipfile.ZipFile(io.BytesIO(server.archive)) as archive:
+            assert [m.orig_filename for m in archive.infolist()] == names
+        with tempfile.TemporaryDirectory() as temp, official(server):
+            root = Path(temp)/'hkel-watch-staging'
+            result = mod.run(state_root=root, fetch=True)
+            assert result['status'] == status and not root.exists(), (names, result)
+            if status == 'BASELINE_REQUIRED':
+                assert result['observed']['xml_sha256'] == mod.digest(server.xml)
+                assert result['observed']['member'] == expected
+                assert result['input_provenance'] == 'official-https'
+            else:
+                assert result['reasons'] == ['xml_member_missing_or_ambiguous']
+
+
 def test_ignored_range_mismatched_range_and_weak_etag_fail_before_body():
     for options in ({'ignore_range': True}, {'range_mismatch': True}, {'etag': 'W/"weak"'}, {'changed_etag': True}):
         with tempfile.TemporaryDirectory() as temp, official(FakeOfficial(**options)) as server:

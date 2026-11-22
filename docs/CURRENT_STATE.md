@@ -1,5 +1,16 @@
 # Knowledge Brain — Current State
 
+## 2026-11-22 — HKeL Linux ZIP-member fix (Draft, not deployed)
+
+PR118 merged as `2eae0ad`; exact post-merge CI passed. Approved VPS sync and
+default no-write CLI passed, but real official-source read was BLOCKED because
+the official ZIP uses Windows separators. Read-only diagnosis confirmed the
+same source version/manifest/archive and one backslash-named Cap123 member.
+The scoped feature fix compares original ZIP names with separator substitution
+only and rejects alias ambiguity/NUL/traversal fixtures. No registry/source
+SHA, parser, Frozen layer or storage changes; runtime fix not yet verified.
+See Issue59 and the bounded contract. Real baseline/Drive/index/legal remain open.
+
 ## 2026-11-22 — HKeL Cap123 manual Staging watch (Draft; not deployed)
 
 Issue #59: `hkel_watch_staging_v1.py` adds the missing isolated single-chapter
