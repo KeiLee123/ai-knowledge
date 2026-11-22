@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import subprocess
 import tempfile
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import beta_validate_drive_candidate_v1 as module
@@ -248,6 +249,47 @@ def test_cli_requires_separate_flags_and_preserves_failure_exit_codes():
                                  ("BLOCKED", 2), ("REVIEW_REQUIRED", 3), ("LEXICAL_CANARY_FAILED", 3)):
                 run.return_value = {"status": status}
                 assert module.main(base) == code
+
+
+def test_early_lexical_block_preserves_actual_failure_reason():
+    # Early lexical failures do not have a reference-after hash yet. They must
+    # remain BLOCKED with their own cause, rather than a fabricated mismatch.
+    sha = "a" * 64
+    plan = dict(status="READY_FOR_PARSE", reasons=[], source_id=SOURCE,
+                candidate_id=SOURCE + ":" + sha, candidate_sha256=sha,
+                reference_sha256_before="b" * 64, monitor_output_sha256="c" * 64,
+                monitor_run_id="run", batch_timestamp="batch", trusted_identity={})
+    drive_plan = dict(status="READY_FOR_VERSIONED_DRIVE_STAGING",
+                      candidate_sha256=sha, candidate_size_bytes=123,
+                      drive_remote="unused:", drive_path="unused")
+    item = dict(status="READY_FOR_STAGING_VALIDATION",
+                candidate_id=plan["candidate_id"],
+                monitor_output_sha256=plan["monitor_output_sha256"],
+                candidate={"path": "candidate.pdf",
+                           "accepted_reference_record_sha256": plan["reference_sha256_before"]})
+    handoff = SimpleNamespace(load_source=lambda *args: {},
+                              plan_candidate=lambda **kwargs: drive_plan)
+    def process(*args, validate=False, **kwargs):
+        return dict(plan, status="PARSE_VERIFIED" if validate else "READY_FOR_PARSE")
+    with patch.dict(module.sys.modules, {"beta_stage_monitor_candidate_v1": handoff}), \
+         patch.object(module, "validate_root", return_value=Path("fixture")), \
+         patch.object(module.isolated, "workspace_scope", return_value=Path("workspace")), \
+         patch.object(module.isolated, "process", side_effect=process), \
+         patch.object(module, "sha_file", return_value="d" * 64), \
+         patch.object(module, "inspect_batch", return_value={"results": [item]}), \
+         patch.object(module, "read_existing_drive_candidate", return_value={"sha256": sha, "bytes": 123}), \
+         patch.object(module.lexical, "candidate_paths", side_effect=AssertionError("blocked evidence cannot be joined")):
+        for reason in ("unsafe_candidate_artifact", "manifest_hash_or_parser_drift"):
+            blocked = module.lexical.report_base(SOURCE, sha)
+            blocked["reasons"] = ["candidate_lexical_failed:CandidateError:" + reason]
+            with patch.object(module.lexical, "run", return_value=blocked):
+                report = module.run(Path("summary.json"), SOURCE,
+                                    verify_drive=True, validate=True)
+            assert report["status"] == "BLOCKED", report
+            assert report["reasons"] == blocked["reasons"], report
+            assert report["lexical_status"] == "BLOCKED", report
+            assert report["parse_status"] == "PARSE_VERIFIED", report
+            assert report["answer_verified"] is False
 
 
 def main():

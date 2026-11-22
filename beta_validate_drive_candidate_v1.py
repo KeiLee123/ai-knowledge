@@ -152,12 +152,13 @@ def run(summary, source_id, *, state_root=STATE_ROOT,
         result = lexical.run(source_id, locked["candidate_sha256"],
                              state_root=root, workspace_root=workspace)
         recheck()
-        isolated.need(result.get("reference_sha256_before")
-                      == result.get("reference_sha256_after")
-                      == locked["reference_sha256_before"], "lexical_reference_mismatch")
+        report.update(parse_status=parsed["status"], lexical_status=result["status"])
         if result["status"] == "BLOCKED":
             report.update(status="BLOCKED", reasons=result["reasons"])
             return report
+        isolated.need(result.get("reference_sha256_before")
+                      == result.get("reference_sha256_after")
+                      == locked["reference_sha256_before"], "lexical_reference_mismatch")
         pdf, evidence_path = lexical.candidate_paths(
             workspace, source_id, locked["candidate_sha256"])
         evidence, evidence_sha = lexical.read_evidence(evidence_path)

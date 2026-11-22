@@ -7,6 +7,8 @@ versioned Drive object to the same M9 candidate's existing M10B-1 parse and
 M10B-2A in-memory lexical evidence. Default is a local non-write plan; Drive
 read and isolated candidate-workspace write are separate explicit modes.
 See [contract and remaining gates](beta_drive_isolated_candidate_validation_v1.md).
+PR #117 review reproduced and fixed an early lexical failure being misreported
+as a reference mismatch; a regression preserves the BLOCKED cause and stages.
 Base staging SHA: `9667c26d229f2df5688dd5d63ee23da95aca2f7c`.
 This is an additive engineering proposal, not real changed-source acceptance,
 shared-DB ingestion, new deployment or authorization to merge. The older
@@ -17,7 +19,8 @@ Q01/Q06/Q09/Q14/Q15/Q19/Q19b, one explicitly authorized Staging Feedback saved,
 and VPS Linux 41/41 existing synthetic candidate tests passed. These bounded
 results do not establish legal semantics, currentness, full USER_BETA or this
 new adapter's runtime acceptance; safe detailed evidence is in the owner's
-2026-11-22 local handoff reports, pending canonical external handoff sync.
+2026-11-22 local handoff reports and the dated canonical Drive Current State
+handoff linked above in the repository governance.
 
 **Snapshot date:** 2026-11-01 (GitHub + existing Google Drive product decisions; **not a live VPS audit**).  
 **Owner workstream:** Knowledge Brain backend; consume from 03 — Knowledge & Learning, and expose read-only interfaces to Jarvis Core where warranted.  

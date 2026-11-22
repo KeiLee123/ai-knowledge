@@ -85,6 +85,9 @@ accepted reference, not a cryptographically preserved M9 monitor-time reference.
 Existing M10B-1 workspace identity/idempotence and stale-lock policy are reused.
 Changed references, cached evidence from a different run, parser drift or
 unsupported provenance fail closed. A stale `.lock` is not cleared automatically.
+An early lexical `BLOCKED` result retains its original failure reason and stage
+status even when no reference-after hash was produced. It cannot join evidence
+or become a successful canary result; the fresh intake recheck still applies.
 M10B-1 may leave immutable HOLD evidence; this adapter does not delete or
 rewrite it. Recovery remains an explicit operator review.
 
