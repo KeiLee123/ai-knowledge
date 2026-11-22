@@ -152,9 +152,11 @@ def inspect_xml(raw, selected):
                 'publisher': 'DoJ', 'date': selected['version_date'][:10],
                 'rights': 'the Government of the Hong Kong Special Administrative Region'}
     need(all(field(k) == v for k, v in expected.items()), 'xml_version_or_publisher_mismatch')
-    records = parser_v5.deduplicate(parser_v5.walk(root))
+    # Check raw references before legacy deduplication can hide conflicting text.
+    records = parser_v5.walk(root)
     refs = [r['canonical_reference'] for r in records if r.get('canonical_reference')]
     need(records and refs and max(Counter(refs).values()) == 1, 'empty_or_duplicate_canonical_refs')
+    records = parser_v5.deduplicate(records)
     return {'records': len(records), 'exact_ref_eligible': sum(bool(r['exact_ref_eligible']) for r in records),
             'duplicate_canonical_refs': 0}
 

@@ -163,3 +163,17 @@ CRC/size/ETag/metadata checks. No canonical source/member/hash change.
 The fix is a separate Draft, not deployed. Original VPS read failure remains
 failed acceptance until corrected code receives separately approved runtime
 validation. No baseline was initialized; service/source hashes stayed intact.
+
+## 2026-11-22 raw-reference guard follow-up
+
+PR119 merged as `bdac522` and its installed default/official read-only CLI
+passed on VPS at21:24; the earlier Draft/not-deployed labels above are history.
+Review found that checking duplicate references after parser deduplication could
+hide conflicting text with the same XML ID/reference. The follow-up adapter
+checks raw walk references before retaining the existing deduplication step.
+Conflicting same-ID, different-ID/same-reference and identical duplicates must
+be BLOCKED before any plan/baseline/candidate mode attempts a state write.
+The parser, source identities and approved hashes remain unchanged. This new
+guard is code-only pending its own CI/runtime review, not deployed acceptance
+or authorization to initialize the real baseline. Drive/index, changed actual
+editions and independent legal/semantic correctness remain unverified.
