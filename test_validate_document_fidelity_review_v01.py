@@ -113,6 +113,23 @@ class FidelityTests(unittest.TestCase):
     def test_21_missing_image_metric(self):
         with self.assertRaisesRegex(ValueError,"IMAGE_METRIC"):
             self.validate(self.altered(lambda m:m["rows"][0].pop("embedded_pdf_image_xobjects")))
+    def test_27_prose_page_review_is_evidence_only(self):
+        review = self.altered(
+            lambda m: m["rows"][0].update(
+                disposition="PROSE_TEXT_ORDER_VISUALLY_REVIEWED",
+                observation="Rendered prose heading and reading order visually checked"))
+        result = self.validate(review)
+        self.assertEqual(result["risk_pages"]["PROSE_LAYOUT_REVIEWED_EVIDENCE_ONLY"], [44])
+        self.assertEqual(result["g3b_status"], "EVIDENCE_MANIFEST_VALID_REVIEW_REQUIRED")
+
+    def test_28_prose_review_must_not_claim_auto_approval(self):
+        review = self.altered(
+            lambda m: (m["rows"][0].update(
+                disposition="PROSE_TEXT_ORDER_VISUALLY_REVIEWED"),
+                m.update(status="APPROVED; FULL_DOCUMENT_REVIEW_REQUIRED")))
+        with self.assertRaisesRegex(ValueError, "AUTO_APPROVAL_FORBIDDEN"):
+            self.validate(review)
+
     def test_25_amendment_visual_highlight_is_review_required(self):
         review = self.altered(
             lambda m: m["rows"][2].update(
