@@ -170,6 +170,12 @@ jobs:
           python test_m10b2a_candidate_lexical_v1.py
           python test_beta_validate_drive_candidate_v1.py
 
+      - name: HKeL Cap123 isolated manual watch contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python test_hkel_watch_staging_v1.py
+
       - name: Private Beta Staging Q&A source and citation safety contract
         shell: bash
         run: |
